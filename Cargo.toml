@@ -1,0 +1,8 @@
+[package]
+name = "myrcontroller"
+version = "0.1.0"
+authors = ["tsathish <tsatiz@gmail.com>"]
+
+[dependencies]
+serial = "0.4"
+ihex = "1.0"
