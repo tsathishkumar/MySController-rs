@@ -5,8 +5,8 @@ use serial::prelude::*;
 use std::io::prelude::*;
 
 use std::str;
+use std::sync::mpsc;
 use std::time::Duration;
-
 
 const SETTINGS: serial::PortSettings = serial::PortSettings {
     baud_rate: serial::Baud9600,
@@ -21,18 +21,26 @@ pub struct SerialGateway {
 }
 
 impl SerialGateway {
-    pub fn connect(&self) {
+    pub fn new(serial_port: String) -> SerialGateway {
+        SerialGateway {
+            serial_port: serial_port,
+        }
+    }
+    pub fn connect(&self, serial_sender: mpsc::Sender<String>) {
         let mut port = serial::open(&self.serial_port).unwrap();
-        SerialGateway::interact(&self, &mut port).unwrap(); //TODO: make it async
-        ota::some_funtion();
+        SerialGateway::interact(&self, &mut port, serial_sender).unwrap(); //TODO: make it async
     }
 
-    pub fn interact<T: SerialPort>(&self, port: &mut T) -> serial::Result<()> {
+    pub fn interact<T: SerialPort>(
+        &self,
+        port: &mut T,
+        serial_sender: mpsc::Sender<String>,
+    ) -> serial::Result<()> {
         try!(port.configure(&SETTINGS));
         try!(port.set_timeout(Duration::from_secs(10)));
 
-        let mut buf: Vec<u8> = (1..255).collect();
-        port.write(&String::from("Hello").as_bytes());
+        // let mut buf: Vec<u8> = (1..255).collect();
+        // port.write(&String::from("Hello").as_bytes());
 
         loop {
             let mut read_buf: Vec<u8> = Vec::new();
@@ -41,9 +49,10 @@ impl SerialGateway {
 
             if (read_buf.len() > 1) {
                 println!("{:?}", read_buf);
-                println!("{:?}", str::from_utf8(&read_buf).unwrap());
+                let value = str::from_utf8(&read_buf).unwrap();
+                println!("{:?}", value);
+                serial_sender.send(String::from(value));
             }
         }
-        Ok(())
     }
 }
