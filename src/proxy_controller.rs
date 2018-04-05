@@ -1,4 +1,4 @@
-use gateway::SerialGateway;
+use gateway::{SerialReader, SerialWriter};
 use std::sync::mpsc;
 use std::thread;
 
@@ -16,30 +16,30 @@ impl ProxyController {
     }
 
     pub fn start(&self) {
-        let controller_in = SerialGateway::new(self.controller_port.clone());
-        let gateway_in = SerialGateway::new(self.gateway_port.clone());
-        let controller_out = SerialGateway::new(self.controller_port.clone());
-        let gateway_out = SerialGateway::new(self.gateway_port.clone());
         let (gateway_tx, gateway_rx) = mpsc::channel();
-
         let (controller_tx, controller_rx) = mpsc::channel();
+        let controller_in = SerialReader::new(self.controller_port.clone(),controller_tx);
+        let gateway_in = SerialReader::new(self.gateway_port.clone(), gateway_tx);
+        let controller_out = SerialWriter::new(self.controller_port.clone(), gateway_rx);
+        let gateway_out = SerialWriter::new(self.gateway_port.clone(), controller_rx);
+        
         let gateway_reader = thread::spawn(move || {
-            gateway_in.read(gateway_tx);
+            gateway_in.read();
         });
         let controller_reader = thread::spawn(move || {
-            controller_in.read(controller_tx);
+            controller_in.read();
         });
 
-        let gateway_writer = thread::spawn(move || {
-            gateway_out.write(controller_rx);
-        });
+        // let gateway_writer = thread::spawn(move || {
+        //     gateway_out.write();
+        // });
         let controller_writer = thread::spawn(move || {
-            controller_out.write(gateway_rx);
+            controller_out.write();
         });
 
         gateway_reader.join().unwrap();
         controller_reader.join().unwrap();
-        gateway_writer.join().unwrap();
+        // gateway_writer.join().unwrap();
         controller_writer.join().unwrap();
     }
 }
