@@ -1,6 +1,11 @@
-use gateway::{SerialReader, SerialWriter};
+use serialport;
+use serialport::prelude::*;
+
+use gateway;
 use std::sync::mpsc;
 use std::thread;
+use std::time::Duration;
+
 
 pub struct ProxyController {
     gateway_port: String,
@@ -16,30 +21,35 @@ impl ProxyController {
     }
 
     pub fn start(&self) {
+        let mut settings: SerialPortSettings = Default::default();
+        settings.timeout = Duration::from_millis(10);
+        settings.baud_rate = BaudRate::Baud38400;
+        let mut gateway_port = serialport::open_with_settings(&self.gateway_port, &settings).unwrap();
+        let mut gateway_write_port = gateway_port.try_clone().unwrap();
+        let mut controller_port = serialport::open_with_settings(&self.controller_port, &settings).unwrap();
+        let mut controller_write_port = controller_port.try_clone().unwrap();
+
         let (gateway_tx, gateway_rx) = mpsc::channel();
         let (controller_tx, controller_rx) = mpsc::channel();
-        let controller_in = SerialReader::new(self.controller_port.clone(),controller_tx);
-        let gateway_in = SerialReader::new(self.gateway_port.clone(), gateway_tx);
-        let controller_out = SerialWriter::new(self.controller_port.clone(), gateway_rx);
-        let gateway_out = SerialWriter::new(self.gateway_port.clone(), controller_rx);
         
         let gateway_reader = thread::spawn(move || {
-            gateway_in.read();
+            gateway::read(&mut gateway_port, &gateway_tx);
         });
         let controller_reader = thread::spawn(move || {
-            controller_in.read();
+            gateway::read(&mut controller_port, &controller_tx);
         });
 
-        // let gateway_writer = thread::spawn(move || {
-        //     gateway_out.write();
-        // });
+        let gateway_writer = thread::spawn(move || {
+            gateway::write(&mut gateway_write_port, &controller_rx);
+        });
+        
         let controller_writer = thread::spawn(move || {
-            controller_out.write();
+            gateway::write(&mut controller_write_port, &gateway_rx);
         });
 
         gateway_reader.join().unwrap();
         controller_reader.join().unwrap();
-        // gateway_writer.join().unwrap();
+        gateway_writer.join().unwrap();
         controller_writer.join().unwrap();
     }
 }

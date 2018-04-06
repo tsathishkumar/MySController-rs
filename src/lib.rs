@@ -1,4 +1,4 @@
-extern crate serial;
+extern crate serialport;
 extern crate ihex;
 
 pub mod ota;
