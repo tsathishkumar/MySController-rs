@@ -1,11 +1,10 @@
 use serialport::prelude::*;
 
-use std::io::prelude::*;
 use std::io;
+use std::io::prelude::*;
 use std::str;
 
 use std::sync::mpsc;
-
 
 pub fn write(port: &mut Box<SerialPort>, serial_receiver: &mpsc::Receiver<String>) {
     loop {
@@ -14,9 +13,7 @@ pub fn write(port: &mut Box<SerialPort>, serial_receiver: &mpsc::Receiver<String
     }
 }
 
-pub fn read(
-    port: &mut Box<SerialPort>, serial_sender: &mpsc::Sender<String>
-) {
+pub fn read(port: &mut Box<SerialPort>, serial_sender: &mpsc::Sender<String>) {
     loop {
         let mut line = String::new();
         let mut serial_buf: Vec<u8> = vec![0; 1];
@@ -32,7 +29,7 @@ pub fn read(
                     if s.contains("\n") {
                         break;
                     }
-                },
+                }
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                 Err(e) => eprintln!("{:?}", e),
             }

@@ -4,5 +4,8 @@ version = "0.1.0"
 authors = ["tsathish <tsatiz@gmail.com>"]
 
 [dependencies]
-serialport = "2.3.0"
+serialport = "2.3"
 ihex = "1.0"
+hex = "0.3"
+enum_primitive = "0.1"
+num = "0.1"
