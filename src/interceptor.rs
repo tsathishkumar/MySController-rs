@@ -14,8 +14,8 @@ pub fn intercept(
         match command_message_result {
             Ok(command_message) => {
                 println!("command type is {:?}", command_message);
-                match message::CommandType::_u8(command_message.command) {
-                    enum_primitive::Option::Some(message::CommandType::STREAM) => {
+                match command_message.command {
+                    message::CommandType::STREAM => {
                         ota_sender.send(command_message).unwrap()
                     }
                     _ => controller_sender.send(request).unwrap(),

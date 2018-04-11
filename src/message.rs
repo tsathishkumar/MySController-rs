@@ -9,7 +9,7 @@ const HEADER_SIZE: usize = 7;
 const MAX_PAYLOAD: usize = MAX_MESSAGE_LENGTH - HEADER_SIZE;
 
 enum_from_primitive! {
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Clone)]
     pub enum CommandType {
         PRESENTATION = 0,
         SET = 1,
@@ -20,7 +20,7 @@ enum_from_primitive! {
 }
 
 enum_from_primitive! {
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Clone)]
     pub enum CommandSubType {
         StFirmwareConfigRequest  = 0,
         StFirmwareConfigResponse = 1,
@@ -46,9 +46,9 @@ impl CommandSubType {
 pub struct CommandMessage {
     node_id: u8,
     child_sensor_id: u8,
-    pub command: u8,
+    pub command: CommandType,
     ack: u8,
-    sub_type: u8,
+    sub_type: CommandSubType,
     pub payload: MessagePayloadType,
 }
 
@@ -82,13 +82,13 @@ impl CommandMessage {
                 Ok(result) => result,
                 _ => return Err("Error parsing string to child_sensor_id".to_string()),
             },
-            command: command,
+            command: CommandType::from_u8(command).unwrap(),
             ack: match message_parts[3].parse::<u8>() {
                 Ok(result) => result,
                 _ => return Err("Error parsing string to ack".to_string()),
             },
             sub_type: match message_parts[4].parse::<u8>() {
-                Ok(result) => result,
+                Ok(result) => CommandSubType::from_u8(result).unwrap(),
                 _ => return Err("Error parsing string to sub_type".to_string()),
             },
             payload: match command {
@@ -107,16 +107,13 @@ impl CommandMessage {
         })
     }
 
-    pub fn to_response(&mut self) {
-        self.sub_type = match CommandSubType::from_u8(self.sub_type) {
-            enum_primitive::Option::Some(CommandSubType::StFirmwareConfigRequest) => {
-                CommandSubType::StFirmwareConfigResponse as u8
-            }
-            enum_primitive::Option::Some(CommandSubType::StFirmwareRequest) => {
-                CommandSubType::StFirmwareResponse as u8
-            }
-            _ => 0,
-        }
+    pub fn to_response(&mut self) -> Result<String, String>{
+        self.sub_type = match self.sub_type {
+            CommandSubType::StFirmwareConfigRequest => CommandSubType::StFirmwareConfigResponse,
+            CommandSubType::StFirmwareRequest => CommandSubType::StFirmwareResponse,
+            _ => return Err(String::from("CommandSubType is not handled")),
+        };
+        return Ok(String::from("Ok"));
     }
 }
 
@@ -219,20 +216,14 @@ mod test {
     fn parse_correct_command_type() {
         let message_string = "1;255;4;0;0;FFFFFFFFFFFFFE400102";
         let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
-        assert_eq!(
-            CommandType::from_u8(command_message.command),
-            Some(CommandType::STREAM)
-        );
+        assert_eq!(command_message.command,CommandType::STREAM);
     }
 
     #[test]
-    fn parse_correct_command_sub_type() {
+    fn parse_correct_command_fw_config_request() {
         let message_string = "1;255;4;0;0;0A0001005000D4460102\n";
         let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
-        assert_eq!(
-            CommandSubType::from_u8(command_message.sub_type),
-            Some(CommandSubType::StFirmwareConfigRequest)
-        );
+        assert_eq!(command_message.sub_type,CommandSubType::StFirmwareConfigRequest);
         let stream_payload = match command_message.payload {
             MessagePayloadType::StreamPayload(stream_payload) => Some(stream_payload),
             _ => None,
@@ -244,5 +235,24 @@ mod test {
         assert_eq!(unsafe{stream_payload.unwrap().message.command_ack_payload}, 80);
         assert_eq!(unsafe{stream_payload.unwrap().message._type}, 0);
         assert_eq!(unsafe{stream_payload.unwrap().message.sensor}, 212);
+    }
+
+    #[test]
+    fn parse_correct_command_fw_request() {
+        let message_string = "1;255;4;0;0;0A0001004F00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF\n ";
+        let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
+        assert_eq!(command_message.sub_type,CommandSubType::StFirmwareConfigRequest);
+        let stream_payload = match command_message.payload {
+            MessagePayloadType::StreamPayload(stream_payload) => Some(stream_payload),
+            _ => None,
+        };
+        println!("{:?}", unsafe{stream_payload.unwrap().message});
+        assert_eq!(unsafe{stream_payload.unwrap().message.last}, 10);
+        assert_eq!(unsafe{stream_payload.unwrap().message.sender}, 0);
+        assert_eq!(unsafe{stream_payload.unwrap().message.destination}, 1);
+        assert_eq!(unsafe{stream_payload.unwrap().message.version_length}, 0);
+        assert_eq!(unsafe{stream_payload.unwrap().message.command_ack_payload}, 79);
+        assert_eq!(unsafe{stream_payload.unwrap().message._type}, 0);
+        assert_eq!(unsafe{stream_payload.unwrap().message.sensor}, 255);
     }
 }
