@@ -23,7 +23,7 @@ pub fn read(port: &mut Box<SerialPort>, serial_sender: &mpsc::Sender<String>) {
                 Ok(_t) => {
                     let s = match str::from_utf8(&serial_buf) {
                         Ok(v) => v,
-                        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+                        Err(_e) => break,
                     };
                     line.push_str(&s);
                     if s.contains("\n") {
@@ -31,7 +31,7 @@ pub fn read(port: &mut Box<SerialPort>, serial_sender: &mpsc::Sender<String>) {
                     }
                 }
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                Err(e) => eprintln!("{:?}", e),
+                Err(e) => panic!("{:?}", e),
             }
         }
         println!("{:?}", line);

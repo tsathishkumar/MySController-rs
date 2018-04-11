@@ -6,7 +6,6 @@ extern crate enum_primitive;
 extern crate num;
 
 extern crate serialport;
-extern crate ihex;
 extern crate hex;
 
 pub mod ota;

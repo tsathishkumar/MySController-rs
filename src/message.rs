@@ -3,7 +3,6 @@ use num::FromPrimitive;
 
 use hex;
 use std::fmt;
-use std::io;
 
 const MAX_MESSAGE_LENGTH: usize = 32;
 const HEADER_SIZE: usize = 7;
@@ -23,12 +22,13 @@ enum_from_primitive! {
 enum_from_primitive! {
     #[derive(Debug, PartialEq)]
     pub enum CommandSubType {
-        StFirmwareConfigRequest = 0,
+        StFirmwareConfigRequest  = 0,
         StFirmwareConfigResponse = 1,
         StFirmwareRequest = 2,  // Request FW block
         StFirmwareResponse = 3, // Response FW block
     }
 }
+
 impl CommandType {
     pub fn _u8(value: u8) -> enum_primitive::Option<CommandType> {
         CommandType::from_u8(value)
@@ -42,35 +42,33 @@ impl CommandSubType {
 }
 
 //"node-id ; child-sensor-id ; command ; ack ; type ; payload \n"
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CommandMessage {
     node_id: u8,
     child_sensor_id: u8,
     pub command: u8,
     ack: u8,
     sub_type: u8,
-    payload: MessagePayloadType,
+    pub payload: MessagePayloadType,
 }
 
-#[derive(Debug)]
-enum MessagePayloadType {
+#[derive(Debug, Clone)]
+pub enum MessagePayloadType {
     StreamPayload(MessagePayload),
+    StFirmwareConfigResponsePayload(String),
+    StFirmwareResponsePayload(String),
     OtherPayload(String),
 }
 
 impl CommandMessage {
     pub fn new(command_message: &String) -> Result<CommandMessage, String> {
-        let message_parts = command_message.split(";").collect::<Vec<&str>>();
+        let message_parts = command_message.trim().split(";").collect::<Vec<&str>>();
         if message_parts.len() < 6 {
             return Err(
                 "Invalid Command Message, should have 6 components separated by ';'".to_string(),
             );
         }
-        let command_vector = match hex::decode(message_parts[5]) {
-            Ok(result) => result,
-            _ => return Err("Error while decoding hex".to_string()),
-        };
-        let array_val = vector_as_u8_32_array(command_vector);
+
         let command = match message_parts[2].parse::<u8>() {
             Ok(result) => result,
             _ => return Err("Error parsing string to command".to_string()),
@@ -94,16 +92,36 @@ impl CommandMessage {
                 _ => return Err("Error parsing string to sub_type".to_string()),
             },
             payload: match command {
-                4 => MessagePayloadType::StreamPayload(MessagePayload {
-                    bin_payload: array_val,
-                }),
+                4 => {
+                    let command_vector = match hex::decode(message_parts[5]) {
+                        Ok(result) => result,
+                        _ => return Err("Error while decoding hex".to_string()),
+                    };
+                    let array_val = vector_as_u8_32_array(command_vector);
+                    MessagePayloadType::StreamPayload(MessagePayload {
+                        bin_payload: array_val,
+                    })
+                }
                 _ => MessagePayloadType::OtherPayload(String::from(message_parts[5])),
             },
         })
     }
+
+    pub fn to_response(&mut self) {
+        self.sub_type = match CommandSubType::from_u8(self.sub_type) {
+            enum_primitive::Option::Some(CommandSubType::StFirmwareConfigRequest) => {
+                CommandSubType::StFirmwareConfigResponse as u8
+            }
+            enum_primitive::Option::Some(CommandSubType::StFirmwareRequest) => {
+                CommandSubType::StFirmwareResponse as u8
+            }
+            _ => 0,
+        }
+    }
 }
 
-union MessagePayload {
+#[derive(Clone, Copy)]
+pub union MessagePayload {
     pub message: StreamMessage,
     pub bin_payload: [u8; MAX_MESSAGE_LENGTH],
 }
@@ -116,7 +134,8 @@ impl MessagePayload {
     }
 }
 
-struct StreamMessage {
+#[derive(Clone, Copy)]
+pub struct StreamMessage {
     last: u8,        // 8 bit - Id of last node this message passed
     sender: u8,      // 8 bit - Id of sender node (origin)
     destination: u8, // 8 bit - Id of destination node
@@ -131,10 +150,7 @@ struct StreamMessage {
     pub _type: u8, // 8 bit - Type varies depending on command
     sensor: u8,    // 8 bit - Id of sensor that this message concerns.
 
-    // Each message can transfer a payload. We add one extra byte for string
-    // terminator \0 to be "printable" this is not transferred OTA
-    // This union is used to simplify the construction of the binary data types transferred.
-    payload: StreamPayload,
+    pub data: [u8; MAX_PAYLOAD],
 }
 
 impl fmt::Debug for MessagePayload {
@@ -146,31 +162,8 @@ impl fmt::Debug for MessagePayload {
 impl fmt::Debug for StreamMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "last: {}, sender: {}, destination: {}, version_length: {}, command_ack_payload: {}, _type: {}, sensor: {}, payload: {:?}", 
-        self.last, self.sender, self.destination, self.version_length, self.command_ack_payload, self._type, self.sensor, unsafe{self.payload.data} )
+        self.last, self.sender, self.destination, self.version_length, self.command_ack_payload, self._type, self.sensor, self.data )
     }
-}
-
-union StreamPayload {
-    b_value: u8,
-    ui_value: u16,
-    i_value: i16,
-    ul_value: u32,
-    l_value: i32,
-    msg_float: FloatMessage,
-    msg_presentation: PresentationMessage,
-    data: [char; MAX_PAYLOAD],
-}
-
-struct FloatMessage {
-    // Float messages
-    f_value: f32,
-    f_precision: u8, // Number of decimals when serializing
-}
-
-struct PresentationMessage {
-    // Presentation messages
-    version: u8,     // Library version
-    sensor_type: u8, // Sensor type hint for controller, see table above
 }
 
 pub fn command_type(message_string: &String) -> Option<CommandType> {
@@ -225,7 +218,7 @@ mod test {
     #[test]
     fn parse_correct_command_type() {
         let message_string = "1;255;4;0;0;FFFFFFFFFFFFFE400102";
-        let command_message = CommandMessage::new(&String::from(message_string));
+        let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
         assert_eq!(
             CommandType::from_u8(command_message.command),
             Some(CommandType::STREAM)
@@ -234,11 +227,22 @@ mod test {
 
     #[test]
     fn parse_correct_command_sub_type() {
-        let message_string = "1;255;4;0;0;FFFFFFFFFFFFFE400102";
-        let command_message = CommandMessage::new(&String::from(message_string));
+        let message_string = "1;255;4;0;0;0A0001005000D4460102\n";
+        let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
         assert_eq!(
             CommandSubType::from_u8(command_message.sub_type),
             Some(CommandSubType::StFirmwareConfigRequest)
         );
+        let stream_payload = match command_message.payload {
+            MessagePayloadType::StreamPayload(stream_payload) => Some(stream_payload),
+            _ => None,
+        };
+        assert_eq!(unsafe{stream_payload.unwrap().message.last}, 10);
+        assert_eq!(unsafe{stream_payload.unwrap().message.sender}, 0);
+        assert_eq!(unsafe{stream_payload.unwrap().message.destination}, 1);
+        assert_eq!(unsafe{stream_payload.unwrap().message.version_length}, 0);
+        assert_eq!(unsafe{stream_payload.unwrap().message.command_ack_payload}, 80);
+        assert_eq!(unsafe{stream_payload.unwrap().message._type}, 0);
+        assert_eq!(unsafe{stream_payload.unwrap().message.sensor}, 212);
     }
 }
