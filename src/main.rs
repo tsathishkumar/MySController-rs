@@ -18,8 +18,8 @@ fn main() {
         Some(value) => value,
         None => panic!("Possible values for CONTROLLER_CONNECTION is 'TCP_SERVER' or 'SERIAL'"),
     };
-    let gateway_port = env::var("SERIAL_PORT")
-        .expect("Gateway port is not specified. Ex: 'export SERIAL_PORT=/dev/tty1' or 'export SERIAL_PORT=10.137.120.250:5003'");
+    let gateway_port = env::var("GATEWAY_PORT")
+        .expect("Gateway port is not specified. Ex: 'export GATEWAY_PORT=/dev/tty1' or 'export SERIAL_PORT=10.137.120.250:5003'");
 
     let controller_port = env::var("CONTROLLER_PORT")
         .expect("Controller port is not specified. Ex: 'export CONTROLLER_PORT=/dev/tty2' or 'export CONTROLLER_PORT=0.0.0.0:5003'");

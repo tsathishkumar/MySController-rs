@@ -20,7 +20,7 @@ pub enum ConnectionType {
 impl ConnectionType {
     pub fn from_str(s: &str) -> Option<ConnectionType> {
         match s {
-            "SERIAL_PORT" => Some(ConnectionType::Serial),
+            "SERIAL" => Some(ConnectionType::Serial),
             "TCP_SERVER" => Some(ConnectionType::TcpServer),
             "TCP_CLIENT" => Some(ConnectionType::TcpClient),
             _ => None,
