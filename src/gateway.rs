@@ -1,19 +1,20 @@
-use serialport::prelude::*;
-
 use std::io;
-use std::io::prelude::*;
 use std::str;
 
 use std::sync::mpsc;
 
-pub fn write(port: &mut Box<SerialPort>, serial_receiver: &mpsc::Receiver<String>) {
+pub fn write<W: io::Write>(port: &mut W, serial_receiver: &mpsc::Receiver<String>) {
     loop {
-        let received_value: String = serial_receiver.recv().unwrap();
-        port.write(&received_value.as_bytes()).unwrap();
+        match serial_receiver.recv() {
+            Ok(received_value) => {
+                port.write(&received_value.as_bytes()).unwrap();
+            }
+            Err(error) => eprintln!("{:?}", error),
+        }
     }
 }
 
-pub fn read(port: &mut Box<SerialPort>, serial_sender: &mpsc::Sender<String>) {
+pub fn read<R: io::Read>(port: &mut R, serial_sender: &mpsc::Sender<String>) {
     loop {
         let mut line = String::new();
         let mut serial_buf: Vec<u8> = vec![0; 1];

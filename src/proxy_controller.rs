@@ -38,6 +38,7 @@ impl ProxyController {
             let (ota_sender, ota_receiver) = mpsc::channel();
             let (controller_in_sender, controller_in_receiver) = mpsc::channel();
             let (controller_out_sender, controller_out_receiver) = mpsc::channel();
+            let ota_fw_sender = controller_in_sender.clone();
 
             let gateway_reader = thread::spawn(move || {
                 gateway::read(&mut gateway_port, &gateway_sender);
@@ -59,7 +60,7 @@ impl ProxyController {
             });
 
             let ota_processor = thread::spawn(move || {
-                ota::process_ota(&ota_receiver);
+                ota::process_ota(&ota_receiver, &ota_fw_sender);
             });
 
             message_interceptor.join().unwrap();

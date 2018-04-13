@@ -18,3 +18,4 @@ pub mod interceptor;
 pub mod message;
 pub mod ota;
 pub mod proxy_controller;
+pub mod tcp_gateway;

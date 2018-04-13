@@ -2,7 +2,6 @@ use enum_primitive;
 use num::FromPrimitive;
 
 use hex;
-use std::fmt;
 use std::mem;
 
 use ota::Firmware;
@@ -27,6 +26,7 @@ enum_from_primitive! {
         StFirmwareConfigResponse = 1,
         StFirmwareRequest = 2,  // Request FW block
         StFirmwareResponse = 3, // Response FW block
+        Other = 9
     }
 }
 
@@ -121,15 +121,23 @@ impl CommandMessage {
             Ok(result) => CommandType::from_u8(result).unwrap(),
             _ => return Err("Error parsing string to command".to_string()),
         };
-        let sub_type = match message_parts[4].parse::<u8>() {
-            Ok(result) => CommandSubType::from_u8(result).unwrap(),
-            _ => return Err("Error parsing string to sub_type".to_string()),
+        let sub_type = match command {
+            CommandType::STREAM => match message_parts[4].parse::<u8>() {
+                Ok(result) => CommandSubType::from_u8(result).unwrap(),
+                _ => return Err("Error parsing string to sub_type".to_string()),
+            },
+            _ => CommandSubType::Other,
         };
-        let command_vector = match hex::decode(message_parts[5]) {
-            Ok(result) => result,
-            _ => return Err("Error while decoding hex".to_string()),
+        let array_val = match command {
+            CommandType::STREAM => {
+                let command_vector = match hex::decode(message_parts[5]) {
+                    Ok(result) => result,
+                    _ => return Err("Error while decoding hex".to_string()),
+                };
+                vector_as_u8_32_array(command_vector)
+            }
+            _ => [0; 32],
         };
-        let array_val = vector_as_u8_32_array(command_vector);
         Result::Ok(CommandMessage {
             node_id: match message_parts[0].parse::<u8>() {
                 Ok(result) => result,
@@ -176,12 +184,20 @@ impl CommandMessage {
         };
 
         self.payload = match self.payload {
-            MessagePayloadType::FwConfigRequest(request) => {
+            MessagePayloadType::FwConfigRequest(_request) => {
                 MessagePayloadType::FwConfigResponse(FwConfigResponseMessage {
                     _type: firmware._type,
                     version: firmware.version,
                     blocks: firmware.blocks,
                     crc: firmware.crc,
+                })
+            }
+            MessagePayloadType::FwRequest(request) => {
+                MessagePayloadType::FwResponse(FwResponseMessage {
+                    _type: firmware._type,
+                    version: firmware.version,
+                    blocks: request.blocks,
+                    data: firmware.get_block(request.blocks),
                 })
             }
             _ => self.payload,
@@ -190,7 +206,7 @@ impl CommandMessage {
 }
 
 impl CommandMessage {
-    fn serialize(self) -> String {
+    pub fn serialize(self) -> String {
         let _cmd = (self.command) as u8;
         let _sub_type = (self.sub_type) as u8;
         let payload = match self.payload {
@@ -245,6 +261,7 @@ fn vector_as_u8_32_array(vector: Vec<u8>) -> [u8; MAX_MESSAGE_LENGTH] {
 mod test {
 
     use super::*;
+    use ota;
 
     #[test]
     fn parse_correct_command_fw_config_request() {
@@ -350,6 +367,17 @@ mod test {
         assert_eq!(
             command_message.serialize(),
             String::from("1;255;4;0;1;0A0002004F00E803\n")
+        );
+    }
+
+    #[test]
+    fn convert_fw_request_to_response() {
+        let message_string = "1;255;4;0;2;0A0002000700\n";
+        let mut command_message = CommandMessage::new(&String::from(message_string)).unwrap();
+        command_message.to_response(&ota::prepare_fw());
+        assert_eq!(
+            command_message.serialize(),
+            String::from("1;255;4;0;3;0A000200070000030407000000000000000001020408\n")
         );
     }
 }

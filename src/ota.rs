@@ -1,16 +1,15 @@
-use message::{CommandMessage, CommandSubType, MessagePayloadType};
+use message::{CommandMessage, CommandSubType};
 
 use ihex::record::Record;
-
-use hex;
 
 use crc16::*;
 
 use std::sync::mpsc;
 
 use std::fs::File;
+use std::io::BufReader;
 use std::io::prelude::*;
-use std::io::{BufReader};
+use std::iter::FromIterator;
 
 const FIRMWARE_BLOCK_SIZE: u16 = 16;
 
@@ -25,30 +24,67 @@ pub struct Firmware {
 
 impl Firmware {
   pub fn new(_type: u16, version: u16, blocks: u16, crc: u16, bin_data: Vec<u8>) -> Firmware {
-    Firmware {_type: _type, version: version, blocks: blocks, crc: crc, bin_data: bin_data}
+    Firmware {
+      _type: _type,
+      version: version,
+      blocks: blocks,
+      crc: crc,
+      bin_data: bin_data,
+    }
+  }
+
+  pub fn get_block(&self, block: u16) -> [u8; 16] {
+    let start_index: usize = (block * 16) as usize;
+    if start_index > self.bin_data.len() {
+      let no_binary: [u8; 16] = [0; 16];
+      return no_binary;
+    }
+    let v = Vec::from_iter(
+      self.bin_data[start_index..(start_index + 16) as usize]
+        .iter()
+        .cloned(),
+    );
+    let mut block = [0u8; 16];
+    for (place, element) in block.iter_mut().zip(v.iter()) {
+      *place = *element;
+    }
+    block
   }
 }
 
-pub fn process_ota(ota_receiver: &mpsc::Receiver<CommandMessage>) {
+pub fn process_ota(
+  ota_receiver: &mpsc::Receiver<CommandMessage>,
+  serial_sender: &mpsc::Sender<String>,
+) {
   let only_firmware = prepare_fw();
   loop {
-    let command_message_request = ota_receiver.recv().unwrap();
-    match command_message_request.sub_type {
-      CommandSubType::StFirmwareConfigRequest => {
-        send_fw_config_response(command_message_request.clone(), &only_firmware)
-      }
-      CommandSubType::StFirmwareRequest => send_fw_response(command_message_request.clone()),
+    match ota_receiver.recv() {
+      Ok(command_message_request) => match command_message_request.sub_type {
+        CommandSubType::StFirmwareConfigRequest => send_response(
+          serial_sender,
+          command_message_request.clone(),
+          &only_firmware,
+        ),
+        CommandSubType::StFirmwareRequest => send_response(
+          serial_sender,
+          command_message_request.clone(),
+          &only_firmware,
+        ),
+        _ => (),
+      },
       _ => (),
     }
   }
 }
 
-fn send_fw_config_response(mut command_message: CommandMessage, _firmware: &Firmware) {
-  command_message.to_response(_firmware) 
-  
+fn send_response(
+  serial_sender: &mpsc::Sender<String>,
+  mut command_message: CommandMessage,
+  _firmware: &Firmware,
+) {
+  command_message.to_response(_firmware);
+  serial_sender.send(command_message.serialize()).unwrap();
 }
-
-fn send_fw_response(_command_message: CommandMessage) {}
 
 pub fn ihex_to_bin(record: &Record) -> Vec<u8> {
   match record {
@@ -69,8 +105,7 @@ pub fn prepare_fw() -> Firmware {
 
   let mut state = State::<MODBUS>::new();
   state.update(&result_bin);
-  let crc = state.get();
-  println!("{}", crc);
+  // let crc = state.get();
   let pads: usize = result_bin.len() % 128; // 128 bytes per page for atmega328
   for _ in 0..(128 - pads) {
     result_bin.push(255);
@@ -89,33 +124,32 @@ pub fn prepare_fw() -> Firmware {
 mod test {
   use super::*;
 
+  use hex;
+
   #[test]
-  fn test_reader_respects_all_newline_formats() {
+  fn reader_respects_all_newline_formats() {
     let input = String::new() + &":100490008B002097E1F30E940000F9CF0895F894B3";
 
-    assert_eq!(String::from("8B002097E1F30E940000F9CF0895F894"), hex::encode_upper(ihex_to_bin(&Record::from_record_string(&input).unwrap())));
+    assert_eq!(
+      String::from("8B002097E1F30E940000F9CF0895F894"),
+      hex::encode_upper(ihex_to_bin(&Record::from_record_string(&input).unwrap()))
+    );
   }
 
   #[test]
-  fn test_hex_file_to_vector() {
+  fn hex_file_to_vector() {
     let fw_binary = prepare_fw();
-    println!("{:?}", fw_binary);
     assert!(fw_binary.bin_data.len() == 1280);
   }
 
-  // #[test]
-  // fn test_crc() {
-  //   // use provided or custom polynomial
-  //   let mut digest = crc16::Digest::new_with_initial(0x18005, 0xFFFF);
-  //   digest.write(&prepare_fw());
-  //   assert_eq!(digest.sum16(), 0xD446);
-  // }
-
-  // #[test]
-  // fn test_crc16() {
-  //   let mut state = State::<MODBUS>::new();
-  //   state.update(&prepare_fw());
-  //   let crc = state.get();
-  //   assert_eq!(crc, 0xD446);
-  // }
+  #[test]
+  fn extract_given_block_from_binary_data() {
+    let fw_binary = prepare_fw();
+    assert!(
+      fw_binary.get_block(1)
+        == [
+          12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0
+        ]
+    );
+  }
 }
