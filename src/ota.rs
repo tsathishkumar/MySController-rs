@@ -104,22 +104,25 @@ pub fn prepare_fw() -> Firmware {
   let mut result_bin: Vec<u8> = f.lines()
     .flat_map(|line| ihex_to_bin(&Record::from_record_string(&line.unwrap()).unwrap()))
     .collect();
-
-  let mut state = State::<MODBUS>::new();
-  state.update(&result_bin);
-  // let crc = state.get();
   let pads: usize = result_bin.len() % 128; // 128 bytes per page for atmega328
   for _ in 0..(128 - pads) {
     result_bin.push(255);
   }
   let blocks: u16 = result_bin.len() as u16 / FIRMWARE_BLOCK_SIZE;
+  
   Firmware {
     _type: 10,
     version: 2,
     blocks: blocks,
-    crc: 0x46D4,
+    crc: compute_crc(&result_bin),
     bin_data: result_bin,
   }
+}
+
+fn compute_crc(bin_data: &[u8]) -> u16{
+  let mut state = State::<MODBUS>::new();
+  state.update(bin_data);
+  state.get()
 }
 
 #[cfg(test)]
@@ -153,5 +156,11 @@ mod test {
           12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0
         ]
     );
+  }
+
+  #[test]
+  fn compute_correct_crc() {
+    let fw_binary = prepare_fw();
+    assert_eq!(compute_crc(&fw_binary.bin_data), 0x46D4);
   }
 }
