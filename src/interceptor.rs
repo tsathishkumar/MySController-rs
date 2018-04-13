@@ -1,4 +1,3 @@
-use enum_primitive;
 use message;
 use std::sync::mpsc;
 

@@ -2,14 +2,12 @@ use enum_primitive;
 use num::FromPrimitive;
 
 use hex;
-use std::fmt;
+use std::mem;
 
 const MAX_MESSAGE_LENGTH: usize = 32;
-const HEADER_SIZE: usize = 7;
-const MAX_PAYLOAD: usize = MAX_MESSAGE_LENGTH - HEADER_SIZE;
 
 enum_from_primitive! {
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Debug, PartialEq, Clone, Copy)]
     pub enum CommandType {
         PRESENTATION = 0,
         SET = 1,
@@ -20,7 +18,7 @@ enum_from_primitive! {
 }
 
 enum_from_primitive! {
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Debug, PartialEq, Clone, Copy)]
     pub enum CommandSubType {
         StFirmwareConfigRequest  = 0,
         StFirmwareConfigResponse = 1,
@@ -42,22 +40,69 @@ impl CommandSubType {
 }
 
 //"node-id ; child-sensor-id ; command ; ack ; type ; payload \n"
-#[derive(Debug, Clone)]
+#[derive(Clone, Copy, Debug)]
 pub struct CommandMessage {
     node_id: u8,
     child_sensor_id: u8,
     pub command: CommandType,
     ack: u8,
-    sub_type: CommandSubType,
+    pub sub_type: CommandSubType,
     pub payload: MessagePayloadType,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum MessagePayloadType {
-    StreamPayload(MessagePayload),
-    StFirmwareConfigResponsePayload(String),
-    StFirmwareResponsePayload(String),
-    OtherPayload(String),
+    FwConfigRequest(FwConfigRequestMessage),
+    FwRequest(FwRequestMessage),
+    FwConfigResponse(FwConfigResponseMessage),
+    FwResponse(FwResponseMessage),
+    Other([u8;32]),
+}
+
+pub union FirmwarePayload {
+    fw_config_request: FwConfigRequestMessage,
+    fw_config_response: FwConfigResponseMessage,
+    fw_request: FwRequestMessage,
+    fw_response: FwResponseMessage,
+    data: [u8; MAX_MESSAGE_LENGTH]
+}
+
+impl FirmwarePayload {
+    pub fn new(data: [u8; MAX_MESSAGE_LENGTH]) -> FirmwarePayload {
+        FirmwarePayload{data: data}
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct FwConfigRequestMessage {
+    _type: u16,
+    version: u16,
+    blocks: u16,
+    crc: u16,
+    bl_version: u16
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct FwConfigResponseMessage {
+    _type: u16,
+    version: u16,
+    blocks: u16,
+    crc: u16,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct FwRequestMessage {
+    _type: u16,
+    version: u16,
+    blocks: u16,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct FwResponseMessage {
+    _type: u16,
+    version: u16,
+    blocks: u16,
+    data: [u8; 16]
 }
 
 impl CommandMessage {
@@ -70,9 +115,18 @@ impl CommandMessage {
         }
 
         let command = match message_parts[2].parse::<u8>() {
-            Ok(result) => result,
+            Ok(result) => CommandType::from_u8(result).unwrap(),
             _ => return Err("Error parsing string to command".to_string()),
         };
+        let sub_type = match message_parts[4].parse::<u8>() {
+                Ok(result) => CommandSubType::from_u8(result).unwrap(),
+                _ => return Err("Error parsing string to sub_type".to_string()),
+            };
+        let command_vector = match hex::decode(message_parts[5]) {
+                        Ok(result) => result,
+                        _ => return Err("Error while decoding hex".to_string())
+        };            
+        let array_val = vector_as_u8_32_array(command_vector);
         Result::Ok(CommandMessage {
             node_id: match message_parts[0].parse::<u8>() {
                 Ok(result) => result,
@@ -82,32 +136,28 @@ impl CommandMessage {
                 Ok(result) => result,
                 _ => return Err("Error parsing string to child_sensor_id".to_string()),
             },
-            command: CommandType::from_u8(command).unwrap(),
+            command: command.clone(),
             ack: match message_parts[3].parse::<u8>() {
                 Ok(result) => result,
                 _ => return Err("Error parsing string to ack".to_string()),
             },
-            sub_type: match message_parts[4].parse::<u8>() {
-                Ok(result) => CommandSubType::from_u8(result).unwrap(),
-                _ => return Err("Error parsing string to sub_type".to_string()),
-            },
+            sub_type: sub_type.clone(),
             payload: match command {
-                4 => {
-                    let command_vector = match hex::decode(message_parts[5]) {
-                        Ok(result) => result,
-                        _ => return Err("Error while decoding hex".to_string()),
-                    };
-                    let array_val = vector_as_u8_32_array(command_vector);
-                    MessagePayloadType::StreamPayload(MessagePayload {
-                        bin_payload: array_val,
-                    })
-                }
-                _ => MessagePayloadType::OtherPayload(String::from(message_parts[5])),
+                
+                CommandType::STREAM => {
+                    match sub_type {
+                    CommandSubType::StFirmwareConfigRequest => MessagePayloadType::FwConfigRequest(unsafe{FirmwarePayload::new(array_val).fw_config_request}),
+                    CommandSubType::StFirmwareConfigResponse => MessagePayloadType::FwConfigResponse(unsafe{FirmwarePayload::new(array_val).fw_config_response}),
+                    CommandSubType::StFirmwareRequest => MessagePayloadType::FwRequest(unsafe{FirmwarePayload::new(array_val).fw_request}),
+                    CommandSubType::StFirmwareResponse => MessagePayloadType::FwResponse(unsafe{FirmwarePayload::new(array_val).fw_response}),
+                    _ => MessagePayloadType::Other(array_val),
+                }},
+                _ => MessagePayloadType::Other(array_val),
             },
         })
     }
 
-    pub fn to_response(&mut self) -> Result<String, String>{
+    pub fn to_response(&mut self) -> Result<String, String> {
         self.sub_type = match self.sub_type {
             CommandSubType::StFirmwareConfigRequest => CommandSubType::StFirmwareConfigResponse,
             CommandSubType::StFirmwareRequest => CommandSubType::StFirmwareResponse,
@@ -117,49 +167,19 @@ impl CommandMessage {
     }
 }
 
-#[derive(Clone, Copy)]
-pub union MessagePayload {
-    pub message: StreamMessage,
-    pub bin_payload: [u8; MAX_MESSAGE_LENGTH],
-}
-
-impl MessagePayload {
-    pub fn new(bin_payload: [u8; MAX_MESSAGE_LENGTH]) -> MessagePayload {
-        MessagePayload {
-            bin_payload: bin_payload,
-        }
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct StreamMessage {
-    last: u8,        // 8 bit - Id of last node this message passed
-    sender: u8,      // 8 bit - Id of sender node (origin)
-    destination: u8, // 8 bit - Id of destination node
-
-    version_length: u8, // 2 bit - Protocol version
-    // 1 bit - Signed flag
-    // 5 bit - Length of payload
-    command_ack_payload: u8, // 3 bit - Command type
-    // 1 bit - Request an ack - Indicator that receiver should send an ack back.
-    // 1 bit - Is ack messsage - Indicator that this is the actual ack message.
-    // 3 bit - Payload data type
-    pub _type: u8, // 8 bit - Type varies depending on command
-    sensor: u8,    // 8 bit - Id of sensor that this message concerns.
-
-    pub data: [u8; MAX_PAYLOAD],
-}
-
-impl fmt::Debug for MessagePayload {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "message: {:?}", unsafe { &self.message })
-    }
-}
-
-impl fmt::Debug for StreamMessage {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "last: {}, sender: {}, destination: {}, version_length: {}, command_ack_payload: {}, _type: {}, sensor: {}, payload: {:?}", 
-        self.last, self.sender, self.destination, self.version_length, self.command_ack_payload, self._type, self.sensor, self.data )
+impl  CommandMessage {
+    fn serialize(self) -> String {
+        let _cmd = (self.command) as u8;
+        let _sub_type = (self.sub_type) as u8;
+        let payload = match self.payload {
+            MessagePayloadType::FwConfigResponse(stream_payload) => hex::encode_upper(&unsafe{mem::transmute::<_,[u8;8]>(stream_payload)}),
+            MessagePayloadType::FwResponse(stream_payload) => hex::encode_upper(&unsafe{mem::transmute::<_,[u8; 22]>(stream_payload)}),
+            MessagePayloadType::FwConfigRequest(stream_payload) => hex::encode_upper(&unsafe{mem::transmute::<_,[u8; 10]>(stream_payload)}),
+            MessagePayloadType::FwRequest(stream_payload) => hex::encode_upper(&unsafe{mem::transmute::<_,[u8;6]>(stream_payload)}),
+            MessagePayloadType::Other(payload_string) => hex::encode(payload_string),
+        };
+        format!( "{};{};{:?};{};{:?};{}", 
+        self.node_id, self.child_sensor_id, _cmd, self.ack, _sub_type, &payload )
     }
 }
 
@@ -175,7 +195,6 @@ pub fn command_type(message_string: &String) -> Option<CommandType> {
             3 => Some(CommandType::INTERNAL),
             4 => Some(CommandType::STREAM),
             _ => {
-                println!("invalid command type {}", command_type);
                 None
             }
         }
@@ -184,23 +203,8 @@ pub fn command_type(message_string: &String) -> Option<CommandType> {
     }
 }
 
-pub fn command_sub_type(message_string: &String) -> u8 {
-    let message_parts = message_string.split(";").collect::<Vec<&str>>();
-    if message_parts.len() == 6 {
-        //"node-id ; child-sensor-id ; command ; ack ; type ; payload \n"
-        let command_vector = hex::decode(message_parts[5]).unwrap();
-        let array_val = vector_as_u8_32_array(command_vector);
-        let my_message = MessagePayload::new(array_val);
-        println!("{:?}", unsafe { &my_message.bin_payload });
-        // println!("{:?}", unsafe{&my_message.message});
-        return unsafe { my_message.message._type };
-    } else {
-        9
-    }
-}
-
-fn vector_as_u8_32_array(vector: Vec<u8>) -> [u8; 32] {
-    let mut arr = [0u8; 32];
+fn vector_as_u8_32_array(vector: Vec<u8>) -> [u8; MAX_MESSAGE_LENGTH] {
+    let mut arr = [0u8; MAX_MESSAGE_LENGTH];
     for (place, element) in arr.iter_mut().zip(vector.iter()) {
         *place = *element;
     }
@@ -213,46 +217,80 @@ mod test {
     use super::*;
 
     #[test]
-    fn parse_correct_command_type() {
-        let message_string = "1;255;4;0;0;FFFFFFFFFFFFFE400102";
-        let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
-        assert_eq!(command_message.command,CommandType::STREAM);
-    }
-
-    #[test]
     fn parse_correct_command_fw_config_request() {
         let message_string = "1;255;4;0;0;0A0001005000D4460102\n";
         let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
-        assert_eq!(command_message.sub_type,CommandSubType::StFirmwareConfigRequest);
+        assert_eq!(
+            command_message.sub_type,
+            CommandSubType::StFirmwareConfigRequest
+        );
         let stream_payload = match command_message.payload {
-            MessagePayloadType::StreamPayload(stream_payload) => Some(stream_payload),
+            MessagePayloadType::FwConfigRequest(stream_payload) => Some(stream_payload),
             _ => None,
-        };
-        assert_eq!(unsafe{stream_payload.unwrap().message.last}, 10);
-        assert_eq!(unsafe{stream_payload.unwrap().message.sender}, 0);
-        assert_eq!(unsafe{stream_payload.unwrap().message.destination}, 1);
-        assert_eq!(unsafe{stream_payload.unwrap().message.version_length}, 0);
-        assert_eq!(unsafe{stream_payload.unwrap().message.command_ack_payload}, 80);
-        assert_eq!(unsafe{stream_payload.unwrap().message._type}, 0);
-        assert_eq!(unsafe{stream_payload.unwrap().message.sensor}, 212);
+        }.unwrap();
+        assert_eq!(stream_payload._type, 10);
+        assert_eq!( stream_payload.version , 1);
+        assert_eq!( stream_payload.blocks ,
+            80
+        );
+        assert_eq!(stream_payload.crc, 18132);
+        assert_eq!(stream_payload.bl_version, 513);
+    }
+
+    #[test]
+    fn parse_correct_command_fw_config_response() {
+        let message_string = "1;255;4;0;1;0A0002005000D446\n";
+        let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
+        assert_eq!(
+            command_message.sub_type,
+            CommandSubType::StFirmwareConfigResponse
+        );
+        let stream_payload = match command_message.payload {
+            MessagePayloadType::FwConfigResponse(stream_payload) => Some(stream_payload),
+            _ => None,
+        }.unwrap();
+        assert_eq!(stream_payload._type, 10);
+        assert_eq!( stream_payload.version , 2);
+        assert_eq!( stream_payload.blocks ,
+            80
+        );
+        assert_eq!(stream_payload.crc,18132);
+    }
+
+    #[test]
+    fn parse_correct_command_fw_response() {
+        let message_string = "1;255;4;0;3;0A0002004F00\n ";
+        let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
+        assert_eq!(
+            command_message.sub_type,
+            CommandSubType::StFirmwareResponse
+        );
+
+        let stream_payload = match command_message.payload {
+            MessagePayloadType::FwResponse(stream_payload) => Some(stream_payload),
+            _ => None,
+        }.unwrap();
+        
+        assert_eq!(stream_payload._type, 10);
+        assert_eq!(stream_payload.version, 2);
+        assert_eq!(stream_payload.blocks,79);
     }
 
     #[test]
     fn parse_correct_command_fw_request() {
-        let message_string = "1;255;4;0;0;0A0001004F00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF\n ";
+        let message_string = "1;255;4;0;3;0A0001004F00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF\n ";
         let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
-        assert_eq!(command_message.sub_type,CommandSubType::StFirmwareConfigRequest);
+        assert_eq!(
+            command_message.sub_type,
+            CommandSubType::StFirmwareResponse
+        );
         let stream_payload = match command_message.payload {
-            MessagePayloadType::StreamPayload(stream_payload) => Some(stream_payload),
+            MessagePayloadType::FwResponse(stream_payload) => Some(stream_payload),
             _ => None,
-        };
-        println!("{:?}", unsafe{stream_payload.unwrap().message});
-        assert_eq!(unsafe{stream_payload.unwrap().message.last}, 10);
-        assert_eq!(unsafe{stream_payload.unwrap().message.sender}, 0);
-        assert_eq!(unsafe{stream_payload.unwrap().message.destination}, 1);
-        assert_eq!(unsafe{stream_payload.unwrap().message.version_length}, 0);
-        assert_eq!(unsafe{stream_payload.unwrap().message.command_ack_payload}, 79);
-        assert_eq!(unsafe{stream_payload.unwrap().message._type}, 0);
-        assert_eq!(unsafe{stream_payload.unwrap().message.sensor}, 255);
+        }.unwrap();
+        
+        assert_eq!(stream_payload._type, 10);
+        assert_eq!(stream_payload.version, 1);
+        assert_eq!(stream_payload.blocks,79);
     }
 }
