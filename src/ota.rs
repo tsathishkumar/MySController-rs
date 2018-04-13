@@ -83,7 +83,9 @@ fn send_response(
   _firmware: &Firmware,
 ) {
   command_message.to_response(_firmware);
-  serial_sender.send(command_message.serialize()).unwrap();
+  let response = command_message.serialize();
+  println!("sending: {:?}", response);
+  serial_sender.send(response).unwrap();
 }
 
 pub fn ihex_to_bin(record: &Record) -> Vec<u8> {
@@ -115,7 +117,7 @@ pub fn prepare_fw() -> Firmware {
     _type: 10,
     version: 2,
     blocks: blocks,
-    crc: 0xD446,
+    crc: 0x46D4,
     bin_data: result_bin,
   }
 }

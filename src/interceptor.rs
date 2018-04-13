@@ -11,15 +11,15 @@ pub fn intercept(
         let command_message_result = message::CommandMessage::new(&request);
 
         match command_message_result {
-            Ok(command_message) => {
-                println!("command type is {:?}", command_message);
-                match command_message.command {
-                    message::CommandType::STREAM => ota_sender.send(command_message).unwrap(),
-                    _ => controller_sender.send(request).unwrap(),
-                }
-            }
+            Ok(command_message) => match command_message.command {
+                message::CommandType::STREAM => ota_sender.send(command_message).unwrap(),
+                _ => match controller_sender.send(request) {
+                    Ok(_) => (),
+                    Err(error) => eprintln!("{:?}", error),
+                },
+            },
             Err(message) => {
-                println!(
+                eprintln!(
                     "Error while parsing command message {:?}, simply forwarding to controller",
                     message
                 );
