@@ -6,7 +6,11 @@ This server acts as a proxy between Gateway and the Controller. Both might be ei
 Before running the server, set the connection type and connection port for Gateway and Controller.
 
 `export GATEWAY_CONNECTION=SERIAL`
+
 `export CONTROLLER_CONNECTION=TCP`
+
 `export GATEWAY_PORT=/dev/tty1`
+
 `export CONTROLLER_PORT=0.0.0.0:5003`
+
 `cargo run`
