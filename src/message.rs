@@ -3,6 +3,7 @@ use num::FromPrimitive;
 
 use hex;
 use std::mem;
+use std::fmt;
 
 const MAX_MESSAGE_LENGTH: usize = 32;
 
@@ -178,7 +179,7 @@ impl  CommandMessage {
             MessagePayloadType::FwRequest(stream_payload) => hex::encode_upper(&unsafe{mem::transmute::<_,[u8;6]>(stream_payload)}),
             MessagePayloadType::Other(payload_string) => hex::encode(payload_string),
         };
-        format!( "{};{};{:?};{};{:?};{}", 
+        format!( "{};{};{:?};{};{:?};{}\n", 
         self.node_id, self.child_sensor_id, _cmd, self.ack, _sub_type, &payload )
     }
 }
@@ -258,16 +259,16 @@ mod test {
     }
 
     #[test]
-    fn parse_correct_command_fw_response() {
-        let message_string = "1;255;4;0;3;0A0002004F00\n ";
+    fn parse_correct_command_fw_request() {
+        let message_string = "1;255;4;0;2;0A0002004F00\n ";
         let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
         assert_eq!(
             command_message.sub_type,
-            CommandSubType::StFirmwareResponse
+            CommandSubType::StFirmwareRequest
         );
 
         let stream_payload = match command_message.payload {
-            MessagePayloadType::FwResponse(stream_payload) => Some(stream_payload),
+            MessagePayloadType::FwRequest(stream_payload) => Some(stream_payload),
             _ => None,
         }.unwrap();
         
@@ -276,8 +277,8 @@ mod test {
         assert_eq!(stream_payload.blocks,79);
     }
 
-    #[test]
-    fn parse_correct_command_fw_request() {
+    #[test] 
+    fn parse_correct_command_fw_response() {
         let message_string = "1;255;4;0;3;0A0001004F00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF\n ";
         let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
         assert_eq!(
@@ -293,4 +294,45 @@ mod test {
         assert_eq!(stream_payload.version, 1);
         assert_eq!(stream_payload.blocks,79);
     }
+    
+    #[test]
+    fn format_fw_config_request() {
+        let message_string = "1;255;4;0;0;0A0001005000D4460102\n";
+        let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
+        assert_eq!(
+            command_message.serialize(),
+            String::from(message_string)
+        );
+    }
+
+    #[test]
+    fn format_fw_config_response() {
+        let message_string = "1;255;4;0;1;0A0002005000D446\n";
+        let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
+        assert_eq!(
+            command_message.serialize(),
+            String::from(message_string)
+        );
+    }
+
+    #[test]
+    fn format_fw_resquest() {
+        let message_string = "1;255;4;0;3;0A0002004F0000000000000000000000000000000000\n";
+        let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
+        assert_eq!(
+            command_message.serialize(),
+            String::from(message_string)
+        );
+    }
+
+    #[test]
+    fn format_fw_response() {
+        let message_string = "1;255;4;0;3;0A0001004F00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF\n";
+        let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
+        assert_eq!(
+            command_message.serialize(),
+            String::from(message_string)
+        );
+    }
+   
 }
