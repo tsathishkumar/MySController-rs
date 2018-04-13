@@ -1,14 +1,9 @@
-use serialport;
-use serialport::prelude::*;
-
 use gateway;
+use gateway::*;
 use interceptor;
 use ota;
 use std::sync::mpsc;
 use std::thread;
-use std::time::Duration;
-
-use std::net::{TcpListener, TcpStream};
 
 pub struct ProxyController {
     gateway_port: String,
@@ -23,26 +18,17 @@ impl ProxyController {
         }
     }
 
-    pub fn start(&self) -> Result<String, String> {
-        let mut settings: SerialPortSettings = Default::default();
-        settings.timeout = Duration::from_millis(10);
-        settings.baud_rate = BaudRate::Baud38400;
+    pub fn start(
+        &self,
+        gateway_type: ConnectionType,
+        controller_type: ConnectionType,
+    ) -> Result<String, String> {
+        let mut gateway = Gateway::new(gateway_type, self.gateway_port.clone());
+        let mut controller = Gateway::new(controller_type, self.controller_port.clone());
 
-        let mut gateway_port = TcpStream::connect("10.137.120.250:5003").unwrap();
-        // let mut settings: SerialPortSettings = Default::default();
-        //     settings.timeout = Duration::from_millis(10);
-        //     settings.baud_rate = BaudRate::Baud38400;
-        // let mut gateway_port =
-        //     serialport::open_with_settings(&self.gateway_port, &settings).unwrap();
+        let mut gateway_port = gateway.clone();
 
-        // let mut controller_port =
-        //     serialport::open_with_settings(&self.controller_port, &settings).unwrap();
-        let mut gateway_write_port = gateway_port.try_clone().unwrap();
-
-        let listener = TcpListener::bind("0.0.0.0:5003").unwrap();
-
-        let (mut controller_port, _) = listener.accept().unwrap();
-        let mut controller_write_port = controller_port.try_clone().unwrap();
+        let mut controller_port = controller.clone();
 
         let (gateway_sender, gateway_receiver) = mpsc::channel();
         let (ota_sender, ota_receiver) = mpsc::channel();
@@ -62,11 +48,11 @@ impl ProxyController {
         });
 
         let gateway_writer = thread::spawn(move || {
-            gateway::write(&mut gateway_write_port, &controller_in_receiver);
+            gateway::write(&mut gateway, &controller_in_receiver);
         });
 
         let controller_writer = thread::spawn(move || {
-            gateway::write(&mut controller_write_port, &controller_out_receiver);
+            gateway::write(&mut controller, &controller_out_receiver);
         });
 
         let ota_processor = thread::spawn(move || {
