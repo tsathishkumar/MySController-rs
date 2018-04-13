@@ -2,8 +2,10 @@ use enum_primitive;
 use num::FromPrimitive;
 
 use hex;
-use std::mem;
 use std::fmt;
+use std::mem;
+
+use ota::Firmware;
 
 const MAX_MESSAGE_LENGTH: usize = 32;
 
@@ -57,7 +59,7 @@ pub enum MessagePayloadType {
     FwRequest(FwRequestMessage),
     FwConfigResponse(FwConfigResponseMessage),
     FwResponse(FwResponseMessage),
-    Other([u8;32]),
+    Other([u8; 32]),
 }
 
 pub union FirmwarePayload {
@@ -65,12 +67,12 @@ pub union FirmwarePayload {
     fw_config_response: FwConfigResponseMessage,
     fw_request: FwRequestMessage,
     fw_response: FwResponseMessage,
-    data: [u8; MAX_MESSAGE_LENGTH]
+    data: [u8; MAX_MESSAGE_LENGTH],
 }
 
 impl FirmwarePayload {
     pub fn new(data: [u8; MAX_MESSAGE_LENGTH]) -> FirmwarePayload {
-        FirmwarePayload{data: data}
+        FirmwarePayload { data: data }
     }
 }
 
@@ -80,7 +82,7 @@ pub struct FwConfigRequestMessage {
     version: u16,
     blocks: u16,
     crc: u16,
-    bl_version: u16
+    bl_version: u16,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -103,7 +105,7 @@ pub struct FwResponseMessage {
     _type: u16,
     version: u16,
     blocks: u16,
-    data: [u8; 16]
+    data: [u8; 16],
 }
 
 impl CommandMessage {
@@ -120,13 +122,13 @@ impl CommandMessage {
             _ => return Err("Error parsing string to command".to_string()),
         };
         let sub_type = match message_parts[4].parse::<u8>() {
-                Ok(result) => CommandSubType::from_u8(result).unwrap(),
-                _ => return Err("Error parsing string to sub_type".to_string()),
-            };
+            Ok(result) => CommandSubType::from_u8(result).unwrap(),
+            _ => return Err("Error parsing string to sub_type".to_string()),
+        };
         let command_vector = match hex::decode(message_parts[5]) {
-                        Ok(result) => result,
-                        _ => return Err("Error while decoding hex".to_string())
-        };            
+            Ok(result) => result,
+            _ => return Err("Error while decoding hex".to_string()),
+        };
         let array_val = vector_as_u8_32_array(command_vector);
         Result::Ok(CommandMessage {
             node_id: match message_parts[0].parse::<u8>() {
@@ -144,43 +146,72 @@ impl CommandMessage {
             },
             sub_type: sub_type.clone(),
             payload: match command {
-                
-                CommandType::STREAM => {
-                    match sub_type {
-                    CommandSubType::StFirmwareConfigRequest => MessagePayloadType::FwConfigRequest(unsafe{FirmwarePayload::new(array_val).fw_config_request}),
-                    CommandSubType::StFirmwareConfigResponse => MessagePayloadType::FwConfigResponse(unsafe{FirmwarePayload::new(array_val).fw_config_response}),
-                    CommandSubType::StFirmwareRequest => MessagePayloadType::FwRequest(unsafe{FirmwarePayload::new(array_val).fw_request}),
-                    CommandSubType::StFirmwareResponse => MessagePayloadType::FwResponse(unsafe{FirmwarePayload::new(array_val).fw_response}),
+                CommandType::STREAM => match sub_type {
+                    CommandSubType::StFirmwareConfigRequest => MessagePayloadType::FwConfigRequest(
+                        unsafe { FirmwarePayload::new(array_val).fw_config_request },
+                    ),
+                    CommandSubType::StFirmwareConfigResponse => {
+                        MessagePayloadType::FwConfigResponse(unsafe {
+                            FirmwarePayload::new(array_val).fw_config_response
+                        })
+                    }
+                    CommandSubType::StFirmwareRequest => MessagePayloadType::FwRequest(unsafe {
+                        FirmwarePayload::new(array_val).fw_request
+                    }),
+                    CommandSubType::StFirmwareResponse => MessagePayloadType::FwResponse(unsafe {
+                        FirmwarePayload::new(array_val).fw_response
+                    }),
                     _ => MessagePayloadType::Other(array_val),
-                }},
+                },
                 _ => MessagePayloadType::Other(array_val),
             },
         })
     }
 
-    pub fn to_response(&mut self) -> Result<String, String> {
+    pub fn to_response(&mut self, firmware: &Firmware) {
         self.sub_type = match self.sub_type {
             CommandSubType::StFirmwareConfigRequest => CommandSubType::StFirmwareConfigResponse,
             CommandSubType::StFirmwareRequest => CommandSubType::StFirmwareResponse,
-            _ => return Err(String::from("CommandSubType is not handled")),
+            _ => self.sub_type,
         };
-        return Ok(String::from("Ok"));
+
+        self.payload = match self.payload {
+            MessagePayloadType::FwConfigRequest(request) => {
+                MessagePayloadType::FwConfigResponse(FwConfigResponseMessage {
+                    _type: firmware._type,
+                    version: firmware.version,
+                    blocks: firmware.blocks,
+                    crc: firmware.crc,
+                })
+            }
+            _ => self.payload,
+        };
     }
 }
 
-impl  CommandMessage {
+impl CommandMessage {
     fn serialize(self) -> String {
         let _cmd = (self.command) as u8;
         let _sub_type = (self.sub_type) as u8;
         let payload = match self.payload {
-            MessagePayloadType::FwConfigResponse(stream_payload) => hex::encode_upper(&unsafe{mem::transmute::<_,[u8;8]>(stream_payload)}),
-            MessagePayloadType::FwResponse(stream_payload) => hex::encode_upper(&unsafe{mem::transmute::<_,[u8; 22]>(stream_payload)}),
-            MessagePayloadType::FwConfigRequest(stream_payload) => hex::encode_upper(&unsafe{mem::transmute::<_,[u8; 10]>(stream_payload)}),
-            MessagePayloadType::FwRequest(stream_payload) => hex::encode_upper(&unsafe{mem::transmute::<_,[u8;6]>(stream_payload)}),
+            MessagePayloadType::FwConfigResponse(stream_payload) => {
+                hex::encode_upper(&unsafe { mem::transmute::<_, [u8; 8]>(stream_payload) })
+            }
+            MessagePayloadType::FwResponse(stream_payload) => {
+                hex::encode_upper(&unsafe { mem::transmute::<_, [u8; 22]>(stream_payload) })
+            }
+            MessagePayloadType::FwConfigRequest(stream_payload) => {
+                hex::encode_upper(&unsafe { mem::transmute::<_, [u8; 10]>(stream_payload) })
+            }
+            MessagePayloadType::FwRequest(stream_payload) => {
+                hex::encode_upper(&unsafe { mem::transmute::<_, [u8; 6]>(stream_payload) })
+            }
             MessagePayloadType::Other(payload_string) => hex::encode(payload_string),
         };
-        format!( "{};{};{:?};{};{:?};{}\n", 
-        self.node_id, self.child_sensor_id, _cmd, self.ack, _sub_type, &payload )
+        format!(
+            "{};{};{:?};{};{:?};{}\n",
+            self.node_id, self.child_sensor_id, _cmd, self.ack, _sub_type, &payload
+        )
     }
 }
 
@@ -195,9 +226,7 @@ pub fn command_type(message_string: &String) -> Option<CommandType> {
             2 => Some(CommandType::REQ),
             3 => Some(CommandType::INTERNAL),
             4 => Some(CommandType::STREAM),
-            _ => {
-                None
-            }
+            _ => None,
         }
     } else {
         None
@@ -230,10 +259,8 @@ mod test {
             _ => None,
         }.unwrap();
         assert_eq!(stream_payload._type, 10);
-        assert_eq!( stream_payload.version , 1);
-        assert_eq!( stream_payload.blocks ,
-            80
-        );
+        assert_eq!(stream_payload.version, 1);
+        assert_eq!(stream_payload.blocks, 80);
         assert_eq!(stream_payload.crc, 18132);
         assert_eq!(stream_payload.bl_version, 513);
     }
@@ -251,88 +278,78 @@ mod test {
             _ => None,
         }.unwrap();
         assert_eq!(stream_payload._type, 10);
-        assert_eq!( stream_payload.version , 2);
-        assert_eq!( stream_payload.blocks ,
-            80
-        );
-        assert_eq!(stream_payload.crc,18132);
+        assert_eq!(stream_payload.version, 2);
+        assert_eq!(stream_payload.blocks, 80);
+        assert_eq!(stream_payload.crc, 18132);
     }
 
     #[test]
     fn parse_correct_command_fw_request() {
         let message_string = "1;255;4;0;2;0A0002004F00\n ";
         let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
-        assert_eq!(
-            command_message.sub_type,
-            CommandSubType::StFirmwareRequest
-        );
+        assert_eq!(command_message.sub_type, CommandSubType::StFirmwareRequest);
 
         let stream_payload = match command_message.payload {
             MessagePayloadType::FwRequest(stream_payload) => Some(stream_payload),
             _ => None,
         }.unwrap();
-        
+
         assert_eq!(stream_payload._type, 10);
         assert_eq!(stream_payload.version, 2);
-        assert_eq!(stream_payload.blocks,79);
+        assert_eq!(stream_payload.blocks, 79);
     }
 
-    #[test] 
+    #[test]
     fn parse_correct_command_fw_response() {
         let message_string = "1;255;4;0;3;0A0001004F00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF\n ";
         let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
-        assert_eq!(
-            command_message.sub_type,
-            CommandSubType::StFirmwareResponse
-        );
+        assert_eq!(command_message.sub_type, CommandSubType::StFirmwareResponse);
         let stream_payload = match command_message.payload {
             MessagePayloadType::FwResponse(stream_payload) => Some(stream_payload),
             _ => None,
         }.unwrap();
-        
+
         assert_eq!(stream_payload._type, 10);
         assert_eq!(stream_payload.version, 1);
-        assert_eq!(stream_payload.blocks,79);
+        assert_eq!(stream_payload.blocks, 79);
     }
-    
+
     #[test]
     fn format_fw_config_request() {
         let message_string = "1;255;4;0;0;0A0001005000D4460102\n";
         let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
-        assert_eq!(
-            command_message.serialize(),
-            String::from(message_string)
-        );
+        assert_eq!(command_message.serialize(), String::from(message_string));
     }
 
     #[test]
     fn format_fw_config_response() {
         let message_string = "1;255;4;0;1;0A0002005000D446\n";
         let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
-        assert_eq!(
-            command_message.serialize(),
-            String::from(message_string)
-        );
+        assert_eq!(command_message.serialize(), String::from(message_string));
     }
 
     #[test]
     fn format_fw_resquest() {
         let message_string = "1;255;4;0;3;0A0002004F0000000000000000000000000000000000\n";
         let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
-        assert_eq!(
-            command_message.serialize(),
-            String::from(message_string)
-        );
+        assert_eq!(command_message.serialize(), String::from(message_string));
     }
 
     #[test]
     fn format_fw_response() {
         let message_string = "1;255;4;0;3;0A0001004F00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF\n";
         let command_message = CommandMessage::new(&String::from(message_string)).unwrap();
+        assert_eq!(command_message.serialize(), String::from(message_string));
+    }
+
+    #[test]
+    fn convert_fw_config_request_to_response() {
+        let message_string = "1;255;4;0;0;0A0001005000D4460102\n";
+        let mut command_message = CommandMessage::new(&String::from(message_string)).unwrap();
+        command_message.to_response(&Firmware::new(10, 2, 79, 1000, vec![]));
         assert_eq!(
             command_message.serialize(),
-            String::from(message_string)
+            String::from("1;255;4;0;1;0A0002004F00E803\n")
         );
     }
-   
 }

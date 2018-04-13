@@ -5,17 +5,16 @@
 extern crate enum_primitive;
 extern crate num;
 
-extern crate serialport;
 extern crate hex;
 extern crate ihex;
+extern crate serialport;
 
 extern crate crc;
 
 extern crate crc16;
 
-pub mod ota;
 pub mod gateway;
-pub mod proxy_controller;
-pub mod message;
 pub mod interceptor;
-
+pub mod message;
+pub mod ota;
+pub mod proxy_controller;

@@ -12,15 +12,21 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::{BufReader};
 
-const FIRMWARE_BLOCK_SIZE: usize = 16;
+const FIRMWARE_BLOCK_SIZE: u16 = 16;
 
 #[derive(Debug)]
 pub struct Firmware {
-  _type: u8,
-  version: u8,
-  blocks: usize,
-  crc: u16,
-  bin_data: Vec<u8>,
+  pub _type: u16,
+  pub version: u16,
+  pub blocks: u16,
+  pub crc: u16,
+  pub bin_data: Vec<u8>,
+}
+
+impl Firmware {
+  pub fn new(_type: u16, version: u16, blocks: u16, crc: u16, bin_data: Vec<u8>) -> Firmware {
+    Firmware {_type: _type, version: version, blocks: blocks, crc: crc, bin_data: bin_data}
+  }
 }
 
 pub fn process_ota(ota_receiver: &mpsc::Receiver<CommandMessage>) {
@@ -38,14 +44,8 @@ pub fn process_ota(ota_receiver: &mpsc::Receiver<CommandMessage>) {
 }
 
 fn send_fw_config_response(mut command_message: CommandMessage, _firmware: &Firmware) {
-  match command_message.to_response() {
-    Ok(_message) => match command_message.payload {
-      MessagePayloadType::FwConfigRequest(payload) => println!("FW Config request payload {:?}", &payload),
-      MessagePayloadType::FwRequest(payload) => println!("FW request payload {:?}", &payload),
-      _ => (),
-    },
-    _ => (),
-  }
+  command_message.to_response(_firmware) 
+  
 }
 
 fn send_fw_response(_command_message: CommandMessage) {}
@@ -75,7 +75,7 @@ pub fn prepare_fw() -> Firmware {
   for _ in 0..(128 - pads) {
     result_bin.push(255);
   }
-  let blocks: usize = result_bin.len() / FIRMWARE_BLOCK_SIZE;
+  let blocks: u16 = result_bin.len() as u16 / FIRMWARE_BLOCK_SIZE;
   Firmware {
     _type: 10,
     version: 2,
