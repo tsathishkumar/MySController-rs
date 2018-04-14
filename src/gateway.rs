@@ -10,7 +10,7 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc;
 use std::time::Duration;
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum ConnectionType {
     Serial,
     TcpServer,
@@ -53,6 +53,7 @@ impl Gateway {
         let mut settings: SerialPortSettings = Default::default();
         settings.timeout = Duration::from_millis(10);
         settings.baud_rate = BaudRate::Baud38400;
+        println!("connection to {} with type {:?}", port, connection_type);
         Gateway {
             serial_port: match connection_type {
                 ConnectionType::Serial => {

@@ -9,8 +9,5 @@ hex = "0.3"
 ihex = "1.0"
 enum_primitive = "0.1"
 num = "0.1"
-# crc = "^1.0.0"
 crc16 = "0.3.4"
-
-[dependencies.crc]
-git = "https://github.com/mrhooray/crc-rs"
+rust-ini = "0.10"

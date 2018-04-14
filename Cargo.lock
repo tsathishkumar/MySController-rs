@@ -36,11 +36,6 @@ version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "build_const"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "byteorder"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -58,14 +53,6 @@ dependencies = [
 name = "cfg-if"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "crc"
-version = "1.7.0"
-source = "git+https://github.com/mrhooray/crc-rs#e000b891aff84873b8bb7bae6427fcf5b6bf151b"
-dependencies = [
- "build_const 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "crc16"
@@ -174,12 +161,12 @@ dependencies = [
 name = "myrcontroller"
 version = "0.1.0"
 dependencies = [
- "crc 1.7.0 (git+https://github.com/mrhooray/crc-rs)",
  "crc16 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enum_primitive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ihex 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-ini 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serialport 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -306,6 +293,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-ini"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "rustc-serialize"
 version = "0.3.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -387,11 +379,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum aho-corasick 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)" = "d6531d44de723825aa81398a6415283229725a00fa30713812ab9323faa82fc4"
 "checksum bitflags 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4efd02e230a02e18f92fc2735f44597385ed02ad8f831e7c1c1156ee5e1ab3a5"
 "checksum bitflags 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b3c30d3802dfb7281680d6285f2ccdaa8c2d8fee41f93805dba5c4cf50dc23cf"
-"checksum build_const 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e90dc84f5e62d2ebe7676b83c22d33b6db8bd27340fb6ffbff0a364efa0cb9c9"
 "checksum byteorder 1.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "73b5bdfe7ee3ad0b99c9801d58807a9dbc9e09196365b0203853b99889ab3c87"
 "checksum bytes 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)" = "1b7db437d718977f6dc9b2e3fd6fc343c02ac6b899b73fdd2179163447bd9ce9"
 "checksum cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "d4c819a1287eb618df47cc647173c5c4c66ba19d888a6e50d605672aed3140de"
-"checksum crc 1.7.0 (git+https://github.com/mrhooray/crc-rs)" = "<none>"
 "checksum crc16 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "11a65c4797332f3e3a5945e0377875afc79b1bdc87082a4f98ac1ef15b47e2dd"
 "checksum enum_primitive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "be4551092f4d519593039259a9ed8daedf0da12e5109c5280338073eaeb81180"
 "checksum fuchsia-zircon 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "2e9763c69ebaae630ba35f74888db465e49e259ba1bc0eda7d06f4a067615d82"
@@ -420,6 +410,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum rand 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "eba5f8cb59cc50ed56be8880a5c7b496bfd9bd26394e176bc67884094145c2c5"
 "checksum regex 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)" = "aec3f58d903a7d2a9dc2bf0e41a746f4530e0cab6b615494e058f67a3ef947fb"
 "checksum regex-syntax 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "b2550876c31dc914696a6c2e01cbce8afba79a93c8ae979d2fe051c0230b3756"
+"checksum rust-ini 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)" = "8a654c5bda722c699be6b0fe4c0d90de218928da5b724c3e467fc48865c37263"
 "checksum rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)" = "dcf128d1287d2ea9d80910b5f1120d0b8eede3fbf1abe91c40d39ea7d51e6fda"
 "checksum serialport 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "426edd50ed1192f9fb2405b713583567b85ac801fafb7476252ad7d7b1509453"
 "checksum thread_local 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "279ef31c19ededf577bfd12dfae728040a21f635b06a24cd670ff510edd38963"

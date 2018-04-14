@@ -5,14 +5,14 @@ use ota;
 use std::sync::mpsc;
 use std::thread;
 
-pub struct ProxyController {
+pub struct Proxy {
     gateway_port: String,
     controller_port: String,
 }
 
-impl ProxyController {
-    pub fn new(gateway_port: String, controller_port: String) -> ProxyController {
-        ProxyController {
+impl Proxy {
+    pub fn new(gateway_port: String, controller_port: String) -> Proxy {
+        Proxy {
             gateway_port: gateway_port,
             controller_port: controller_port,
         }

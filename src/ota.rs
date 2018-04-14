@@ -109,7 +109,7 @@ pub fn prepare_fw() -> Firmware {
     result_bin.push(255);
   }
   let blocks: u16 = result_bin.len() as u16 / FIRMWARE_BLOCK_SIZE;
-  
+
   Firmware {
     _type: 10,
     version: 2,
@@ -119,7 +119,7 @@ pub fn prepare_fw() -> Firmware {
   }
 }
 
-fn compute_crc(bin_data: &[u8]) -> u16{
+fn compute_crc(bin_data: &[u8]) -> u16 {
   let mut state = State::<MODBUS>::new();
   state.update(bin_data);
   state.get()
