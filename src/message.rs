@@ -259,7 +259,6 @@ fn vector_as_u8_32_array(vector: Vec<u8>) -> [u8; MAX_MESSAGE_LENGTH] {
 
 #[cfg(test)]
 mod test {
-
     use super::*;
     use ota;
 

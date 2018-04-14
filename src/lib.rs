@@ -1,15 +1,13 @@
 #![feature(untagged_unions)]
 #![feature(rustc_private)]
 
+extern crate crc16;
 #[macro_use]
 extern crate enum_primitive;
-extern crate num;
-
 extern crate hex;
 extern crate ihex;
+extern crate num;
 extern crate serialport;
-
-extern crate crc16;
 
 pub mod gateway;
 pub mod interceptor;

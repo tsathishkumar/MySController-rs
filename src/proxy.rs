@@ -13,8 +13,8 @@ pub struct Proxy {
 impl Proxy {
     pub fn new(gateway_port: String, controller_port: String) -> Proxy {
         Proxy {
-            gateway_port: gateway_port,
-            controller_port: controller_port,
+            gateway_port,
+            controller_port,
         }
     }
 

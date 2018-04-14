@@ -35,6 +35,7 @@ pub struct Gateway {
     pub serial_port: Option<Box<serialport::SerialPort>>,
     pub tcp_port: Option<TcpStream>,
 }
+
 impl Gateway {
     pub fn clone(&self) -> Gateway {
         Gateway {

@@ -1,9 +1,9 @@
-extern crate myrcontroller;
 extern crate ini;
+extern crate myrcontroller;
 
+use ini::Ini;
 use myrcontroller::gateway::ConnectionType;
 use myrcontroller::proxy::Proxy;
-use ini::Ini;
 
 fn main() {
     let conf = Ini::load_from_file("conf.ini").unwrap();
