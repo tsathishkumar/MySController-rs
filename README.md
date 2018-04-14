@@ -15,7 +15,7 @@ Note: If you are using TCP for controller - the port value will be used to creat
 ## TODO
 
 * Gracefully handle connection at both side, i.e never panic and wait for both connections
-* Load firmwares from specific location and manage it's type and version
-* Manage nodes and the firmwares installed
-* Add an endpoint to send the firmware to particular node
+* Manage firmwares type and version, ability to upload newer versions of firmwares, expose apis
+* Manage nodes and the firmwares installed, expose api's
+* Add an endpoint to assign a firmware to particular node
 * Manage requested firmware for nodes

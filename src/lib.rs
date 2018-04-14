@@ -9,6 +9,7 @@ extern crate ihex;
 extern crate num;
 extern crate serialport;
 
+pub mod firmware;
 pub mod gateway;
 pub mod interceptor;
 pub mod message;
