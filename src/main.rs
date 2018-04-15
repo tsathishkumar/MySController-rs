@@ -4,19 +4,16 @@ extern crate myrcontroller;
 use ini::Ini;
 use myrcontroller::gateway::{ConnectionType, Gateway};
 use myrcontroller::gateway;
-use myrcontroller::proxy::Proxy;
+use myrcontroller::proxy;
 
 fn main() {
     let conf = Ini::load_from_file("conf.ini").unwrap();
 
-
-    let mys_gateway = get_mys_gateway(&conf);
-
-    let mys_controller = get_mys_controller(&conf);
-
-    let proxy = Proxy::new(mys_gateway, mys_controller);
     loop {
-        match proxy.start() {
+        let mys_gateway = get_mys_gateway(&conf);
+        let mys_controller = get_mys_controller(&conf);
+
+        match proxy::start(mys_gateway, mys_controller) {
             Ok(_) => (),
             Err(_) => (),
         };
