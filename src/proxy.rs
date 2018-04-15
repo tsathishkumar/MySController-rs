@@ -23,12 +23,11 @@ impl Proxy {
         gateway_type: ConnectionType,
         controller_type: ConnectionType,
     ) -> Result<String, String> {
-        let mut gateway = Gateway::new(gateway_type, self.gateway_port.clone());
-        let mut controller = Gateway::new(controller_type, self.controller_port.clone());
+        let mut gateway_writer = gateway::create_gateway(gateway_type, self.gateway_port.clone());
+        let mut controller_writer = gateway::create_gateway(controller_type, self.controller_port.clone());
 
-        let mut gateway_port = gateway.clone();
-
-        let mut controller_port = controller.clone();
+        let mut gateway_reader = gateway_writer.clone();
+        let mut controller_reader = controller_writer.clone();
 
         let (gateway_sender, gateway_receiver) = mpsc::channel();
         let (ota_sender, ota_receiver) = mpsc::channel();
@@ -37,10 +36,10 @@ impl Proxy {
         let ota_fw_sender = controller_in_sender.clone();
 
         let gateway_reader = thread::spawn(move || {
-            gateway::read(&mut gateway_port, &gateway_sender);
+            gateway_reader.read_loop( &gateway_sender);
         });
         let controller_reader = thread::spawn(move || {
-            gateway::read(&mut controller_port, &controller_in_sender);
+            controller_reader.read_loop(&controller_in_sender);
         });
 
         let message_interceptor = thread::spawn(move || {
@@ -48,11 +47,11 @@ impl Proxy {
         });
 
         let gateway_writer = thread::spawn(move || {
-            gateway::write(&mut gateway, &controller_in_receiver);
+            gateway_writer.write_loop(&controller_in_receiver);
         });
 
         let controller_writer = thread::spawn(move || {
-            gateway::write(&mut controller, &controller_out_receiver);
+            controller_writer.write_loop(&controller_out_receiver);
         });
 
         let ota_processor = thread::spawn(move || {
