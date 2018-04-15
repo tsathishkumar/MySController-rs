@@ -1,4 +1,3 @@
-use gateway;
 use gateway::*;
 use interceptor;
 use ota;
@@ -6,28 +5,21 @@ use std::sync::mpsc;
 use std::thread;
 
 pub struct Proxy {
-    gateway_port: String,
-    controller_port: String,
+    mys_gateway: Box<Gateway>,
+    mys_controller: Box<Gateway>,
 }
 
 impl Proxy {
-    pub fn new(gateway_port: String, controller_port: String) -> Proxy {
-        Proxy {
-            gateway_port,
-            controller_port,
-        }
+    pub fn new(mys_gateway: Box<Gateway>,
+               mys_controller: Box<Gateway>) -> Proxy {
+        Proxy { mys_gateway, mys_controller }
     }
 
-    pub fn start(
-        &self,
-        gateway_type: ConnectionType,
-        controller_type: ConnectionType,
-    ) -> Result<String, String> {
-        let mut gateway_writer = gateway::create_gateway(gateway_type, self.gateway_port.clone());
-        let mut controller_writer = gateway::create_gateway(controller_type, self.controller_port.clone());
-
-        let mut gateway_reader = gateway_writer.clone();
-        let mut controller_reader = controller_writer.clone();
+    pub fn start(&self) -> Result<String, String> {
+        let mut mys_gateway_writer = self.mys_gateway.clone();
+        let mut mys_controller_writer = self.mys_controller.clone();
+        let mut mys_gateway_reader = self.mys_gateway.clone();
+        let mut mys_controller_reader = self.mys_controller.clone();
 
         let (gateway_sender, gateway_receiver) = mpsc::channel();
         let (ota_sender, ota_receiver) = mpsc::channel();
@@ -36,10 +28,10 @@ impl Proxy {
         let ota_fw_sender = controller_in_sender.clone();
 
         let gateway_reader = thread::spawn(move || {
-            gateway_reader.read_loop( &gateway_sender);
+            mys_gateway_reader.read_loop(&gateway_sender);
         });
         let controller_reader = thread::spawn(move || {
-            controller_reader.read_loop(&controller_in_sender);
+            mys_controller_reader.read_loop(&controller_in_sender);
         });
 
         let message_interceptor = thread::spawn(move || {
@@ -47,11 +39,11 @@ impl Proxy {
         });
 
         let gateway_writer = thread::spawn(move || {
-            gateway_writer.write_loop(&controller_in_receiver);
+            mys_gateway_writer.write_loop(&controller_in_receiver);
         });
 
         let controller_writer = thread::spawn(move || {
-            controller_writer.write_loop(&controller_out_receiver);
+            mys_controller_writer.write_loop(&controller_out_receiver);
         });
 
         let ota_processor = thread::spawn(move || {

@@ -82,19 +82,23 @@ pub struct TcpGateway {
 }
 
 pub fn create_gateway(connection_type: ConnectionType, port: String) -> Box<Gateway> {
-    let mut settings: SerialPortSettings = Default::default();
-    settings.timeout = Duration::from_millis(10);
-    settings.baud_rate = BaudRate::Baud38400;
     println!("connection to {} with type {:?}", port, connection_type);
     match connection_type {
-        ConnectionType::Serial => Box::new(SerialGateway { serial_port: serialport::open_with_settings(&port, &settings).unwrap() }),
+        ConnectionType::Serial => create_serial_gateway(port),
+        ConnectionType::TcpClient => Box::new(TcpGateway { tcp_port: TcpStream::connect(&port).unwrap() }),
         ConnectionType::TcpServer => {
             let stream = TcpListener::bind(&port).unwrap();
             let (mut stream, _) = stream.accept().unwrap();
             Box::new(TcpGateway { tcp_port: stream })
         }
-        ConnectionType::TcpClient => Box::new(TcpGateway { tcp_port: TcpStream::connect(&port).unwrap() }),
     }
+}
+
+fn create_serial_gateway(port: String) -> Box<Gateway> {
+    let mut settings: SerialPortSettings = Default::default();
+    settings.timeout = Duration::from_millis(10);
+    settings.baud_rate = BaudRate::Baud38400;
+    Box::new(SerialGateway { serial_port: serialport::open_with_settings(&port, &settings).unwrap() })
 }
 
 impl Gateway for SerialGateway {
