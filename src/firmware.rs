@@ -30,7 +30,8 @@ impl FirmwareRepo {
     fn populate_firmwares() -> HashMap<FirmwareKey, Firmware> {
         let mut firmware_map = HashMap::new();
         let firmwares_directory = "firmwares/";
-        let paths = fs::read_dir(firmwares_directory).unwrap();
+        let paths = fs::read_dir(firmwares_directory)
+            .expect("Place the firmwares under directory named 'firmwares' in the server root directory");
         for path in paths {
             let _path = path.unwrap();
             let file_name = _path.file_name().into_string().unwrap();

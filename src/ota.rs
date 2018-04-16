@@ -4,19 +4,19 @@ use std::sync::mpsc;
 
 pub fn process_ota(
     ota_receiver: &mpsc::Receiver<CommandMessage>,
-    serial_sender: &mpsc::Sender<String>,
+    sender: &mpsc::Sender<String>,
 ) {
     let firmware_repo = firmware::FirmwareRepo::new();
     loop {
         match ota_receiver.recv() {
             Ok(command_message_request) => match command_message_request.sub_type {
                 CommandSubType::StFirmwareConfigRequest => send_response(
-                    serial_sender,
+                    sender,
                     command_message_request.clone(),
                     &firmware_repo,
                 ),
                 CommandSubType::StFirmwareRequest => send_response(
-                    serial_sender,
+                    sender,
                     command_message_request.clone(),
                     &firmware_repo,
                 ),
@@ -41,7 +41,13 @@ fn send_response(
                     println!("ota : {:?}", response);
                     serial_sender.send(response).unwrap();
                 }
-                Err(message) => println!("Firmware ERROR: {}", message),
+                Err(_message) => {
+                    let firmware = _firmware_repo.get_firmware(1, 1).unwrap();
+                    command_message.to_response(firmware);
+                    let response = command_message.serialize();
+                    println!("default ota : {:?}", response);
+                    serial_sender.send(response).unwrap();
+                }
             }
         }
         None => ()

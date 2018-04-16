@@ -1,10 +1,12 @@
 extern crate ini;
 extern crate myrcontroller;
+extern crate diesel;
 
 use ini::Ini;
 use myrcontroller::gateway::{ConnectionType, Gateway};
 use myrcontroller::gateway;
 use myrcontroller::proxy;
+use diesel::prelude::*;
 
 fn main() {
     let conf = Ini::load_from_file("conf.ini").unwrap();
@@ -12,13 +14,22 @@ fn main() {
     loop {
         let mys_gateway = get_mys_gateway(&conf);
         let mys_controller = get_mys_controller(&conf);
+        let db_connection = establish_connection(&conf);
 
-        match proxy::start(mys_gateway, mys_controller) {
+        match proxy::start(mys_gateway, mys_controller, db_connection) {
             Ok(_) => (),
             Err(_) => (),
         };
         println!("main loop ended");
     }
+}
+
+
+pub fn establish_connection(config: &Ini) -> SqliteConnection {
+    let server_conf = config.section(Some("Server".to_owned())).expect("Server configurations missing");
+    let database_url = server_conf.get("database_url").expect("database_url is not specified. Ex:database_url=/var/db/mys-controller.db");
+    SqliteConnection::establish(&database_url)
+        .expect(&format!("Error connecting to {}", database_url))
 }
 
 fn get_mys_controller<'s>(config: &'s Ini) -> Box<Gateway> {
