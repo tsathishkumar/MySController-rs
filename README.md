@@ -15,7 +15,8 @@ Note: If you are using TCP for controller - the port value will be used to creat
 
 ## TODO
 
-- [ ] Gracefully handle connection at both side, i.e never panic and wait for both connections
+- [x] Gracefully handle connection at both side, i.e never panic and wait for both connections
+- [ ] Ability to handle ota requests even when there is no controller connected
 - [ ] Manage firmwares type and version, ability to upload newer versions of firmwares, expose apis
 - [ ] Manage nodes and the firmwares installed, expose api's
 - [ ] Add an endpoint to assign a firmware to particular node

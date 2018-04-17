@@ -1,13 +1,18 @@
 use firmware;
 use message::{CommandMessage, CommandSubType};
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 
 pub fn process_ota(
+    stop_thread: Arc<Mutex<bool>>,
     ota_receiver: &mpsc::Receiver<CommandMessage>,
     sender: &mpsc::Sender<String>,
 ) {
     let firmware_repo = firmware::FirmwareRepo::new();
     loop {
+        if *stop_thread.lock().unwrap() {
+            break;
+        }
         match ota_receiver.recv() {
             Ok(command_message_request) => match command_message_request.sub_type {
                 CommandSubType::StFirmwareConfigRequest => send_response(

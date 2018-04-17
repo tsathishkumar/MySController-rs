@@ -1,8 +1,9 @@
 use message;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 
-
 pub fn intercept(
+    stop_thread: Arc<Mutex<bool>>,
     receiver: &mpsc::Receiver<String>,
     ota_sender: &mpsc::Sender<message::CommandMessage>,
     node_sender: &mpsc::Sender<String>,
@@ -10,7 +11,13 @@ pub fn intercept(
 ) {
     let node_id_request: String = "255;255;3;0;3;0\n".to_string();
     loop {
-        let request = receiver.recv().unwrap();
+        if *stop_thread.lock().unwrap() {
+            break;
+        }
+        let request = match receiver.recv() {
+            Ok(req) => req,
+            Err(_) => panic!("Error while trying to receive in interceptor"),
+        };
 
         if request == node_id_request {
             node_sender.send(request).unwrap();
@@ -23,7 +30,7 @@ pub fn intercept(
                 message::CommandType::STREAM => ota_sender.send(command_message).unwrap(),
                 _ => match controller_sender.send(request) {
                     Ok(_) => (),
-                    Err(error) => eprintln!("{:?}", error),
+                    Err(error) => eprintln!("Error while sending to controller {:?}", error),
                 },
             },
             Err(message) => {

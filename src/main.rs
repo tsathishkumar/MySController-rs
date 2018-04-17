@@ -9,6 +9,7 @@ use myscontroller::gateway::{ConnectionType, Gateway};
 use myscontroller::gateway;
 use myscontroller::proxy;
 use diesel::prelude::*;
+use std::thread;
 
 
 
@@ -22,10 +23,11 @@ fn main() {
         let db_connection = establish_connection(&conf);
         embedded_migrations::run_with_output(&db_connection, &mut std::io::stdout()).unwrap();
 
-        match proxy::start(mys_gateway, mys_controller, db_connection) {
+        match thread::spawn(|| {proxy::start(mys_gateway, mys_controller, db_connection)})
+            .join() {
             Ok(_) => (),
-            Err(_) => (),
-        };
+            Err(error) => println!("Error in proxy server {:?}", error),
+        }
         println!("main loop ended");
     }
 }

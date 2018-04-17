@@ -5,6 +5,7 @@ use std::io::Read;
 use std::io::Result;
 use std::io::Write;
 use std::net::{TcpListener, TcpStream};
+use std::sync::{Mutex, Arc};
 use std::str;
 use std::sync::mpsc;
 use std::time::Duration;
@@ -35,8 +36,11 @@ pub trait Gateway: Send {
     fn write(&mut self, buf: &[u8]) -> Result<usize>;
     fn clone(&self) -> Box<Gateway>;
 
-    fn write_loop(&mut self, serial_receiver: &mpsc::Receiver<String>) {
+    fn write_loop(&mut self, stop_thread: Arc<Mutex<bool>>, serial_receiver: &mpsc::Receiver<String>) {
         loop {
+            if *stop_thread.lock().unwrap() {
+                break;
+            }
             match serial_receiver.recv() {
                 Ok(received_value) => {
                     self.write(&received_value.as_bytes()).unwrap();
@@ -46,8 +50,11 @@ pub trait Gateway: Send {
         }
     }
 
-    fn read_loop(&mut self, serial_sender: &mpsc::Sender<String>) {
+    fn read_loop(&mut self, stop_thread: Arc<Mutex<bool>>, serial_sender: &mpsc::Sender<String>) {
         loop {
+            if *stop_thread.lock().unwrap() {
+                break;
+            }
             let mut line = String::new();
             let mut serial_buf: Vec<u8> = vec![0; 1];
 
@@ -64,7 +71,7 @@ pub trait Gateway: Send {
                         }
                     }
                     Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                    Err(e) => panic!("{:?}", e),
+                    Err(e) => panic!("Error while reading {:?}", e),
                 }
             }
             println!("{:?}", line);
@@ -85,7 +92,17 @@ pub fn create_gateway(connection_type: ConnectionType, port: &String) -> Box<Gat
     println!("connection to {} with type {:?}", port, connection_type);
     match connection_type {
         ConnectionType::Serial => create_serial_gateway(port),
-        ConnectionType::TcpClient => Box::new(TcpGateway { tcp_port: TcpStream::connect(port).unwrap() }),
+        ConnectionType::TcpClient => {
+            let stream: TcpStream;
+            loop {
+                stream = match TcpStream::connect(port) {
+                    Ok(stream) => stream,
+                    Err(_) => continue,
+                };
+                break;
+            }
+            Box::new(TcpGateway { tcp_port: stream })
+        }
         ConnectionType::TcpServer => {
             let stream = TcpListener::bind(port).unwrap();
             let (mut stream, _) = stream.accept().unwrap();
