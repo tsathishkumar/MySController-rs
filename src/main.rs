@@ -1,13 +1,13 @@
 extern crate ini;
-extern crate myscontroller_rs;
+extern crate myscontroller;
 extern crate diesel;
 #[macro_use]
 extern crate diesel_migrations;
 
 use ini::Ini;
-use myscontroller_rs::gateway::{ConnectionType, Gateway};
-use myscontroller_rs::gateway;
-use myscontroller_rs::proxy;
+use myscontroller::gateway::{ConnectionType, Gateway};
+use myscontroller::gateway;
+use myscontroller::proxy;
 use diesel::prelude::*;
 
 

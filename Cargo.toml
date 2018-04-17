@@ -1,5 +1,5 @@
 [package]
-name = "myscontroller-rs"
+name = "myscontroller"
 version = "0.1.0"
 authors = ["tsathish <tsatiz@gmail.com>"]
 
