@@ -81,20 +81,20 @@ pub struct TcpGateway {
     pub tcp_port: TcpStream
 }
 
-pub fn create_gateway(connection_type: ConnectionType, port: String) -> Box<Gateway> {
+pub fn create_gateway(connection_type: ConnectionType, port: &String) -> Box<Gateway> {
     println!("connection to {} with type {:?}", port, connection_type);
     match connection_type {
         ConnectionType::Serial => create_serial_gateway(port),
-        ConnectionType::TcpClient => Box::new(TcpGateway { tcp_port: TcpStream::connect(&port).unwrap() }),
+        ConnectionType::TcpClient => Box::new(TcpGateway { tcp_port: TcpStream::connect(port).unwrap() }),
         ConnectionType::TcpServer => {
-            let stream = TcpListener::bind(&port).unwrap();
+            let stream = TcpListener::bind(port).unwrap();
             let (mut stream, _) = stream.accept().unwrap();
             Box::new(TcpGateway { tcp_port: stream })
         }
     }
 }
 
-fn create_serial_gateway(port: String) -> Box<Gateway> {
+fn create_serial_gateway(port: &String) -> Box<Gateway> {
     let mut settings: SerialPortSettings = Default::default();
     settings.timeout = Duration::from_millis(10);
     settings.baud_rate = BaudRate::Baud38400;

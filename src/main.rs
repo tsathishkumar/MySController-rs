@@ -48,7 +48,7 @@ fn get_mys_controller<'s>(config: &'s Ini) -> Box<Gateway> {
     };
     let controller_port = controller_conf.get("port").expect("Controller port is not specified. Ex:\n\
      [Controller]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Controller]\n type=SERIAL\n port=port=0.0.0.0:5003");
-    gateway::create_gateway(controller_type, controller_port.clone())
+    gateway::create_gateway(controller_type, controller_port)
 }
 
 fn get_mys_gateway<'s>(config: &'s Ini) -> Box<Gateway> {
@@ -61,5 +61,5 @@ fn get_mys_gateway<'s>(config: &'s Ini) -> Box<Gateway> {
     };
     let gateway_port = gateway_conf.get("port").expect("Gateway port is not specified. Ex:\n\
      [Gateway]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Gateway]\n type=SERIAL\n port=port=10.137.120.250:5003");
-    gateway::create_gateway(gateway_type, gateway_port.clone())
+    gateway::create_gateway(gateway_type, gateway_port)
 }

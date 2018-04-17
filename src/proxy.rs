@@ -22,20 +22,21 @@ pub fn start(mut mys_gateway_writer: Box<Gateway>,
     let gateway_reader = thread::spawn(move || {
         mys_gateway_reader.read_loop(&gateway_sender);
     });
-    let controller_reader = thread::spawn(move || {
-        mys_controller_reader.read_loop(&controller_in_sender);
-    });
-
-    let message_interceptor = thread::spawn(move || {
-        interceptor::intercept(&gateway_receiver, &ota_sender, &node_manager_sender, &controller_out_sender);
-    });
 
     let gateway_writer = thread::spawn(move || {
         mys_gateway_writer.write_loop(&controller_in_receiver);
     });
 
+    let controller_reader = thread::spawn(move || {
+        mys_controller_reader.read_loop(&controller_in_sender);
+    });
+
     let controller_writer = thread::spawn(move || {
         mys_controller_writer.write_loop(&controller_out_receiver);
+    });
+
+    let message_interceptor = thread::spawn(move || {
+        interceptor::intercept(&gateway_receiver, &ota_sender, &node_manager_sender, &controller_out_sender);
     });
 
     let ota_processor = thread::spawn(move || {
