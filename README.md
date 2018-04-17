@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/tsathishkumar/MySController-rs.svg?branch=master)](https://travis-ci.org/tsathishkumar/MySController-rs)
+[![Build Status](https://travis-ci.org/tsathishkumar/MySController-rs.svg?branch=master)](https://travis-ci.org/tsathishkumar/MySController-rs) [ ![Download](https://api.bintray.com/packages/tsathishkumar/MySController-rs/mys-controller-rs/images/download.svg) ](https://bintray.com/tsathishkumar/MySController-rs/mys-controller-rs/_latestVersion)
 # MyRController
 Proxy controller for MySensors. It is to perform OTA firmware updates, and proxy all other requests to the actual controllers like homeassist. Mainly to add OTA support for homeassist controller, but can work with any other controllers.
 
