@@ -1,3 +1,5 @@
+before_install:
+  - sudo apt-get install libudev-dev
 language: rust
 rust:
   - nightly
