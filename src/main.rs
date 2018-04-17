@@ -1,6 +1,8 @@
 extern crate ini;
 extern crate myrcontroller;
 extern crate diesel;
+#[macro_use]
+extern crate diesel_migrations;
 
 use ini::Ini;
 use myrcontroller::gateway::{ConnectionType, Gateway};
@@ -8,13 +10,17 @@ use myrcontroller::gateway;
 use myrcontroller::proxy;
 use diesel::prelude::*;
 
+
+
 fn main() {
+    embed_migrations!("migrations");
     let conf = Ini::load_from_file("conf.ini").unwrap();
 
     loop {
         let mys_gateway = get_mys_gateway(&conf);
         let mys_controller = get_mys_controller(&conf);
         let db_connection = establish_connection(&conf);
+        embedded_migrations::run_with_output(&db_connection, &mut std::io::stdout()).unwrap();
 
         match proxy::start(mys_gateway, mys_controller, db_connection) {
             Ok(_) => (),
