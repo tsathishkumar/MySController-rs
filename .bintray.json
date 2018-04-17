@@ -20,6 +20,6 @@
     },
 
     "files": [
-        {"includePattern": "target/release/myrcontroller", "uploadPattern": "release/$1"}],
+        {"includePattern": "target/release/myrcontroller", "uploadPattern": "release/myrcontroller"}],
     "publish": true
 }
