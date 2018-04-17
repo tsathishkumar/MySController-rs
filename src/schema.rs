@@ -1,8 +1,3 @@
-#[cfg(test)]
-use diesel::debug_query;
-#[cfg(test)]
-use diesel::sqlite::Sqlite;
-
 table! {
     nodes (node_id) {
         node_id -> Integer,

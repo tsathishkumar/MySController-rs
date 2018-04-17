@@ -136,7 +136,7 @@ mod test {
     #[test]
     fn populate_all_firmwares_available() {
         let repo = FirmwareRepo::new();
-        assert_eq!(repo.firmware_map.len(), 1);
+        assert_eq!(repo.firmware_map.len(), 2);
     }
 
     #[test]
