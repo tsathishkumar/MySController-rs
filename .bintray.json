@@ -1,6 +1,6 @@
 {
     "package": {
-        "name": "auto-upload",
+        "name": "mys-controller-rs",
         "repo": "MySController-rs",
         "subject": "tsathishkumar",
         "desc": "MySensors controller proxy server",
