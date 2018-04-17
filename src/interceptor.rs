@@ -1,15 +1,18 @@
 use message;
 use std::sync::mpsc;
 
+
 pub fn intercept(
     receiver: &mpsc::Receiver<String>,
     ota_sender: &mpsc::Sender<message::CommandMessage>,
     node_sender: &mpsc::Sender<String>,
     controller_sender: &mpsc::Sender<String>,
 ) {
+    let node_id_request: String = "255;255;3;0;3;0\n".to_string();
     loop {
         let request = receiver.recv().unwrap();
-        if request == String::from("255;255;3;0;3;0\n") {
+
+        if request == node_id_request {
             node_sender.send(request).unwrap();
             continue;
         }

@@ -39,10 +39,10 @@ pub fn handle_node_id_request(
             Ok(command_message_request) => {
                 let new_node_id = get_next_node_id(&db_connection);
                 let new_id = format!("{}\n", new_node_id);
-                let mut message_parts = command_message_request.trim().split(";").collect::<Vec<&str>>();
-                message_parts[4] = "4";
-                message_parts[5] = &new_id;
-                sender.send(message_parts.join(";")).unwrap();
+                let mut node_id_response = command_message_request.trim().split(";").collect::<Vec<&str>>();
+                node_id_response[4] = "4";
+                node_id_response[5] = &new_id;
+                sender.send(node_id_response.join(";")).unwrap();
                 create_node(&db_connection, new_node_id as i32);
             }
             _ => (),
