@@ -27,7 +27,7 @@ depends = "$auto"
 section = "rust"
 priority = "optional"
 assets = [
-    ["target/x86_64-unknown-linux-gnu/release/myscontroller", "/usr/local/bin/myscontroller-rs", "755"],
+    ["target/x86_64-unknown-linux-gnu/release/myscontroller-rs", "/usr/local/bin/myscontroller-rs", "755"],
     ["conf.ini", "/etc/myscontroller-rs/conf.ini", "644"],
     ["service/systemd/myscontroller-rs.service", "/etc/systemd/system/myscontroller-rs.service", "644"],
 ]
