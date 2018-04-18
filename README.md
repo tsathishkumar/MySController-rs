@@ -21,3 +21,4 @@ Note: If you are using TCP for controller - the port value will be used to creat
 - [ ] Manage nodes and the firmwares installed, expose api's
 - [ ] Add an endpoint to assign a firmware to particular node
 - [ ] Manage requested firmware for nodes
+- [ ] MQTT integration
