@@ -31,3 +31,6 @@ assets = [
     ["conf.ini", "/etc/myscontroller-rs/conf.ini", "644"],
     ["service/systemd/myscontroller-rs.service", "/etc/systemd/system/myscontroller-rs.service", "644"],
 ]
+conf-files = [
+  "/etc/myscontroller-rs/conf.ini"
+]
