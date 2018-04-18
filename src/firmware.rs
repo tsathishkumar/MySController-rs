@@ -15,8 +15,8 @@ pub struct FirmwareRepo {
 }
 
 impl FirmwareRepo {
-    pub fn new() -> FirmwareRepo {
-        FirmwareRepo { firmware_map: FirmwareRepo::populate_firmwares() }
+    pub fn new(firmwares_directory: &String) -> FirmwareRepo {
+        FirmwareRepo { firmware_map: FirmwareRepo::populate_firmwares(firmwares_directory) }
     }
 
     pub fn get_firmware(&self, _type: u16, version: u16) -> Result<&Firmware, String> {
@@ -27,11 +27,10 @@ impl FirmwareRepo {
         }
     }
 
-    fn populate_firmwares() -> HashMap<FirmwareKey, Firmware> {
+    fn populate_firmwares(firmwares_directory: &String) -> HashMap<FirmwareKey, Firmware> {
         let mut firmware_map = HashMap::new();
-        let firmwares_directory = "firmwares/";
         let paths = fs::read_dir(firmwares_directory)
-            .expect("Place the firmwares under directory named 'firmwares' in the server root directory");
+            .expect(format!("Place the firmwares under directory {}", firmwares_directory).as_str());
         for path in paths {
             let _path = path.unwrap();
             let file_name = _path.file_name().into_string().unwrap();
@@ -126,12 +125,11 @@ impl Firmware {
     }
 }
 
-
 #[cfg(test)]
 mod test {
 
-    use super::*;
     use hex;
+    use super::*;
 
     #[test]
     fn populate_all_firmwares_available() {

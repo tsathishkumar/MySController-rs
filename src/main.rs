@@ -9,8 +9,9 @@ use ini::Ini;
 use myscontroller_rs::gateway::{ConnectionType, Gateway};
 use myscontroller_rs::gateway;
 use myscontroller_rs::proxy;
+use std::fs::create_dir_all;
+use std::path::Path;
 use std::thread;
-
 
 fn main() {
     embed_migrations!("migrations");
@@ -22,10 +23,10 @@ fn main() {
     loop {
         let mys_gateway = get_mys_gateway(&conf);
         let mys_controller = get_mys_controller(&conf);
-        let db_connection = establish_connection(&conf);
+        let (db_connection, firmwares_directory) = server_configs(&conf);
         embedded_migrations::run_with_output(&db_connection, &mut std::io::stdout()).unwrap();
 
-        match thread::spawn(|| { proxy::start(mys_gateway, mys_controller, db_connection) })
+        match thread::spawn(|| { proxy::start(firmwares_directory, mys_gateway, mys_controller, db_connection) })
             .join() {
             Ok(_) => (),
             Err(error) => println!("Error in proxy server {:?}", error),
@@ -35,11 +36,16 @@ fn main() {
 }
 
 
-pub fn establish_connection(config: &Ini) -> SqliteConnection {
+pub fn server_configs(config: &Ini) -> (SqliteConnection, String) {
     let server_conf = config.section(Some("Server".to_owned())).expect("Server configurations missing");
-    let database_url = server_conf.get("database_url").expect("database_url is not specified. Ex:database_url=/var/db/mys-controller.db");
-    SqliteConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
+    let database_url = server_conf.get("database_url").expect("database_url is not specified. Ex:database_url=/var/lib/myscontroller-rs/sqlite.db");
+    let firmwares_directory = server_conf.get("firmwares_directory").expect("firmwares_directory is not specified. Ex:firmwares_directory=/var/lib/myscontroller-rs/firmwares");
+    let firmware_path = Path::new(firmwares_directory);
+    let database_path = Path::new(database_url);
+    create_dir_all(firmware_path).unwrap();
+    create_dir_all(database_path.parent().unwrap()).unwrap();
+    (SqliteConnection::establish(&database_url)
+         .expect(&format!("Error connecting to {}", database_url)), firmwares_directory.to_owned())
 }
 
 fn get_mys_controller<'s>(config: &'s Ini) -> Box<Gateway> {

@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::thread;
 
-pub fn start(mut mys_gateway_writer: Box<Gateway>,
+pub fn start(firmwares_directory: String, mut mys_gateway_writer: Box<Gateway>,
              mut mys_controller_writer: Box<Gateway>, db_connection: SqliteConnection) {
     let stop_thread = Arc::new(Mutex::new(false));
     let mut mys_gateway_reader = mys_gateway_writer.clone();
@@ -46,7 +46,7 @@ pub fn start(mut mys_gateway_writer: Box<Gateway>,
     });
 
     let ota_processor = thread::spawn(move || {
-        ota::process_ota(stop_thread_clone5, &ota_receiver, &ota_fw_sender);
+        ota::process_ota(&firmwares_directory, stop_thread_clone5, &ota_receiver, &ota_fw_sender);
     });
 
     let node_manager = thread::spawn(move || {

@@ -3,12 +3,12 @@ use message::{CommandMessage, CommandSubType};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 
-pub fn process_ota(
+pub fn process_ota(firmwares_directory: &String,
     stop_thread: Arc<Mutex<bool>>,
     ota_receiver: &mpsc::Receiver<CommandMessage>,
     sender: &mpsc::Sender<String>,
 ) {
-    let firmware_repo = firmware::FirmwareRepo::new();
+    let firmware_repo = firmware::FirmwareRepo::new(firmwares_directory);
     loop {
         if *stop_thread.lock().unwrap() {
             break;
