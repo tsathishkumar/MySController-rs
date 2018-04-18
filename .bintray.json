@@ -1,7 +1,7 @@
 {
   "package": {
-    "name": "mys-controller-rs",
-    "repo": "MySController-rs",
+    "name": "myscontroller-rs",
+    "repo": "myscontroller-rs",
     "subject": "tsathishkumar",
     "desc": "MySensors controller proxy server",
     "vcs_url": "https://github.com/tsathishkumar/MySController-rs.git",
@@ -25,12 +25,8 @@
   },
   "files": [
     {
-      "includePattern": "target/x86_64-unknown-linux-gnu/release/myscontroller",
-      "uploadPattern": "release/myscontroller_x86_64"
-    },
-    {
       "includePattern": "target/debian/(.*\.deb)",
-      "uploadPattern": "pool/main/m/myscontroller-rs/$1",
+      "uploadPattern": "$1",
       "matrixParams": {
         "deb_distribution": "vivid",
         "deb_component": "main",
