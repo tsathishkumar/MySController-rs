@@ -1,6 +1,6 @@
 [package]
 name = "myscontroller-rs"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["tsathish <tsatiz@gmail.com>"]
 
 [dependencies]
@@ -29,4 +29,5 @@ priority = "optional"
 assets = [
     ["target/x86_64-unknown-linux-gnu/release/myscontroller", "/usr/local/bin/myscontroller-rs", "755"],
     ["conf.ini", "/etc/myscontroller-rs/conf.ini", "644"],
+    ["service/systemd/myscontroller-rs.service", "/etc/systemd/system/myscontroller-rs.service", "644"],
 ]
