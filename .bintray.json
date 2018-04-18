@@ -19,8 +19,8 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.1",
-    "desc": "Initial version",
+    "name": "0.2",
+    "desc": "Signed debian package version",
     "released": "2018-04-17"
   },
   "files": [
