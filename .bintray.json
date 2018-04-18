@@ -20,6 +20,8 @@
     },
 
     "files": [
-        {"includePattern": "target/release/myscontroller", "uploadPattern": "release/myscontroller"}],
+        {"includePattern": "target/x86_64-unknown-linux-gnu/release/myscontroller", "uploadPattern": "release/myscontroller_x86_64"},
+        {"includePattern": "debian/.*", "uploadPattern": "release/deb/$1"}
+    ],
     "publish": true
 }

@@ -81,7 +81,7 @@ pub trait Gateway: Send {
 }
 
 pub struct SerialGateway {
-    pub serial_port: Box<serialport::SerialPort>
+    pub serial_port:    Box<serialport::SerialPort>
 }
 
 pub struct TcpGateway {
