@@ -31,7 +31,7 @@ fn main() {
             Ok(_) => (),
             Err(error) => println!("Error in proxy server {:?}", error),
         }
-        println!("main loop ended");
+        println!("Connection broken somewhere, retrying...");
     }
 }
 
