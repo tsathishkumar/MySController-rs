@@ -9,6 +9,7 @@ use std::sync::{Mutex, Arc};
 use std::str;
 use std::sync::mpsc;
 use std::time::Duration;
+use std::thread;
 
 #[derive(Debug, Copy, Clone)]
 pub enum ConnectionType {
@@ -97,7 +98,10 @@ pub fn create_gateway(connection_type: ConnectionType, port: &String) -> Box<Gat
             loop {
                 stream = match TcpStream::connect(port) {
                     Ok(stream) => stream,
-                    Err(_) => continue,
+                    Err(_) => {
+                        thread::sleep(Duration::from_secs(10));
+                        continue;
+                    },
                 };
                 break;
             }
