@@ -10,6 +10,8 @@ use std::thread;
 pub fn start(firmwares_directory: String, mut mys_gateway_writer: Box<Gateway>,
              mut mys_controller_writer: Box<Gateway>, db_connection: SqliteConnection) {
     let stop_thread = Arc::new(Mutex::new(false));
+    mys_gateway_writer.connect();
+    mys_controller_writer.connect();
     let mut mys_gateway_reader = mys_gateway_writer.clone();
     let mut mys_controller_reader = mys_controller_writer.clone();
 

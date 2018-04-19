@@ -1,12 +1,14 @@
 use serialport;
 use serialport::prelude::*;
 use std::io;
+use std::thread;
+use std::io::{Error, ErrorKind};
 use std::io::Read;
 use std::io::Result;
 use std::io::Write;
 use std::net::{TcpListener, TcpStream};
-use std::sync::{Mutex, Arc};
 use std::str;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -31,10 +33,11 @@ impl ConnectionType {
     }
 }
 
-pub trait Gateway: Send {
+pub trait Gateway: Send + Sync {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize>;
     fn write(&mut self, buf: &[u8]) -> Result<usize>;
     fn clone(&self) -> Box<Gateway>;
+    fn connect(&mut self);
 
     fn write_loop(&mut self, stop_thread: Arc<Mutex<bool>>, serial_receiver: &mpsc::Receiver<String>) {
         loop {
@@ -43,9 +46,14 @@ pub trait Gateway: Send {
             }
             match serial_receiver.recv() {
                 Ok(received_value) => {
-                    self.write(&received_value.as_bytes()).unwrap();
+                    match self.write(&received_value.as_bytes()) {
+                        Ok(_) => (),
+                        Err(e) => {
+                            eprintln!("Error while writing -- {:?}", e);
+                        },
+                    }
                 }
-                Err(error) => eprintln!("{:?}", error),
+                Err(error) => eprintln!("Error while receiving -- {:?}", error),
             }
         }
     }
@@ -71,7 +79,10 @@ pub trait Gateway: Send {
                         }
                     }
                     Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                    Err(e) => panic!("Error while reading {:?}", e),
+                    Err(e) => {
+                        eprintln!("Error while reading -- {:?}", e);
+                        self.connect();
+                    }
                 }
             }
             println!("{:?}", line);
@@ -81,11 +92,36 @@ pub trait Gateway: Send {
 }
 
 pub struct SerialGateway {
-    pub serial_port:    Box<serialport::SerialPort>
+    pub serial_port: String,
+    pub stream: Box<serialport::SerialPort>,
 }
 
 pub struct TcpGateway {
-    pub tcp_port: TcpStream
+    pub tcp_port: String,
+    pub tcp_stream: Option<TcpStream>,
+}
+
+pub struct TcpServerGateway {
+    pub tcp_port: String,
+    pub tcp_listener: TcpListener,
+    pub tcp_stream: Option<Arc<Mutex<TcpStream>>>,
+}
+
+pub struct ReadWriteGateway {
+    pub gateway: Arc<Box<Gateway>>,
+}
+
+impl ReadWriteGateway {
+    pub fn read_write_loop(&self, stop_thread: Arc<Mutex<bool>>, serial_sender: &mpsc::Sender<String>) {
+        let mut read_gateway = self.gateway.clone();
+        let mut write_gateway = self.gateway.clone();
+        let stop_thread1 = stop_thread.clone();
+        let sender = serial_sender.clone();
+        thread::spawn(move || {
+            read_gateway.read_loop(stop_thread1, &sender);
+        });
+
+    }
 }
 
 pub fn create_gateway(connection_type: ConnectionType, port: &String) -> Box<Gateway> {
@@ -93,20 +129,11 @@ pub fn create_gateway(connection_type: ConnectionType, port: &String) -> Box<Gat
     match connection_type {
         ConnectionType::Serial => create_serial_gateway(port),
         ConnectionType::TcpClient => {
-            let stream: TcpStream;
-            loop {
-                stream = match TcpStream::connect(port) {
-                    Ok(stream) => stream,
-                    Err(_) => continue,
-                };
-                break;
-            }
-            Box::new(TcpGateway { tcp_port: stream })
+            Box::new(TcpGateway { tcp_port: port.clone(), tcp_stream: None })
         }
         ConnectionType::TcpServer => {
-            let stream = TcpListener::bind(port).unwrap();
-            let (mut stream, _) = stream.accept().unwrap();
-            Box::new(TcpGateway { tcp_port: stream })
+            let tcp_listener = TcpListener::bind(port).unwrap();
+            Box::new(TcpServerGateway { tcp_port: port.clone(), tcp_listener, tcp_stream: None })
         }
     }
 }
@@ -115,33 +142,112 @@ fn create_serial_gateway(port: &String) -> Box<Gateway> {
     let mut settings: SerialPortSettings = Default::default();
     settings.timeout = Duration::from_millis(10);
     settings.baud_rate = BaudRate::Baud38400;
-    Box::new(SerialGateway { serial_port: serialport::open_with_settings(&port, &settings).unwrap() })
+    Box::new(SerialGateway { serial_port: port.clone(), stream: serialport::open_with_settings(&port, &settings).unwrap() })
 }
 
 impl Gateway for SerialGateway {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        self.serial_port.read(buf)
+        self.stream.read(buf)
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        self.serial_port.write(buf)
+        self.stream.write(buf)
     }
 
     fn clone(&self) -> Box<Gateway> {
-        Box::new(SerialGateway { serial_port: self.serial_port.try_clone().unwrap() })
+        Box::new(SerialGateway { serial_port: self.serial_port.clone(), stream: self.stream.try_clone().unwrap() })
+    }
+    fn connect(&mut self) {
+        let mut settings: SerialPortSettings = Default::default();
+        settings.timeout = Duration::from_millis(10000);
+        settings.baud_rate = BaudRate::Baud38400;
+        loop {
+            self.stream = match serialport::open_with_settings(&self.serial_port, &settings) {
+                Ok(serial_port) => serial_port,
+                Err(_) => continue,
+            };
+            break;
+        }
+    }
+}
+
+impl Gateway for TcpServerGateway {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+        match self.tcp_stream {
+            Some(ref mut stream) => stream.read(buf),
+            None => Err(Error::from(ErrorKind::NotConnected)),
+        }
+    }
+
+    fn write(&mut self, buf: &[u8]) -> Result<usize> {
+        match self.tcp_stream {
+            Some(ref mut stream) => stream.write(buf),
+            None => Err(Error::from(ErrorKind::NotConnected)),
+        }
+    }
+
+    fn clone(&self) -> Box<Gateway> {
+        let clone_stream = match self.tcp_stream {
+            Some(ref stream) => Some(stream.try_clone().unwrap()),
+            None => None,
+        };
+        Box::new(TcpServerGateway {
+            tcp_port: self.tcp_port.clone(),
+            tcp_listener: self.tcp_listener.try_clone().unwrap(),
+            tcp_stream: clone_stream,
+        })
+    }
+    fn connect(&mut self) {
+        println!("Waiting for clients to connect to -- {}", self.tcp_port);
+        self.tcp_stream = match self.tcp_listener.accept() {
+            Ok((_stream, _socket)) => {
+                println!("Connected to client -- {:?}", _socket);
+                Some(Arc::new(Mutex::new(_stream)))
+            },
+            Err(_) => None,
+        };
     }
 }
 
 impl Gateway for TcpGateway {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        self.tcp_port.read(buf)
+        match self.tcp_stream {
+            Some(ref mut stream) => stream.read(buf),
+            None => Err(Error::from(ErrorKind::NotConnected)),
+        }
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        self.tcp_port.write(buf)
+        match self.tcp_stream {
+            Some(ref mut stream) => stream.write(buf),
+            None => Err(Error::from(ErrorKind::NotConnected)),
+        }
     }
 
     fn clone(&self) -> Box<Gateway> {
-        Box::new(TcpGateway { tcp_port: self.tcp_port.try_clone().unwrap() })
+        let clone_stream = match self.tcp_stream {
+            Some(ref stream) => Some(stream.try_clone().unwrap()),
+            None => None,
+        };
+        Box::new(TcpGateway {
+            tcp_port: self.tcp_port.clone(),
+            tcp_stream: clone_stream,
+        })
+    }
+
+    fn connect(&mut self) {
+        loop {
+            println!("Connecting server to -- {}", self.tcp_port);
+            let stream = TcpStream::connect(&self.tcp_port);
+            self.tcp_stream = match stream {
+                Ok(_stream) => Some(_stream),
+                Err(_) => {
+                    thread::sleep(Duration::from_millis(5000));
+                    continue;
+                },
+            };
+            println!("Connected to -- {}", self.tcp_port);
+            break;
+        }
     }
 }

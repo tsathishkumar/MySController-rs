@@ -20,19 +20,17 @@ fn main() {
         Err(_) => Ini::load_from_file("conf.ini").unwrap(),
     };
 
-    loop {
-        let mys_gateway = get_mys_gateway(&conf);
-        let mys_controller = get_mys_controller(&conf);
-        let (db_connection, firmwares_directory) = server_configs(&conf);
-        embedded_migrations::run_with_output(&db_connection, &mut std::io::stdout()).unwrap();
+    let mys_gateway = get_mys_gateway(&conf);
+    let mys_controller = get_mys_controller(&conf);
+    let (db_connection, firmwares_directory) = server_configs(&conf);
+    embedded_migrations::run_with_output(&db_connection, &mut std::io::stdout()).unwrap();
 
-        match thread::spawn(|| { proxy::start(firmwares_directory, mys_gateway, mys_controller, db_connection) })
-            .join() {
-            Ok(_) => (),
-            Err(error) => println!("Error in proxy server {:?}", error),
-        }
-        println!("main loop ended");
+    match thread::spawn(|| { proxy::start(firmwares_directory, mys_gateway, mys_controller, db_connection) })
+        .join() {
+        Ok(_) => (),
+        Err(error) => println!("Error in proxy server {:?}", error),
     }
+    println!("main loop ended");
 }
 
 
