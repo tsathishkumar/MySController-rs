@@ -3,9 +3,8 @@ use message::{CommandMessage, CommandSubType};
 use std::sync::mpsc;
 
 pub fn process_ota(firmwares_directory: &String,
-    ota_receiver: &mpsc::Receiver<CommandMessage>,
-    sender: &mpsc::Sender<String>,
-) {
+                   ota_receiver: &mpsc::Receiver<CommandMessage>,
+                   sender: &mpsc::Sender<String>) {
     let firmware_repo = firmware::FirmwareRepo::new(firmwares_directory);
     loop {
         match ota_receiver.recv() {
@@ -27,11 +26,9 @@ pub fn process_ota(firmwares_directory: &String,
     }
 }
 
-fn send_response(
-    serial_sender: &mpsc::Sender<String>,
-    mut command_message: CommandMessage,
-    _firmware_repo: &firmware::FirmwareRepo,
-) {
+fn send_response(serial_sender: &mpsc::Sender<String>,
+                 mut command_message: CommandMessage,
+                 _firmware_repo: &firmware::FirmwareRepo) {
     match command_message.fw_type_version() {
         Some((_type, version)) => {
             match _firmware_repo.get_firmware(_type, version) {
@@ -42,11 +39,15 @@ fn send_response(
                     serial_sender.send(response).unwrap();
                 }
                 Err(_message) => {
-                    let firmware = _firmware_repo.get_firmware(1, 1).unwrap();
-                    command_message.to_response(firmware);
-                    let response = command_message.serialize();
-                    println!("default ota : {:?}", response);
-                    serial_sender.send(response).unwrap();
+                    match _firmware_repo.get_firmware(1, 1) {
+                        Ok(firmware) => {
+                            command_message.to_response(firmware);
+                            let response = command_message.serialize();
+                            println!("default ota : {:?}", response);
+                            serial_sender.send(response).unwrap();
+                        }
+                        Err(_) => println!("no firmware found -- ignoring request")
+                    }
                 }
             }
         }

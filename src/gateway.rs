@@ -58,7 +58,7 @@ pub trait Gateway: Send {
                     }
                 }
                 Err(mpsc::RecvTimeoutError::Timeout) => (),
-                Err(_error) => eprintln!("Error while receiving -- {:?}",_error),
+                Err(_error) => eprintln!("Error while receiving -- {:?}", _error),
             }
         }
         (serial_receiver)
