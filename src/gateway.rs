@@ -119,20 +119,39 @@ pub fn stream_read_write(stream_info: StreamInfo,
                          mut sender: mpsc::Sender<String>,
                          mut receiver: mpsc::Receiver<String>) {
     loop {
-        let (stop_sender, stop_receiver) = mpsc::channel();
+        let (cancel_token_sender, cancel_token_receiver) = mpsc::channel();
+        let simple_consumer = thread::spawn(move || {
+            consume(receiver, cancel_token_receiver)
+        });
         let mut mys_gateway_reader = create_gateway(stream_info.connection_type, &stream_info.port);
-        ;
+        cancel_token_sender.send(String::from("stop")).unwrap();
+        receiver = simple_consumer.join().unwrap();
+
+        let (cancel_token_sender, cancel_token_receiver) = mpsc::channel();
         let mut mys_gateway_writer = mys_gateway_reader.clone();
         let gateway_reader = thread::spawn(move || {
             mys_gateway_reader.read_loop(sender)
         });
         let gateway_writer = thread::spawn(move || {
-            mys_gateway_writer.write_loop(receiver, stop_receiver)
+            mys_gateway_writer.write_loop(receiver, cancel_token_receiver)
         });
         sender = gateway_reader.join().unwrap();
-        stop_sender.send(String::from("reader stoppped")).unwrap();
+        cancel_token_sender.send(String::from("reader stoppped")).unwrap();
         receiver = gateway_writer.join().unwrap();
     }
+}
+
+fn consume(receiver: mpsc::Receiver<String>, cancel_token_receiver: mpsc::Receiver<String>) -> mpsc::Receiver<String> {
+    loop {
+        match cancel_token_receiver.recv_timeout(Duration::from_millis(500)) {
+            Ok(_) => break,
+            Err(_) => ()
+        }
+        match receiver.recv_timeout(Duration::from_millis(500)) {
+            _ => continue,
+        }
+    }
+    receiver
 }
 
 

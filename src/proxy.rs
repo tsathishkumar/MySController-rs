@@ -1,5 +1,4 @@
 use diesel::prelude::*;
-use gateway;
 use gateway::*;
 use interceptor;
 use node;
