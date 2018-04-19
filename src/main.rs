@@ -1,3 +1,7 @@
+#![feature(plugin)]
+#![plugin(rocket_codegen)]
+extern crate rocket;
+
 extern crate diesel;
 #[macro_use]
 extern crate diesel_migrations;
@@ -7,11 +11,16 @@ extern crate myscontroller_rs;
 use diesel::prelude::*;
 use ini::Ini;
 use myscontroller_rs::gateway::ConnectionType;
-use myscontroller_rs::{proxy, gateway};
+use myscontroller_rs::{proxy, gateway, api};
 use std::fs::create_dir_all;
 use std::path::Path;
+use std::thread;
 
 fn main() {
+    thread::spawn( || {
+        rocket::ignite().mount("/", routes![api::index]).launch();
+    });
+
     embed_migrations!("migrations");
     let conf = match Ini::load_from_file("/etc/myscontroller-rs/conf.ini") {
         Ok(_conf) => _conf,

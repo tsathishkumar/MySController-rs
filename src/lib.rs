@@ -1,6 +1,7 @@
 #![feature(untagged_unions)]
 #![feature(rustc_private)]
-
+#![feature(plugin)]
+#![plugin(rocket_codegen)]
 extern crate crc16;
 #[macro_use]
 extern crate enum_primitive;
@@ -14,6 +15,7 @@ extern crate diesel;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate rocket;
 
 pub mod firmware;
 pub mod gateway;
@@ -23,3 +25,4 @@ pub mod ota;
 pub mod proxy;
 pub mod schema;
 pub mod node;
+pub mod api;
