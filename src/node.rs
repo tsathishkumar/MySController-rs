@@ -2,7 +2,6 @@ use diesel;
 use diesel::prelude::*;
 use schema::Node;
 use schema::nodes::dsl::nodes;
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 
 pub fn create_node(conn: &SqliteConnection, id: i32) -> usize {
@@ -31,15 +30,11 @@ pub fn get_next_node_id(conn: &SqliteConnection) -> u8 {
 }
 
 pub fn handle_node_id_request(
-    stop_thread: Arc<Mutex<bool>>,
     receiver: &mpsc::Receiver<String>,
     sender: &mpsc::Sender<String>,
     db_connection: SqliteConnection,
 ) {
     loop {
-        if *stop_thread.lock().unwrap() {
-            break;
-        }
         match receiver.recv() {
             Ok(command_message_request) => {
                 let new_node_id = get_next_node_id(&db_connection);

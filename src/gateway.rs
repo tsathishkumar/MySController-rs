@@ -6,10 +6,14 @@ use std::io::Result;
 use std::io::Write;
 use std::net::{TcpListener, TcpStream};
 use std::str;
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+
+pub struct StreamInfo {
+    pub port: String,
+    pub connection_type: ConnectionType,
+}
 
 #[derive(Debug, Copy, Clone)]
 pub enum ConnectionType {
@@ -37,30 +41,32 @@ pub trait Gateway: Send {
     fn write(&mut self, buf: &[u8]) -> Result<usize>;
     fn clone(&self) -> Box<Gateway>;
 
-    fn write_loop(&mut self, stop_thread: Arc<Mutex<bool>>, serial_receiver: &mpsc::Receiver<String>) {
+    fn write_loop(&mut self, serial_receiver: mpsc::Receiver<String>, stop_receiver: mpsc::Receiver<String>) -> mpsc::Receiver<String> {
         loop {
-            if *stop_thread.lock().unwrap() {
-                break;
+            match stop_receiver.recv_timeout(Duration::from_millis(10)) {
+                Ok(_) => break,
+                Err(_) => ()
             }
-            match serial_receiver.recv() {
+            match serial_receiver.recv_timeout(Duration::from_secs(5)) {
                 Ok(received_value) => {
                     match self.write(&received_value.as_bytes()) {
                         Ok(_) => (),
                         Err(e) => {
                             eprintln!("Error while writing -- {:?}", e);
+                            break;
                         }
                     }
                 }
-                Err(error) => eprintln!("Error while receiving -- {:?}", error),
+                Err(mpsc::RecvTimeoutError::Timeout) => (),
+                Err(_error) => eprintln!("Error while receiving -- {:?}",_error),
             }
         }
+        (serial_receiver)
     }
 
-    fn read_loop(&mut self, stop_thread: Arc<Mutex<bool>>, serial_sender: &mpsc::Sender<String>) {
+    fn read_loop(&mut self, serial_sender: mpsc::Sender<String>) -> mpsc::Sender<String> {
         loop {
-            if *stop_thread.lock().unwrap() {
-                break;
-            }
+            let mut broken_connection = false;
             let mut line = String::new();
             let mut serial_buf: Vec<u8> = vec![0; 1];
 
@@ -71,6 +77,11 @@ pub trait Gateway: Send {
                             Ok(v) => v,
                             Err(_e) => break,
                         };
+                        if s == "\u{0}" {
+                            println!("Error while reading -- reached EOF");
+                            broken_connection = true;
+                            break;
+                        }
                         line.push_str(&s);
                         if s.contains("\n") {
                             break;
@@ -78,13 +89,19 @@ pub trait Gateway: Send {
                     }
                     Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                     Err(e) => {
-                        panic!("Error while reading -- {:?}", e);
+                        println!("Error while reading -- {:?}", e);
+                        broken_connection = true;
+                        break;
                     }
                 }
+            }
+            if broken_connection {
+                break;
             }
             println!("{:?}", line);
             serial_sender.send(line).unwrap();
         }
+        (serial_sender)
     }
 }
 
@@ -98,13 +115,34 @@ pub struct TcpGateway {
     pub tcp_stream: TcpStream,
 }
 
+pub fn stream_read_write(stream_info: StreamInfo,
+                         mut sender: mpsc::Sender<String>,
+                         mut receiver: mpsc::Receiver<String>) {
+    loop {
+        let (stop_sender, stop_receiver) = mpsc::channel();
+        let mut mys_gateway_reader = create_gateway(stream_info.connection_type, &stream_info.port);
+        ;
+        let mut mys_gateway_writer = mys_gateway_reader.clone();
+        let gateway_reader = thread::spawn(move || {
+            mys_gateway_reader.read_loop(sender)
+        });
+        let gateway_writer = thread::spawn(move || {
+            mys_gateway_writer.write_loop(receiver, stop_receiver)
+        });
+        sender = gateway_reader.join().unwrap();
+        stop_sender.send(String::from("reader stoppped")).unwrap();
+        receiver = gateway_writer.join().unwrap();
+    }
+}
+
+
 pub fn create_gateway(connection_type: ConnectionType, port: &String) -> Box<Gateway> {
     match connection_type {
         ConnectionType::Serial => create_serial_gateway(port),
         ConnectionType::TcpClient => {
             let stream: TcpStream;
             loop {
-                println!("Connecting to server -- {}", port);
+                println!("Waiting for server connection -- {} ...", port);
                 stream = match TcpStream::connect(port) {
                     Ok(stream) => stream,
                     Err(_) => {
@@ -112,6 +150,7 @@ pub fn create_gateway(connection_type: ConnectionType, port: &String) -> Box<Gat
                         continue;
                     }
                 };
+                println!("Connected to -- {}", port);
                 break;
             }
             Box::new(TcpGateway { tcp_port: port.clone(), tcp_stream: stream })
@@ -157,6 +196,6 @@ impl Gateway for TcpGateway {
     }
 
     fn clone(&self) -> Box<Gateway> {
-        Box::new(TcpGateway { tcp_port: self.tcp_port.clone(),  tcp_stream: self.tcp_stream.try_clone().unwrap() })
+        Box::new(TcpGateway { tcp_port: self.tcp_port.clone(), tcp_stream: self.tcp_stream.try_clone().unwrap() })
     }
 }

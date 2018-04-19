@@ -19,8 +19,8 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.2.4",
-    "desc": "Signed debian package version",
+    "name": "0.2.5",
+    "desc": "Handling connections gracefully!!",
     "released": "2018-04-17"
   },
   "files": [

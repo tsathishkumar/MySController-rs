@@ -1,9 +1,7 @@
 use message;
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 
 pub fn intercept(
-    stop_thread: Arc<Mutex<bool>>,
     receiver: &mpsc::Receiver<String>,
     ota_sender: &mpsc::Sender<message::CommandMessage>,
     node_sender: &mpsc::Sender<String>,
@@ -11,9 +9,6 @@ pub fn intercept(
 ) {
     let node_id_request: String = "255;255;3;0;3;0\n".to_string();
     loop {
-        if *stop_thread.lock().unwrap() {
-            break;
-        }
         let request = match receiver.recv() {
             Ok(req) => req,
             Err(_) => panic!("Error while trying to receive in interceptor"),

@@ -6,12 +6,10 @@ extern crate myscontroller_rs;
 
 use diesel::prelude::*;
 use ini::Ini;
-use myscontroller_rs::gateway::{ConnectionType, Gateway};
-use myscontroller_rs::gateway;
-use myscontroller_rs::proxy;
+use myscontroller_rs::gateway::ConnectionType;
+use myscontroller_rs::{proxy, gateway};
 use std::fs::create_dir_all;
 use std::path::Path;
-use std::thread;
 
 fn main() {
     embed_migrations!("migrations");
@@ -20,19 +18,10 @@ fn main() {
         Err(_) => Ini::load_from_file("conf.ini").unwrap(),
     };
 
-    loop {
-        let mys_gateway = get_mys_gateway(&conf);
-        let mys_controller = get_mys_controller(&conf);
-        let (db_connection, firmwares_directory) = server_configs(&conf);
-        embedded_migrations::run_with_output(&db_connection, &mut std::io::stdout()).unwrap();
+    let (db_connection, firmwares_directory) = server_configs(&conf);
+    embedded_migrations::run_with_output(&db_connection, &mut std::io::stdout()).unwrap();
 
-        match thread::spawn(|| { proxy::start(firmwares_directory, mys_gateway, mys_controller, db_connection) })
-            .join() {
-            Ok(_) => (),
-            Err(error) => println!("Error in proxy server {:?}", error),
-        }
-        println!("Connection broken somewhere, retrying...");
-    }
+    proxy::start(firmwares_directory, get_mys_gateway(&conf), get_mys_controller(&conf), db_connection)
 }
 
 
@@ -48,7 +37,7 @@ pub fn server_configs(config: &Ini) -> (SqliteConnection, String) {
          .expect(&format!("Error connecting to {}", database_url)), firmwares_directory.to_owned())
 }
 
-fn get_mys_controller<'s>(config: &'s Ini) -> Box<Gateway> {
+fn get_mys_controller<'s>(config: &'s Ini) -> gateway::StreamInfo {
     let controller_conf = config.section(Some("Controller".to_owned())).unwrap();
     let controller_type = controller_conf.get("type").expect("Controller port is not specified. Ex:\n\
      [Controller]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Controller]\n type=SERIAL\n port=port=0.0.0.0:5003");
@@ -58,10 +47,10 @@ fn get_mys_controller<'s>(config: &'s Ini) -> Box<Gateway> {
     };
     let controller_port = controller_conf.get("port").expect("Controller port is not specified. Ex:\n\
      [Controller]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Controller]\n type=SERIAL\n port=port=0.0.0.0:5003");
-    gateway::create_gateway(controller_type, controller_port)
+    gateway::StreamInfo { port: controller_port.to_owned(), connection_type: controller_type }
 }
 
-fn get_mys_gateway<'s>(config: &'s Ini) -> Box<Gateway> {
+fn get_mys_gateway<'s>(config: &'s Ini) -> gateway::StreamInfo {
     let gateway_conf = config.section(Some("Gateway".to_owned())).unwrap();
     let gateway_type = gateway_conf.get("type").expect("Gateway port is not specified. Ex:\n\
      [Gateway]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Gateway]\n type=SERIAL\n port=port=10.137.120.250:5003");
@@ -71,5 +60,5 @@ fn get_mys_gateway<'s>(config: &'s Ini) -> Box<Gateway> {
     };
     let gateway_port = gateway_conf.get("port").expect("Gateway port is not specified. Ex:\n\
      [Gateway]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Gateway]\n type=SERIAL\n port=port=10.137.120.250:5003");
-    gateway::create_gateway(gateway_type, gateway_port)
+    gateway::StreamInfo { port: gateway_port.to_owned(), connection_type: gateway_type }
 }
