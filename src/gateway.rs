@@ -190,7 +190,20 @@ fn create_serial_gateway(port: &String) -> Box<Gateway> {
     let mut settings: SerialPortSettings = Default::default();
     settings.timeout = Duration::from_millis(10);
     settings.baud_rate = BaudRate::Baud38400;
-    Box::new(SerialGateway { serial_port: port.clone(), stream: serialport::open_with_settings(&port, &settings).unwrap() })
+    let stream;
+    loop {
+        println!("Waiting for serial connection in -- {} ...", port);
+        stream = match serialport::open_with_settings(&port, &settings) {
+            Ok(stream) => stream,
+            Err(_) => {
+                thread::sleep(Duration::from_secs(10));
+                continue;
+            }
+        };
+        println!("Connected to -- {}", port);
+        break;
+    }
+    Box::new(SerialGateway { serial_port: port.clone(), stream })
 }
 
 impl Gateway for SerialGateway {

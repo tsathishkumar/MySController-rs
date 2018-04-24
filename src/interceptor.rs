@@ -11,7 +11,10 @@ pub fn intercept(
     loop {
         let request = match receiver.recv() {
             Ok(req) => req,
-            Err(_) => panic!("Error while trying to receive in interceptor"),
+            Err(_e) => {
+                println!("Error while trying to receive in interceptor {:?}", _e);
+                break
+            },
         };
 
         if request == node_id_request {

@@ -76,8 +76,8 @@ impl FirmwarePayload {
 
 #[derive(Debug, Clone, Copy)]
 pub struct FwConfigRequestMessage {
-    _type: u16,
-    version: u16,
+    pub _type: u16,
+    pub version: u16,
     blocks: u16,
     crc: u16,
     bl_version: u16,
@@ -93,8 +93,8 @@ pub struct FwConfigResponseMessage {
 
 #[derive(Debug, Clone, Copy)]
 pub struct FwRequestMessage {
-    _type: u16,
-    version: u16,
+    pub _type: u16,
+    pub version: u16,
     blocks: u16,
 }
 
@@ -172,14 +172,6 @@ impl CommandMessage {
                 _ => MessagePayloadType::Other(array_val),
             },
         })
-    }
-
-    pub fn fw_type_version(&self) -> Option<(u16, u16)> {
-        match self.payload {
-            MessagePayloadType::FwConfigRequest(_request) => Some((_request._type, _request.version)),
-            MessagePayloadType::FwRequest(request) => Some((request._type, request.version)),
-            _ => None,
-        }
     }
 
     pub fn to_response(&mut self, firmware: &Firmware) {
@@ -265,7 +257,6 @@ fn vector_as_u8_32_array(vector: Vec<u8>) -> [u8; MAX_MESSAGE_LENGTH] {
 
 #[cfg(test)]
 mod test {
-
     use super::*;
 
     #[test]
@@ -368,7 +359,7 @@ mod test {
     fn convert_fw_config_request_to_response() {
         let message_string = "1;255;4;0;0;0A0001005000D4460102\n";
         let mut command_message = CommandMessage::new(&String::from(message_string)).unwrap();
-        command_message.to_response(&Firmware{_type: 10, version: 2, blocks: 79, crc: 1000, bin_data: vec![], name: String::from("Blink.hex")});
+        command_message.to_response(&Firmware { _type: 10, version: 2, blocks: 79, crc: 1000, bin_data: vec![], name: String::from("Blink.hex") });
         assert_eq!(
             command_message.serialize(),
             String::from("1;255;4;0;1;0A0002004F00E803\n")
@@ -379,7 +370,7 @@ mod test {
     fn convert_fw_request_to_response() {
         let message_string = "1;255;4;0;2;0A0002000700\n";
         let mut command_message = CommandMessage::new(&String::from(message_string)).unwrap();
-        command_message.to_response(&Firmware::prepare_fw(10,2, String::from("firmwares/10__2__Blink.ino.hex")));
+        command_message.to_response(&Firmware::prepare_fw(10, 2, String::from("firmwares/10__2__Blink.ino.hex")));
         assert_eq!(
             command_message.serialize(),
             String::from("1;255;4;0;3;0A000200070000030407000000000000000001020408\n")
