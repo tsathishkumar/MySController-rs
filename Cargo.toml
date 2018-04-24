@@ -1,6 +1,6 @@
 [package]
 name = "myscontroller-rs"
-version = "0.2.8"
+version = "0.3.0"
 authors = ["tsathish <tsatiz@gmail.com>"]
 
 [dependencies]
@@ -21,6 +21,7 @@ rocket = "0.3.8"
 rocket_codegen = "0.3.8"
 r2d2 = "0.8.2"
 rocket_contrib = {version = "*", default-features = false,features = ["json"]}
+crossbeam-channel = "0.1"
 
 [package.metadata.deb]
 maintainer = "Sathishkumar <tsatiz@gmail.com>"

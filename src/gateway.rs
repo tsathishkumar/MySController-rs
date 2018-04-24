@@ -6,7 +6,8 @@ use std::io::Result;
 use std::io::Write;
 use std::net::{TcpListener, TcpStream};
 use std::str;
-use std::sync::mpsc;
+use channel;
+use channel::{Receiver, Sender};
 use std::thread;
 use std::time::Duration;
 
@@ -42,7 +43,7 @@ pub trait Gateway: Send {
     fn clone(&self) -> Box<Gateway>;
     fn port(&self) -> &String;
 
-    fn write_loop(&mut self, serial_receiver: mpsc::Receiver<String>, stop_receiver: mpsc::Receiver<String>) -> mpsc::Receiver<String> {
+    fn write_loop(&mut self, serial_receiver: Receiver<String>, stop_receiver: Receiver<String>) -> Receiver<String> {
         loop {
             match stop_receiver.recv_timeout(Duration::from_millis(10)) {
                 Ok(_) => break,
@@ -58,14 +59,14 @@ pub trait Gateway: Send {
                         }
                     }
                 }
-                Err(mpsc::RecvTimeoutError::Timeout) => (),
+                Err(channel::RecvTimeoutError::Timeout) => (),
                 Err(_error) => eprintln!("Error while receiving -- {:?}", _error),
             }
         }
         (serial_receiver)
     }
 
-    fn read_loop(&mut self, serial_sender: mpsc::Sender<String>) -> mpsc::Sender<String> {
+    fn read_loop(&mut self, serial_sender: Sender<String>) -> Sender<String> {
         loop {
             let mut broken_connection = false;
             let mut line = String::new();
@@ -117,10 +118,10 @@ pub struct TcpGateway {
 }
 
 pub fn stream_read_write(stream_info: StreamInfo,
-                         mut sender: mpsc::Sender<String>,
-                         mut receiver: mpsc::Receiver<String>) {
+                         mut sender: Sender<String>,
+                         mut receiver: Receiver<String>) {
     loop {
-        let (cancel_token_sender, cancel_token_receiver) = mpsc::channel();
+        let (cancel_token_sender, cancel_token_receiver) = channel::unbounded();
         let simple_consumer = thread::spawn(move || {
             consume(receiver, cancel_token_receiver)
         });
@@ -128,7 +129,7 @@ pub fn stream_read_write(stream_info: StreamInfo,
         cancel_token_sender.send(String::from("stop")).unwrap();
         receiver = simple_consumer.join().unwrap();
 
-        let (cancel_token_sender, cancel_token_receiver) = mpsc::channel();
+        let (cancel_token_sender, cancel_token_receiver) = channel::unbounded();
         let mut mys_gateway_writer = mys_gateway_reader.clone();
         let gateway_reader = thread::spawn(move || {
             mys_gateway_reader.read_loop(sender)
@@ -142,7 +143,7 @@ pub fn stream_read_write(stream_info: StreamInfo,
     }
 }
 
-fn consume(receiver: mpsc::Receiver<String>, cancel_token_receiver: mpsc::Receiver<String>) -> mpsc::Receiver<String> {
+fn consume(receiver: Receiver<String>, cancel_token_receiver: Receiver<String>) -> Receiver<String> {
     loop {
         match cancel_token_receiver.recv_timeout(Duration::from_millis(500)) {
             Ok(_) => break,

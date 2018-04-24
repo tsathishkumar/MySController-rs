@@ -1,11 +1,11 @@
 use message;
-use std::sync::mpsc;
+use channel::{Receiver, Sender};
 
 pub fn intercept(
-    receiver: &mpsc::Receiver<String>,
-    ota_sender: &mpsc::Sender<message::CommandMessage>,
-    node_sender: &mpsc::Sender<String>,
-    controller_sender: &mpsc::Sender<String>,
+    receiver: &Receiver<String>,
+    ota_sender: &Sender<message::CommandMessage>,
+    node_sender: &Sender<String>,
+    controller_sender: &Sender<String>,
 ) {
     let node_id_request: String = "255;255;3;0;3;0\n".to_string();
     loop {

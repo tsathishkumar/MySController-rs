@@ -19,9 +19,9 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.2.8",
-    "desc": "Added api to set firmware type and version for each nodes.",
-    "released": "2018-04-17"
+    "name": "0.3.0",
+    "desc": "Added api to reboot nodes.",
+    "released": "2018-04-24"
   },
   "files": [
     {

@@ -17,9 +17,11 @@ Note: If you are using TCP for controller - the port value will be used to creat
 
 - [x] Gracefully handle connection at both side, i.e never panic and wait for both connections
 - [x] Ability to handle ota requests even when there is no controller connected
+- [x] Ability to restart the node using api
 - [x] Manage nodes and the firmwares installed, expose api's 
     - GET `/nodes`
-    - PUT `/node` 
+    - PUT `/node` `<node>`
+    - POST `/reboot_node` `<node>`
 - [x] Get node's firmware type and version from database and use it for ota request from node
 - [ ] Handle auto update flag in node 
     - whenever there is new version for a firmware, it should automatically update all nodes which have auto update as `true` to latest version
@@ -29,5 +31,4 @@ Note: If you are using TCP for controller - the port value will be used to creat
     - POST `/firmware/{type}/{version}` 
     - PUT `/firmware/{type}/{version}`
 - [ ] Improve logging (parsed message for OTA request etc)
-- [ ] Ability to restart the node using api (call it while updating node)
 - [ ] MQTT integration

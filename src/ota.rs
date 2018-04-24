@@ -4,11 +4,11 @@ use message::{CommandMessage, CommandSubType};
 use pool;
 use schema::Node;
 use schema::nodes::dsl::*;
-use std::sync::mpsc;
+use channel::{Receiver, Sender};
 
 pub fn process_ota(firmwares_directory: &String,
-                   ota_receiver: &mpsc::Receiver<CommandMessage>,
-                   sender: &mpsc::Sender<String>, db_connection: pool::DbConn) {
+                   ota_receiver: &Receiver<CommandMessage>,
+                   sender: &Sender<String>, db_connection: pool::DbConn) {
     let firmware_repo = firmware::FirmwareRepo::new(firmwares_directory);
     loop {
         match ota_receiver.recv() {
@@ -30,7 +30,7 @@ pub fn process_ota(firmwares_directory: &String,
     }
 }
 
-fn send_response(serial_sender: &mpsc::Sender<String>,
+fn send_response(serial_sender: &Sender<String>,
                  mut command_message: CommandMessage,
                  _firmware_repo: &firmware::FirmwareRepo,
                  db_connection: &SqliteConnection) {

@@ -3,16 +3,18 @@ use interceptor;
 use node;
 use ota;
 use pool;
-use std::sync::mpsc;
 use std::thread;
+use channel;
+use channel::{Receiver, Sender};
 
 pub fn start(firmwares_directory: String, gateway_info: StreamInfo,
-             controller_info: StreamInfo, pool: pool::SqlitePool) {
-    let (gateway_sender, gateway_receiver) = mpsc::channel();
-    let (ota_sender, ota_receiver) = mpsc::channel();
-    let (controller_in_sender, controller_in_receiver) = mpsc::channel();
-    let (controller_out_sender, controller_out_receiver) = mpsc::channel();
-    let (node_manager_sender, node_manager_in) = mpsc::channel();
+             controller_info: StreamInfo, pool: pool::SqlitePool,
+             controller_in_sender: Sender<String>, controller_in_receiver: Receiver<String>) {
+    let (gateway_sender, gateway_receiver) = channel::unbounded();
+    let (ota_sender, ota_receiver) = channel::unbounded();
+
+    let (controller_out_sender, controller_out_receiver) = channel::unbounded();
+    let (node_manager_sender, node_manager_in) = channel::unbounded();
     let ota_fw_sender = controller_in_sender.clone();
     let node_manager_out = controller_in_sender.clone();
 
@@ -32,6 +34,7 @@ pub fn start(firmwares_directory: String, gateway_info: StreamInfo,
     let node_manager = thread::spawn(move || {
         node::handle_node_id_request(&node_manager_in, &node_manager_out, connection);
     });
+
     let gateway_read_write = thread::spawn(move || {
         stream_read_write(gateway_info, gateway_sender, controller_in_receiver);
     });

@@ -18,6 +18,7 @@ extern crate serde_json;
 extern crate rocket;
 extern crate rocket_contrib;
 extern crate r2d2;
+extern crate crossbeam_channel as channel;
 
 pub mod firmware;
 pub mod gateway;

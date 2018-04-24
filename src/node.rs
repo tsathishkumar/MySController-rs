@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use pool;
 use schema::Node;
 use schema::nodes::dsl::nodes;
-use std::sync::mpsc;
+use channel::{Receiver, Sender};
 
 pub fn create_node(conn: &SqliteConnection, id: i32) -> usize {
     let new_node = Node {
@@ -31,8 +31,8 @@ pub fn get_next_node_id(conn: &SqliteConnection) -> u8 {
 }
 
 pub fn handle_node_id_request(
-    receiver: &mpsc::Receiver<String>,
-    sender: &mpsc::Sender<String>,
+    receiver: &Receiver<String>,
+    sender: &Sender<String>,
     db_connection: pool::DbConn,
 ) {
     loop {

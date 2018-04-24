@@ -1,9 +1,11 @@
 use diesel;
 use diesel::prelude::*;
 use pool::DbConn;
+use rocket;
 use rocket_contrib::Json;
 use schema::Node;
 use schema::nodes::dsl::*;
+use channel::Sender;
 
 #[get("/")]
 fn index() -> &'static str {
@@ -24,4 +26,9 @@ fn update_node(node: Json<Node>, conn: DbConn) {
               firmware_version.eq(node.firmware_version),
               auto_update.eq(node.auto_update)))
         .execute(&*conn).unwrap();
+}
+
+#[post("/reboot_node", format = "application/json", data = "<node>")]
+fn reboot_node(node: Json<Node>, sender: rocket::State<Sender<String>>) {
+    sender.send(format!("{};255;3;0;13;0", node.node_id)).unwrap();
 }
