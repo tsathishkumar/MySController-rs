@@ -40,6 +40,7 @@ pub trait Gateway: Send {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize>;
     fn write(&mut self, buf: &[u8]) -> Result<usize>;
     fn clone(&self) -> Box<Gateway>;
+    fn port(&self) -> &String;
 
     fn write_loop(&mut self, serial_receiver: mpsc::Receiver<String>, stop_receiver: mpsc::Receiver<String>) -> mpsc::Receiver<String> {
         loop {
@@ -50,7 +51,7 @@ pub trait Gateway: Send {
             match serial_receiver.recv_timeout(Duration::from_secs(5)) {
                 Ok(received_value) => {
                     match self.write(&received_value.as_bytes()) {
-                        Ok(_) => (),
+                        Ok(_) => println!("{} << {:?}", self.port(), received_value),
                         Err(e) => {
                             eprintln!("Error while writing -- {:?}", e);
                             break;
@@ -98,7 +99,7 @@ pub trait Gateway: Send {
             if broken_connection {
                 break;
             }
-            println!("{:?}", line);
+            println!("{} >> {:?}", self.port(), line);
             serial_sender.send(line).unwrap();
         }
         (serial_sender)
@@ -203,6 +204,10 @@ impl Gateway for SerialGateway {
     fn clone(&self) -> Box<Gateway> {
         Box::new(SerialGateway { serial_port: self.serial_port.clone(), stream: self.stream.try_clone().unwrap() })
     }
+
+    fn port(&self) -> &String {
+        &self.serial_port
+    }
 }
 
 impl Gateway for TcpGateway {
@@ -216,5 +221,9 @@ impl Gateway for TcpGateway {
 
     fn clone(&self) -> Box<Gateway> {
         Box::new(TcpGateway { tcp_port: self.tcp_port.clone(), tcp_stream: self.tcp_stream.try_clone().unwrap() })
+    }
+
+    fn port(&self) -> &String {
+        &self.tcp_port
     }
 }

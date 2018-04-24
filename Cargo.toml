@@ -1,6 +1,6 @@
 [package]
 name = "myscontroller-rs"
-version = "0.2.7"
+version = "0.2.8"
 authors = ["tsathish <tsatiz@gmail.com>"]
 
 [dependencies]

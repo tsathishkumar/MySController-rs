@@ -30,40 +30,40 @@ pub fn process_ota(firmwares_directory: &String,
     }
 }
 
-#[derive(Debug)]
-pub enum OtaError {
-    NodeNotRegistered,
-}
-
 fn send_response(serial_sender: &mpsc::Sender<String>,
                  mut command_message: CommandMessage,
                  _firmware_repo: &firmware::FirmwareRepo,
                  db_connection: &SqliteConnection) {
-    //TODO: get the type and version from database and send the firmware for nodes instead of the requested type and version
-//    nodes.find(command_message.node_id as i32)
-//        .first::<Node>(db_connection)
-//        .optional().map_err(OtaError::NodeNotRegistered);
+    let node = nodes.find(command_message.node_id as i32)
+        .first::<Node>(db_connection)
+        .optional().
+        unwrap();
     match command_message.fw_type_version() {
-        Some((_type, version)) => {
-            match _firmware_repo.get_firmware(_type, version) {
-                Ok(firmware) => {
-                    command_message.to_response(firmware);
-                    let response = command_message.serialize();
-                    println!("ota : {:?}", response);
-                    serial_sender.send(response).unwrap();
-                }
-                Err(_message) => {
-                    println!("no firmware found -- for type {} - version {}", _type, version);
-                    match _firmware_repo.get_firmware(0, 0) {
+        Some((requested_type, requested_version)) => {
+            println!("Firmware requested by node {} - type {} ,version {}", command_message.node_id, requested_type, requested_version);
+            match node.map(|n| (n.firmware_type as u16, n.firmware_version as u16)) {
+                Some((_type, version)) => {
+                    println!("Firmware assigned for node {} is - type {} ,version {}", command_message.node_id, _type, version);
+                    match _firmware_repo.get_firmware(_type, version) {
                         Ok(firmware) => {
                             command_message.to_response(firmware);
                             let response = command_message.serialize();
-                            println!("default ota : {:?}", response);
                             serial_sender.send(response).unwrap();
                         }
-                        Err(_) => println!("no default firmware found")
+                        Err(_message) => {
+                            println!("no firmware found -- for type {} - version {}, trying to send default", _type, version);
+                            match _firmware_repo.get_firmware(0, 0) {
+                                Ok(firmware) => {
+                                    command_message.to_response(firmware);
+                                    let response = command_message.serialize();
+                                    serial_sender.send(response).unwrap();
+                                }
+                                Err(_) => println!("no default firmware found")
+                            }
+                        }
                     }
                 }
+                None => ()
             }
         }
         None => ()
