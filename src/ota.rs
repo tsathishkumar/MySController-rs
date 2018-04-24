@@ -53,14 +53,15 @@ fn send_response(serial_sender: &mpsc::Sender<String>,
                     serial_sender.send(response).unwrap();
                 }
                 Err(_message) => {
-                    match _firmware_repo.get_firmware(1, 1) {
+                    println!("no firmware found -- for type {} - version {}", _type, version);
+                    match _firmware_repo.get_firmware(0, 0) {
                         Ok(firmware) => {
                             command_message.to_response(firmware);
                             let response = command_message.serialize();
                             println!("default ota : {:?}", response);
                             serial_sender.send(response).unwrap();
                         }
-                        Err(_) => println!("no firmware found -- ignoring request")
+                        Err(_) => println!("no default firmware found")
                     }
                 }
             }
