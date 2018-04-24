@@ -1,11 +1,11 @@
+use channel;
+use channel::{Receiver, Sender};
 use gateway::*;
 use interceptor;
 use node;
 use ota;
 use pool;
 use std::thread;
-use channel;
-use channel::{Receiver, Sender};
 
 pub fn start(firmwares_directory: String, gateway_info: StreamInfo,
              controller_info: StreamInfo, pool: pool::SqlitePool,
@@ -17,7 +17,6 @@ pub fn start(firmwares_directory: String, gateway_info: StreamInfo,
     let (node_manager_sender, node_manager_in) = channel::unbounded();
     let ota_fw_sender = controller_in_sender.clone();
     let node_manager_out = controller_in_sender.clone();
-
 
     let message_interceptor = thread::spawn(move || {
         interceptor::intercept(&gateway_receiver, &ota_sender, &node_manager_sender, &controller_out_sender);

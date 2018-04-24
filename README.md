@@ -21,7 +21,7 @@ Note: If you are using TCP for controller - the port value will be used to creat
 - [x] Manage nodes and the firmwares installed, expose api's 
     - GET `/nodes`
     - PUT `/node` `<node>`
-    - POST `/reboot_node` `<node>`
+    - POST `/reboot_node/<node_id>`
 - [x] Get node's firmware type and version from database and use it for ota request from node
 - [ ] Handle auto update flag in node 
     - whenever there is new version for a firmware, it should automatically update all nodes which have auto update as `true` to latest version
