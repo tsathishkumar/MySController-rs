@@ -7,7 +7,7 @@ use std::sync::mpsc;
 use std::thread;
 
 pub fn start(firmwares_directory: String, gateway_info: StreamInfo,
-             controller_info: StreamInfo, db_connection: pool::DbConn) {
+             controller_info: StreamInfo, pool: pool::SqlitePool) {
     let (gateway_sender, gateway_receiver) = mpsc::channel();
     let (ota_sender, ota_receiver) = mpsc::channel();
     let (controller_in_sender, controller_in_receiver) = mpsc::channel();
@@ -21,12 +21,16 @@ pub fn start(firmwares_directory: String, gateway_info: StreamInfo,
         interceptor::intercept(&gateway_receiver, &ota_sender, &node_manager_sender, &controller_out_sender);
     });
 
+    let connection = pool::DbConn(pool.get().unwrap());
+
     let ota_processor = thread::spawn(move || {
-        ota::process_ota(&firmwares_directory, &ota_receiver, &ota_fw_sender);
+        ota::process_ota(&firmwares_directory, &ota_receiver, &ota_fw_sender, connection);
     });
 
+    let connection = pool::DbConn(pool.get().unwrap());
+
     let node_manager = thread::spawn(move || {
-        node::handle_node_id_request(&node_manager_in, &node_manager_out, db_connection);
+        node::handle_node_id_request(&node_manager_in, &node_manager_out, connection);
     });
     let gateway_read_write = thread::spawn(move || {
         stream_read_write(gateway_info, gateway_sender, controller_in_receiver);

@@ -34,7 +34,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for DbConn {
 }
 
 // An alias to the type for a pool of Diesel SQLite connections.
-type SqlitePool = Pool<ConnectionManager<SqliteConnection>>;
+pub type SqlitePool = Pool<ConnectionManager<SqliteConnection>>;
 
 /// Initializes a database pool.
 pub fn init_pool(database_url: String) -> SqlitePool {

@@ -1,6 +1,6 @@
 use diesel;
-use pool;
 use diesel::prelude::*;
+use pool;
 use schema::Node;
 use schema::nodes::dsl::nodes;
 use std::sync::mpsc;

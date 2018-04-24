@@ -43,7 +43,7 @@ impl CommandSubType {
 //"node-id ; child-sensor-id ; command ; ack ; type ; payload \n"
 #[derive(Clone, Copy, Debug)]
 pub struct CommandMessage {
-    node_id: u8,
+    pub node_id: u8,
     child_sensor_id: u8,
     pub command: CommandType,
     ack: u8,

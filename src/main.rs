@@ -1,15 +1,14 @@
 #![feature(plugin)]
 #![plugin(rocket_codegen)]
-extern crate rocket;
-
 #[macro_use]
 extern crate diesel_migrations;
 extern crate ini;
 extern crate myscontroller_rs;
+extern crate rocket;
 
 use ini::Ini;
+use myscontroller_rs::{api, gateway, pool, proxy};
 use myscontroller_rs::gateway::ConnectionType;
-use myscontroller_rs::{proxy, gateway, api, pool};
 use std::fs::create_dir_all;
 use std::path::Path;
 use std::thread;
@@ -26,13 +25,15 @@ fn main() {
     let pool = pool::init_pool(database_url);
 
     let pool_clone = pool.clone();
-    thread::spawn( || {
-        rocket::ignite().manage(pool_clone).mount("/", routes![api::index, api::get_nodes]).launch();
+    thread::spawn(|| {
+        rocket::ignite()
+            .manage(pool_clone)
+            .mount("/", routes![api::index, api::get_nodes, api::update_node])
+            .launch();
     });
-    let connection = pool::DbConn(pool.get().unwrap());
 
-    embedded_migrations::run_with_output(&*connection, &mut std::io::stdout()).unwrap();
-    proxy::start(firmwares_directory, get_mys_gateway(&conf), get_mys_controller(&conf), connection)
+    embedded_migrations::run_with_output(&pool.get().unwrap(), &mut std::io::stdout()).unwrap();
+    proxy::start(firmwares_directory, get_mys_gateway(&conf), get_mys_controller(&conf), pool)
 }
 
 
