@@ -16,6 +16,8 @@ extern crate diesel;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate rocket;
+extern crate rocket_contrib;
+extern crate r2d2;
 
 pub mod firmware;
 pub mod gateway;
@@ -26,3 +28,4 @@ pub mod proxy;
 pub mod schema;
 pub mod node;
 pub mod api;
+pub mod pool;

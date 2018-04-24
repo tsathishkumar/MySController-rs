@@ -7,7 +7,7 @@ table! {
     }
 }
 
-#[derive(Queryable, Deserialize, Insertable)]
+#[derive(Queryable, Serialize, Deserialize, Insertable)]
 #[table_name = "nodes"]
 pub struct Node {
     pub node_id: i32,

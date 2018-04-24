@@ -11,7 +11,7 @@ enum_primitive = "0.1"
 num = "0.1"
 crc16 = "0.3.4"
 rust-ini = "0.10"
-diesel = { version = "1.2.0", features = ["sqlite", "chrono"] }
+diesel = { version = "1.2.0", features = ["sqlite", "chrono", "r2d2"] }
 diesel_migrations = "1.2.0"
 serde = "1.0"
 serde_derive = "1.0"
@@ -19,6 +19,12 @@ serde_json = "1.0"
 chrono = "0.4"
 rocket = "0.3.8"
 rocket_codegen = "0.3.8"
+r2d2 = "0.8.2"
+
+[dependencies.rocket_contrib]
+version = "*"
+default-features = false
+features = ["json"]
 
 [package.metadata.deb]
 maintainer = "Sathishkumar <tsatiz@gmail.com>"

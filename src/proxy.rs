@@ -1,13 +1,13 @@
-use diesel::prelude::*;
 use gateway::*;
 use interceptor;
 use node;
 use ota;
+use pool;
 use std::sync::mpsc;
 use std::thread;
 
 pub fn start(firmwares_directory: String, gateway_info: StreamInfo,
-             controller_info: StreamInfo, db_connection: SqliteConnection) {
+             controller_info: StreamInfo, db_connection: pool::DbConn) {
     let (gateway_sender, gateway_receiver) = mpsc::channel();
     let (ota_sender, ota_receiver) = mpsc::channel();
     let (controller_in_sender, controller_in_receiver) = mpsc::channel();

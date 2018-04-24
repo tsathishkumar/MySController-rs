@@ -1,4 +1,5 @@
 use diesel;
+use pool;
 use diesel::prelude::*;
 use schema::Node;
 use schema::nodes::dsl::nodes;
@@ -32,7 +33,7 @@ pub fn get_next_node_id(conn: &SqliteConnection) -> u8 {
 pub fn handle_node_id_request(
     receiver: &mpsc::Receiver<String>,
     sender: &mpsc::Sender<String>,
-    db_connection: SqliteConnection,
+    db_connection: pool::DbConn,
 ) {
     loop {
         match receiver.recv() {
