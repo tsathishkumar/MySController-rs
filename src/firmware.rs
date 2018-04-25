@@ -2,7 +2,7 @@ use crc16::*;
 use ihex::record::Record;
 use std::collections::HashMap;
 use std::fs;
-use std::fs::File;
+use std::fs::{DirEntry, File};
 use std::io::BufReader;
 use std::io::prelude::*;
 use std::iter::FromIterator;
@@ -32,19 +32,23 @@ impl FirmwareRepo {
         let paths = fs::read_dir(firmwares_directory)
             .expect(format!("Place the firmwares under directory {}", firmwares_directory).as_str());
         for path in paths {
-            let _path = path.unwrap();
-            let file_name = _path.file_name().into_string().unwrap();
-            println!("Loading firmware: {:?}", file_name);
-            let file_name_parts = file_name.trim().split("__").collect::<Vec<&str>>();
-            if file_name_parts.len() != 3 {
-                panic!("Invalid filename for firmware. It should follow the convention type__version__firmwarename.hex Example: `10__2__blink.ino.hex`.");
-            }
-            let firmware_type = file_name_parts[0].parse::<u16>().expect("Firmware type should be a a number");
-            let version = file_name_parts[1].parse::<u16>().expect("Firmware type should be a a number");
-            let firmware = Firmware::prepare_fw(firmware_type, version, format!("{}{}", firmwares_directory, file_name));
+            let (firmware_type, version, firmware) = FirmwareRepo::read_firmware(firmwares_directory, path.unwrap());
             firmware_map.insert(FirmwareKey { _type: firmware_type, version }, firmware);
         }
         firmware_map
+    }
+
+    fn read_firmware(firmwares_directory: &String, path: DirEntry) -> (u16, u16, Firmware) {
+        let file_name = path.file_name().into_string().unwrap();
+        println!("Loading firmware: {:?}", file_name);
+        let file_name_parts = file_name.trim().split("__").collect::<Vec<&str>>();
+        if file_name_parts.len() != 3 {
+            panic!("Invalid filename for firmware. It should follow the convention type__version__firmwarename.hex Example: `10__2__blink.ino.hex`.");
+        }
+        let firmware_type = file_name_parts[0].parse::<u16>().expect("Firmware type should be a a number");
+        let version = file_name_parts[1].parse::<u16>().expect("Firmware type should be a a number");
+        let firmware = Firmware::prepare_fw(firmware_type, version, format!("{}{}", firmwares_directory, file_name));
+        (firmware_type, version, firmware)
     }
 }
 
@@ -127,7 +131,6 @@ impl Firmware {
 
 #[cfg(test)]
 mod test {
-
     use hex;
     use super::*;
 
