@@ -37,19 +37,19 @@ impl ConnectionType {
     }
 }
 
-pub trait Gateway: Send {
+pub trait Connection: Send {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize>;
     fn write(&mut self, buf: &[u8]) -> Result<usize>;
-    fn clone(&self) -> Box<Gateway>;
+    fn clone(&self) -> Box<Connection>;
     fn port(&self) -> &String;
 
-    fn write_loop(&mut self, serial_receiver: Receiver<String>, stop_receiver: Receiver<String>) -> Receiver<String> {
+    fn write_loop(&mut self, receiver: Receiver<String>, stop_receiver: Receiver<String>) -> Receiver<String> {
         loop {
             match stop_receiver.recv_timeout(Duration::from_millis(10)) {
                 Ok(_) => break,
                 Err(_) => ()
             }
-            match serial_receiver.recv_timeout(Duration::from_secs(5)) {
+            match receiver.recv_timeout(Duration::from_secs(5)) {
                 Ok(received_value) => {
                     match self.write(&received_value.as_bytes()) {
                         Ok(_) => println!("{} << {:?}", self.port(), received_value),
@@ -63,10 +63,10 @@ pub trait Gateway: Send {
                 Err(_error) => eprintln!("Error while receiving -- {:?}", _error),
             }
         }
-        (serial_receiver)
+        (receiver)
     }
 
-    fn read_loop(&mut self, serial_sender: Sender<String>) -> Sender<String> {
+    fn read_loop(&mut self, sender: Sender<String>) -> Sender<String> {
         loop {
             let mut broken_connection = false;
             let mut line = String::new();
@@ -101,18 +101,18 @@ pub trait Gateway: Send {
                 break;
             }
             println!("{} >> {:?}", self.port(), line);
-            serial_sender.send(line).unwrap();
+            sender.send(line).unwrap();
         }
-        (serial_sender)
+        (sender)
     }
 }
 
-pub struct SerialGateway {
+pub struct SerialConnection {
     pub serial_port: String,
     pub stream: Box<serialport::SerialPort>,
 }
 
-pub struct TcpGateway {
+pub struct TcpConnection {
     pub tcp_port: String,
     pub tcp_stream: TcpStream,
 }
@@ -125,21 +125,21 @@ pub fn stream_read_write(stream_info: StreamInfo,
         let simple_consumer = thread::spawn(move || {
             consume(receiver, cancel_token_receiver)
         });
-        let mut mys_gateway_reader = create_gateway(stream_info.connection_type, &stream_info.port);
+        let mut read_connection = create_connection(stream_info.connection_type, &stream_info.port);
         cancel_token_sender.send(String::from("stop")).unwrap();
         receiver = simple_consumer.join().unwrap();
 
         let (cancel_token_sender, cancel_token_receiver) = channel::unbounded();
-        let mut mys_gateway_writer = mys_gateway_reader.clone();
-        let gateway_reader = thread::spawn(move || {
-            mys_gateway_reader.read_loop(sender)
+        let mut write_connection = read_connection.clone();
+        let reader = thread::spawn(move || {
+            read_connection.read_loop(sender)
         });
-        let gateway_writer = thread::spawn(move || {
-            mys_gateway_writer.write_loop(receiver, cancel_token_receiver)
+        let writer = thread::spawn(move || {
+            write_connection.write_loop(receiver, cancel_token_receiver)
         });
-        sender = gateway_reader.join().unwrap();
-        cancel_token_sender.send(String::from("reader stoppped")).unwrap();
-        receiver = gateway_writer.join().unwrap();
+        sender = reader.join().unwrap();
+        cancel_token_sender.send(String::from("reader stopped")).unwrap();
+        receiver = writer.join().unwrap();
     }
 }
 
@@ -157,9 +157,9 @@ fn consume(receiver: Receiver<String>, cancel_token_receiver: Receiver<String>) 
 }
 
 
-pub fn create_gateway(connection_type: ConnectionType, port: &String) -> Box<Gateway> {
+pub fn create_connection(connection_type: ConnectionType, port: &String) -> Box<Connection> {
     match connection_type {
-        ConnectionType::Serial => create_serial_gateway(port),
+        ConnectionType::Serial => create_serial_connection(port),
         ConnectionType::TcpClient => {
             let stream: TcpStream;
             loop {
@@ -174,19 +174,19 @@ pub fn create_gateway(connection_type: ConnectionType, port: &String) -> Box<Gat
                 println!("Connected to -- {}", port);
                 break;
             }
-            Box::new(TcpGateway { tcp_port: port.clone(), tcp_stream: stream })
+            Box::new(TcpConnection { tcp_port: port.clone(), tcp_stream: stream })
         }
         ConnectionType::TcpServer => {
             let stream = TcpListener::bind(port).unwrap();
             println!("Server listening on -- {}", port);
             let (mut stream, _socket) = stream.accept().unwrap();
             println!("Accepted connection from {:?}", _socket);
-            Box::new(TcpGateway { tcp_port: port.clone(), tcp_stream: stream })
+            Box::new(TcpConnection { tcp_port: port.clone(), tcp_stream: stream })
         }
     }
 }
 
-fn create_serial_gateway(port: &String) -> Box<Gateway> {
+fn create_serial_connection(port: &String) -> Box<Connection> {
     let mut settings: SerialPortSettings = Default::default();
     settings.timeout = Duration::from_millis(10);
     settings.baud_rate = BaudRate::Baud38400;
@@ -203,10 +203,10 @@ fn create_serial_gateway(port: &String) -> Box<Gateway> {
         println!("Connected to -- {}", port);
         break;
     }
-    Box::new(SerialGateway { serial_port: port.clone(), stream })
+    Box::new(SerialConnection { serial_port: port.clone(), stream })
 }
 
-impl Gateway for SerialGateway {
+impl Connection for SerialConnection {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         self.stream.read(buf)
     }
@@ -215,8 +215,8 @@ impl Gateway for SerialGateway {
         self.stream.write(buf)
     }
 
-    fn clone(&self) -> Box<Gateway> {
-        Box::new(SerialGateway { serial_port: self.serial_port.clone(), stream: self.stream.try_clone().unwrap() })
+    fn clone(&self) -> Box<Connection> {
+        Box::new(SerialConnection { serial_port: self.serial_port.clone(), stream: self.stream.try_clone().unwrap() })
     }
 
     fn port(&self) -> &String {
@@ -224,7 +224,7 @@ impl Gateway for SerialGateway {
     }
 }
 
-impl Gateway for TcpGateway {
+impl Connection for TcpConnection {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         self.tcp_stream.read(buf)
     }
@@ -233,8 +233,8 @@ impl Gateway for TcpGateway {
         self.tcp_stream.write(buf)
     }
 
-    fn clone(&self) -> Box<Gateway> {
-        Box::new(TcpGateway { tcp_port: self.tcp_port.clone(), tcp_stream: self.tcp_stream.try_clone().unwrap() })
+    fn clone(&self) -> Box<Connection> {
+        Box::new(TcpConnection { tcp_port: self.tcp_port.clone(), tcp_stream: self.tcp_stream.try_clone().unwrap() })
     }
 
     fn port(&self) -> &String {

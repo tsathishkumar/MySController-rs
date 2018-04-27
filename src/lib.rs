@@ -21,7 +21,7 @@ extern crate r2d2;
 extern crate crossbeam_channel as channel;
 
 pub mod firmware;
-pub mod gateway;
+pub mod connection;
 pub mod interceptor;
 pub mod message;
 pub mod ota;

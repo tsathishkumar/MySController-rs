@@ -1,6 +1,6 @@
 use channel;
 use channel::{Receiver, Sender};
-use gateway::*;
+use connection::*;
 use interceptor;
 use node;
 use ota;

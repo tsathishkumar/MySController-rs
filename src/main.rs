@@ -8,8 +8,8 @@ extern crate rocket;
 extern crate crossbeam_channel as channel;
 
 use ini::Ini;
-use myscontroller_rs::{api, gateway, pool, proxy};
-use myscontroller_rs::gateway::ConnectionType;
+use myscontroller_rs::{api, connection, pool, proxy};
+use myscontroller_rs::connection::ConnectionType;
 use std::fs::create_dir_all;
 use std::path::Path;
 use std::thread;
@@ -53,7 +53,7 @@ pub fn server_configs(config: &Ini) -> (String, String) {
     (database_url.to_owned(), firmwares_directory.to_owned())
 }
 
-fn get_mys_controller<'s>(config: &'s Ini) -> gateway::StreamInfo {
+fn get_mys_controller<'s>(config: &'s Ini) -> connection::StreamInfo {
     let controller_conf = config.section(Some("Controller".to_owned())).unwrap();
     let controller_type = controller_conf.get("type").expect("Controller port is not specified. Ex:\n\
      [Controller]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Controller]\n type=SERIAL\n port=port=0.0.0.0:5003");
@@ -63,10 +63,10 @@ fn get_mys_controller<'s>(config: &'s Ini) -> gateway::StreamInfo {
     };
     let controller_port = controller_conf.get("port").expect("Controller port is not specified. Ex:\n\
      [Controller]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Controller]\n type=SERIAL\n port=port=0.0.0.0:5003");
-    gateway::StreamInfo { port: controller_port.to_owned(), connection_type: controller_type }
+    connection::StreamInfo { port: controller_port.to_owned(), connection_type: controller_type }
 }
 
-fn get_mys_gateway<'s>(config: &'s Ini) -> gateway::StreamInfo {
+fn get_mys_gateway<'s>(config: &'s Ini) -> connection::StreamInfo {
     let gateway_conf = config.section(Some("Gateway".to_owned())).unwrap();
     let gateway_type = gateway_conf.get("type").expect("Gateway port is not specified. Ex:\n\
      [Gateway]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Gateway]\n type=SERIAL\n port=port=10.137.120.250:5003");
@@ -76,5 +76,5 @@ fn get_mys_gateway<'s>(config: &'s Ini) -> gateway::StreamInfo {
     };
     let gateway_port = gateway_conf.get("port").expect("Gateway port is not specified. Ex:\n\
      [Gateway]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Gateway]\n type=SERIAL\n port=port=10.137.120.250:5003");
-    gateway::StreamInfo { port: gateway_port.to_owned(), connection_type: gateway_type }
+    connection::StreamInfo { port: gateway_port.to_owned(), connection_type: gateway_type }
 }
