@@ -174,6 +174,8 @@ pub fn create_connection(connection_type: ConnectionType, port: &String) -> Box<
                 println!("Connected to -- {}", port);
                 break;
             }
+            let read_timeout = Duration::from_secs(30);
+            stream.set_read_timeout(Some(read_timeout)).unwrap();
             Box::new(TcpConnection { tcp_port: port.clone(), tcp_stream: stream })
         }
         ConnectionType::TcpServer => {
