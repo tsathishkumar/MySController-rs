@@ -7,7 +7,7 @@ use ota;
 use pool;
 use std::thread;
 
-pub fn start(firmwares_directory: String, gateway_info: StreamInfo,
+pub fn start(gateway_info: StreamInfo,
              controller_info: StreamInfo, pool: pool::SqlitePool,
              controller_in_sender: Sender<String>, controller_in_receiver: Receiver<String>) {
     let (gateway_sender, gateway_receiver) = channel::unbounded();
@@ -25,7 +25,7 @@ pub fn start(firmwares_directory: String, gateway_info: StreamInfo,
     let connection = pool::DbConn(pool.get().unwrap());
 
     let ota_processor = thread::spawn(move || {
-        ota::process_ota(&firmwares_directory, &ota_receiver, &ota_fw_sender, connection);
+        ota::process_ota(&ota_receiver, &ota_fw_sender, connection);
     });
 
     let connection = pool::DbConn(pool.get().unwrap());

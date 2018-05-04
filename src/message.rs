@@ -93,15 +93,15 @@ pub struct FwConfigResponseMessage {
 
 #[derive(Debug, Clone, Copy)]
 pub struct FwRequestMessage {
-    pub _type: u16,
-    pub version: u16,
+    pub firmware_type: u16,
+    pub firmware_version: u16,
     blocks: u16,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct FwResponseMessage {
-    _type: u16,
-    version: u16,
+    firmware_type: u16,
+    firmware_version: u16,
     blocks: u16,
     data: [u8; 16],
 }
@@ -184,16 +184,16 @@ impl CommandMessage {
         self.payload = match self.payload {
             MessagePayloadType::FwConfigRequest(_request) => {
                 MessagePayloadType::FwConfigResponse(FwConfigResponseMessage {
-                    _type: firmware._type,
-                    version: firmware.version,
-                    blocks: firmware.blocks,
-                    crc: firmware.crc,
+                    _type: firmware.firmware_type as u16,
+                    version: firmware.firmware_version as u16,
+                    blocks: firmware.blocks as u16,
+                    crc: firmware.crc as u16,
                 })
             }
             MessagePayloadType::FwRequest(request) => {
                 MessagePayloadType::FwResponse(FwResponseMessage {
-                    _type: firmware._type,
-                    version: firmware.version,
+                    firmware_type: firmware.firmware_type as u16,
+                    firmware_version: firmware.firmware_version as u16,
                     blocks: request.blocks,
                     data: firmware.get_block(request.blocks),
                 })
@@ -258,6 +258,7 @@ fn vector_as_u8_32_array(vector: Vec<u8>) -> [u8; MAX_MESSAGE_LENGTH] {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     fn parse_correct_command_fw_config_request() {
@@ -307,8 +308,8 @@ mod test {
             _ => None,
         }.unwrap();
 
-        assert_eq!(stream_payload._type, 10);
-        assert_eq!(stream_payload.version, 2);
+        assert_eq!(stream_payload.firmware_type, 10);
+        assert_eq!(stream_payload.firmware_version, 2);
         assert_eq!(stream_payload.blocks, 79);
     }
 
@@ -322,8 +323,8 @@ mod test {
             _ => None,
         }.unwrap();
 
-        assert_eq!(stream_payload._type, 10);
-        assert_eq!(stream_payload.version, 1);
+        assert_eq!(stream_payload.firmware_type, 10);
+        assert_eq!(stream_payload.firmware_version, 1);
         assert_eq!(stream_payload.blocks, 79);
     }
 
@@ -359,7 +360,7 @@ mod test {
     fn convert_fw_config_request_to_response() {
         let message_string = "1;255;4;0;0;0A0001005000D4460102\n";
         let mut command_message = CommandMessage::new(&String::from(message_string)).unwrap();
-        command_message.to_response(&Firmware { _type: 10, version: 2, blocks: 79, crc: 1000, bin_data: vec![], name: String::from("Blink.hex") });
+        command_message.to_response(&Firmware { firmware_type: 10, firmware_version: 2, blocks: 79, crc: 1000, data: vec![], name: String::from("Blink.hex") });
         assert_eq!(
             command_message.serialize(),
             String::from("1;255;4;0;1;0A0002004F00E803\n")
@@ -370,7 +371,7 @@ mod test {
     fn convert_fw_request_to_response() {
         let message_string = "1;255;4;0;2;0A0002000700\n";
         let mut command_message = CommandMessage::new(&String::from(message_string)).unwrap();
-        command_message.to_response(&Firmware::prepare_fw(10, 2, String::from("firmwares/10__2__Blink.ino.hex")));
+        command_message.to_response(&Firmware::prepare_fw(10, 2, String::from("Blink"), &PathBuf::from("firmwares/10__2__Blink.ino.hex")));
         assert_eq!(
             command_message.serialize(),
             String::from("1;255;4;0;3;0A000200070000030407000000000000000001020408\n")

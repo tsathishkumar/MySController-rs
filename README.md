@@ -25,12 +25,19 @@ Note: If you are using TCP for controller - the port value will be used to creat
 - [x] Get node's firmware type and version from database and use it for ota request from node
 - [ ] Handle auto update flag in node 
     - whenever there is new version for a firmware, it should automatically update all nodes which have auto update as `true` to latest version
-- [ ] Load firmwares from filesystem to db on startup and use it for ota
 - [ ] Manage firmwares type and version, ability to upload newer versions of firmwares, expose apis 
-    - GET `/firmwares`
+    - GET `/firmwares` - Done
     - GET `/firmware/{type}/{version}`
     - DELETE `/firmware/{type}/{version}`
-    - POST `/firmware/{type}/{version}` `<multipart>` -- low priority - rocket doesn't fully support multipart uploads yet
-    - PUT `/firmware/{type}/{version}` `<multipart>` -- low priority - rocket doesn't fully support multipart uploads yet
+    - POST `/firmware/{type}/{version}` `<multipart>` - Done
+    - PUT `/firmware/{type}/{version}` `<multipart>`
 - [ ] Improve logging (parsed message for OTA request etc)
 - [ ] MQTT integration
+
+
+## Future goals:
+
+- Parse all the data
+- MQTT support
+- Store the "states" of each nodes - to make it standalone
+- Beats/Telegraph support - to store "telemetri" data

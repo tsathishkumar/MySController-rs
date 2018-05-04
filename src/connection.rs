@@ -162,8 +162,8 @@ pub fn create_connection(connection_type: ConnectionType, port: &String) -> Box<
         ConnectionType::Serial => create_serial_connection(port),
         ConnectionType::TcpClient => {
             let stream: TcpStream;
+            println!("Waiting for server connection -- {} ...", port);
             loop {
-                println!("Waiting for server connection -- {} ...", port);
                 stream = match TcpStream::connect(port) {
                     Ok(stream) => stream,
                     Err(_) => {
@@ -193,8 +193,8 @@ fn create_serial_connection(port: &String) -> Box<Connection> {
     settings.timeout = Duration::from_millis(10);
     settings.baud_rate = BaudRate::Baud38400;
     let stream;
+    println!("Waiting for serial connection in -- {} ...", port);
     loop {
-        println!("Waiting for serial connection in -- {} ...", port);
         stream = match serialport::open_with_settings(&port, &settings) {
             Ok(stream) => stream,
             Err(_) => {

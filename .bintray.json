@@ -19,9 +19,9 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.3.2",
-    "desc": "Changed contract of reboot node api.",
-    "released": "2018-04-24"
+    "name": "0.4.0",
+    "desc": "Added api to upload firmwares and changed from filesystem to database for firmware storage",
+    "released": "2018-05-04"
   },
   "files": [
     {

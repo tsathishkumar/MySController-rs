@@ -1,55 +1,33 @@
 use crc16::*;
 use ihex::record::Record;
-use std::collections::HashMap;
-use std::fs;
-use std::fs::{DirEntry, File};
+use std::fs::{File};
 use std::io::BufReader;
 use std::io::prelude::*;
 use std::iter::FromIterator;
+use std::path::{Path};
 
-const FIRMWARE_BLOCK_SIZE: u16 = 16;
+const FIRMWARE_BLOCK_SIZE: i32 = 16;
 
-#[derive(Debug)]
-pub struct FirmwareRepo {
-    pub firmware_map: HashMap<FirmwareKey, Firmware>,
+table! {
+    firmwares (firmware_type, firmware_version) {
+        firmware_type -> Integer,
+        firmware_version -> Integer,
+        name -> Text,
+        blocks -> Integer,
+        crc -> Integer,
+        data -> Binary,
+    }
 }
 
-impl FirmwareRepo {
-    pub fn new(firmwares_directory: &String) -> FirmwareRepo {
-        FirmwareRepo { firmware_map: FirmwareRepo::populate_firmwares(firmwares_directory) }
-    }
-
-    pub fn get_firmware(&self, _type: u16, version: u16) -> Result<&Firmware, String> {
-        let firmware_key = FirmwareKey { _type, version };
-        match self.firmware_map.get(&firmware_key) {
-            Some(firmware) => Ok(firmware),
-            None => Err(format!("Firmware not found with type {}, version {}", _type, version)),
-        }
-    }
-
-    fn populate_firmwares(firmwares_directory: &String) -> HashMap<FirmwareKey, Firmware> {
-        let mut firmware_map = HashMap::new();
-        let paths = fs::read_dir(firmwares_directory)
-            .expect(format!("Place the firmwares under directory {}", firmwares_directory).as_str());
-        for path in paths {
-            let (firmware_type, version, firmware) = FirmwareRepo::read_firmware(firmwares_directory, path.unwrap());
-            firmware_map.insert(FirmwareKey { _type: firmware_type, version }, firmware);
-        }
-        firmware_map
-    }
-
-    fn read_firmware(firmwares_directory: &String, path: DirEntry) -> (u16, u16, Firmware) {
-        let file_name = path.file_name().into_string().unwrap();
-        println!("Loading firmware: {:?}", file_name);
-        let file_name_parts = file_name.trim().split("__").collect::<Vec<&str>>();
-        if file_name_parts.len() != 3 {
-            panic!("Invalid filename for firmware. It should follow the convention type__version__firmwarename.hex Example: `10__2__blink.ino.hex`.");
-        }
-        let firmware_type = file_name_parts[0].parse::<u16>().expect("Firmware type should be a a number");
-        let version = file_name_parts[1].parse::<u16>().expect("Firmware type should be a a number");
-        let firmware = Firmware::prepare_fw(firmware_type, version, format!("{}{}", firmwares_directory, file_name));
-        (firmware_type, version, firmware)
-    }
+#[derive(Debug, Queryable, Serialize, Deserialize, Insertable)]
+#[table_name = "firmwares"]
+pub struct Firmware {
+    pub firmware_type: i32,
+    pub firmware_version: i32,
+    pub name: String,
+    pub blocks: i32,
+    pub crc: i32,
+    pub data: Vec<u8>,
 }
 
 #[derive(PartialEq, Eq, Hash, Debug)]
@@ -58,36 +36,26 @@ pub struct FirmwareKey {
     pub version: u16,
 }
 
-#[derive(Debug)]
-pub struct Firmware {
-    pub _type: u16,
-    pub version: u16,
-    pub blocks: u16,
-    pub crc: u16,
-    pub bin_data: Vec<u8>,
-    pub name: String,
-}
-
 impl Firmware {
-    pub fn new(_type: u16, version: u16, blocks: u16, bin_data: Vec<u8>, name: String) -> Firmware {
+    pub fn new(firmware_type: i32, firmware_version: i32, blocks: i32, data: Vec<u8>, name: String) -> Firmware {
         Firmware {
-            _type,
-            version,
-            blocks,
-            crc: Firmware::compute_crc(&bin_data),
-            bin_data,
+            firmware_type,
+            firmware_version,
             name,
+            blocks,
+            crc: Firmware::compute_crc(&data) as i32,
+            data,
         }
     }
 
     pub fn get_block(&self, block: u16) -> [u8; 16] {
         let start_index: usize = (block * 16) as usize;
-        if start_index > self.bin_data.len() {
+        if start_index > self.data.len() {
             let no_binary: [u8; 16] = [0; 16];
             return no_binary;
         }
         let v = Vec::from_iter(
-            self.bin_data[start_index..(start_index + 16) as usize]
+            self.data[start_index..(start_index + 16) as usize]
                 .iter()
                 .cloned(),
         );
@@ -108,23 +76,23 @@ impl Firmware {
         }
     }
 
-    pub fn prepare_fw(_type: u16, version: u16, file_name: String) -> Firmware {
-        let f = File::open(file_name.clone()).unwrap();
+    pub fn prepare_fw(_type: i32, version: i32, name: String, path: &Path) -> Firmware {
+        let f = File::open(path).unwrap();
         let f = BufReader::new(f);
-        let mut bin_data: Vec<u8> = f.lines()
+        let mut data: Vec<u8> = f.lines()
             .flat_map(|line| Firmware::ihex_to_bin(&Record::from_record_string(&line.unwrap()).unwrap()))
             .collect();
-        let pads: usize = bin_data.len() % 128; // 128 bytes per page for atmega328
+        let pads: usize = data.len() % 128; // 128 bytes per page for atmega328
         for _ in 0..(128 - pads) {
-            bin_data.push(255);
+            data.push(255);
         }
-        let blocks: u16 = bin_data.len() as u16 / FIRMWARE_BLOCK_SIZE;
-        Firmware::new(_type, version, blocks, bin_data, file_name.clone())
+        let blocks: i32 = data.len() as i32 / FIRMWARE_BLOCK_SIZE;
+        Firmware::new(_type, version, blocks, data, name)
     }
 
-    fn compute_crc(bin_data: &[u8]) -> u16 {
+    fn compute_crc(data: &[u8]) -> u16 {
         let mut state = State::<MODBUS>::new();
-        state.update(bin_data);
+        state.update(data);
         state.get()
     }
 }
@@ -133,12 +101,7 @@ impl Firmware {
 mod test {
     use hex;
     use super::*;
-
-    #[test]
-    fn populate_all_firmwares_available() {
-        let repo = FirmwareRepo::new(&String::from("firmwares/"));
-        assert_eq!(repo.firmware_map.len(), 2);
-    }
+    use std::path::PathBuf;
 
     #[test]
     fn reader_respects_all_newline_formats() {
@@ -152,13 +115,13 @@ mod test {
 
     #[test]
     fn hex_file_to_vector() {
-        let fw_binary = Firmware::prepare_fw(10, 2, String::from("firmwares/10__2__Blink.ino.hex"));
-        assert_eq!(fw_binary.bin_data.len(), 1280);
+        let fw_binary = Firmware::prepare_fw(10, 2, String::from("Blink"), &PathBuf::from("firmwares/10__2__Blink.ino.hex"));
+        assert_eq!(fw_binary.data.len(), 1280);
     }
 
     #[test]
     fn extract_given_block_from_binary_data() {
-        let fw_binary = Firmware::prepare_fw(10, 2, String::from("firmwares/10__2__Blink.ino.hex"));
+        let fw_binary = Firmware::prepare_fw(10, 2, String::from("Blink"), &PathBuf::from("firmwares/10__2__Blink.ino.hex"));
         assert_eq!(fw_binary.get_block(1), [
             12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0
         ]);
@@ -166,7 +129,7 @@ mod test {
 
     #[test]
     fn compute_correct_crc() {
-        let fw_binary = Firmware::prepare_fw(10, 2, String::from("firmwares/10__2__Blink.ino.hex"));
-        assert_eq!(Firmware::compute_crc(&fw_binary.bin_data), 0x46D4);
+        let fw_binary = Firmware::prepare_fw(10, 2, String::from("Blink"), &PathBuf::from("firmwares/10__2__Blink.ino.hex"));
+        assert_eq!(Firmware::compute_crc(&fw_binary.data), 0x46D4);
     }
 }

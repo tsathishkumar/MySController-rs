@@ -1,14 +1,14 @@
 #![feature(plugin)]
 #![plugin(rocket_codegen)]
+extern crate crossbeam_channel as channel;
 #[macro_use]
 extern crate diesel_migrations;
 extern crate ini;
 extern crate myscontroller_rs;
 extern crate rocket;
-extern crate crossbeam_channel as channel;
 
 use ini::Ini;
-use myscontroller_rs::{api, connection, pool, proxy};
+use myscontroller_rs::{node_api, connection, firmware_api, pool, proxy};
 use myscontroller_rs::connection::ConnectionType;
 use std::fs::create_dir_all;
 use std::path::Path;
@@ -22,7 +22,7 @@ fn main() {
         Err(_) => Ini::load_from_file("conf.ini").unwrap(),
     };
 
-    let (database_url, firmwares_directory) = server_configs(&conf);
+    let database_url= server_configs(&conf);
     let pool = pool::init_pool(database_url);
 
     let pool_clone = pool.clone();
@@ -32,25 +32,23 @@ fn main() {
         rocket::ignite()
             .manage(pool_clone)
             .manage(reset_signal_sender)
-            .mount("/", routes![api::index, api::get_nodes, api::update_node, api::reboot_node])
+            .mount("/", routes![node_api::index, node_api::get_nodes, node_api::update_node, node_api::reboot_node])
+            .mount("/", routes![firmware_api::upload, firmware_api::get_firmwares])
             .launch();
     });
 
     embedded_migrations::run_with_output(&pool.get().unwrap(), &mut std::io::stdout()).unwrap();
-    proxy::start(firmwares_directory, get_mys_gateway(&conf),
+    proxy::start(get_mys_gateway(&conf),
                  get_mys_controller(&conf), pool, controller_in_sender, controller_in_receiver)
 }
 
 
-pub fn server_configs(config: &Ini) -> (String, String) {
+pub fn server_configs(config: &Ini) -> String {
     let server_conf = config.section(Some("Server".to_owned())).expect("Server configurations missing");
     let database_url = server_conf.get("database_url").expect("database_url is not specified. Ex:database_url=/var/lib/myscontroller-rs/sqlite.db");
-    let firmwares_directory = server_conf.get("firmwares_directory").expect("firmwares_directory is not specified. Ex:firmwares_directory=/var/lib/myscontroller-rs/firmwares");
-    let firmware_path = Path::new(firmwares_directory);
     let database_path = Path::new(database_url);
-    create_dir_all(firmware_path).unwrap();
     create_dir_all(database_path.parent().unwrap()).unwrap();
-    (database_url.to_owned(), firmwares_directory.to_owned())
+    database_url.to_owned()
 }
 
 fn get_mys_controller<'s>(config: &'s Ini) -> connection::StreamInfo {
