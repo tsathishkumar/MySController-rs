@@ -16,7 +16,7 @@ fn index() -> &'static str {
 }
 
 #[get("/nodes")]
-fn get_nodes(conn: DbConn) -> Json<Vec<Node>> {
+fn list(conn: DbConn) -> Json<Vec<Node>> {
     let existing_nodes = nodes
         .load::<Node>(&*conn).expect("error while loading existing nodes");
     Json(existing_nodes)

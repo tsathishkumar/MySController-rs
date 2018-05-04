@@ -39,7 +39,7 @@ fn send_response(serial_sender: &Sender<String>,
                     serial_sender.send(response).unwrap();
                 }
                 Err(_message) => {
-                    println!("no firmware found -- for type {} - version {}, trying to send default", _type, version);
+                    println!("no firmware found -- for type {} - version {}", _type, version);
                 }
             }
         }

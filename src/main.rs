@@ -32,8 +32,8 @@ fn main() {
         rocket::ignite()
             .manage(pool_clone)
             .manage(reset_signal_sender)
-            .mount("/", routes![node_api::index, node_api::get_nodes, node_api::update_node, node_api::reboot_node])
-            .mount("/", routes![firmware_api::upload, firmware_api::get_firmwares])
+            .mount("/", routes![node_api::index, node_api::list, node_api::update_node, node_api::reboot_node])
+            .mount("/", routes![firmware_api::upload, firmware_api::list, firmware_api::update, firmware_api::delete])
             .launch();
     });
 
