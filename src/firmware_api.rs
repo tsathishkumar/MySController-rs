@@ -46,7 +46,7 @@ fn delete(firmware_type_param: i32, firmware_version_param: i32, conn: DbConn) -
     "OK"
 }
 
-#[put("/firmwares/upload", data = "<_data>")]
+#[put("/firmwares", data = "<_data>")]
 fn update(cont_type: &ContentType, _data: Data, conn: DbConn) -> Result<Stream<Cursor<Vec<u8>>>, Custom<String>> {
     if !cont_type.is_form_data() {
         return Err(Custom(
@@ -78,8 +78,7 @@ fn update(cont_type: &ContentType, _data: Data, conn: DbConn) -> Result<Stream<C
     }
 }
 
-
-#[post("/firmwares/upload", data = "<_data>")]
+#[post("/firmwares", data = "<_data>")]
 fn upload(cont_type: &ContentType, _data: Data, conn: DbConn) -> Result<Stream<Cursor<Vec<u8>>>, Custom<String>> {
     if !cont_type.is_form_data() {
         return Err(Custom(
