@@ -3,6 +3,7 @@ Description=MYSController-rs
 
 [Service]
 User=root
+Environment="ROCKET_ENV=prod"
 ExecStart=/usr/local/bin/myscontroller-rs
 Restart=always
 RestartSec=3
