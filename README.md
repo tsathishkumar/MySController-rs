@@ -33,6 +33,8 @@ Note: If you are using TCP for controller - the port value will be used to creat
 - [ ] Improve error handling in api's (handling unique constraint in insert, updating unavailable firmwares etc)    
 - [ ] Improve logging (parsed message for OTA request etc)
 - [ ] MQTT integration
+- [ ] Node name support
+- [ ] Child sensors support
 
 
 ## Future goals:
