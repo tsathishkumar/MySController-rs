@@ -39,7 +39,7 @@ Note: If you are using TCP for controller - the port value will be used to creat
 
 ## Future goals:
 
-- Parse all the data and expose WoT API's using webthing-rust(https://github.com/mozilla-iot/webthing-rust)
+- Parse all the data and expose WoT API's using [webthing-rust](https://github.com/mozilla-iot/webthing-rust)
 - MQTT support
 - Store the "states" of each nodes - to make it standalone
 - Beats/Telegraph support - to store "telemetri" data
