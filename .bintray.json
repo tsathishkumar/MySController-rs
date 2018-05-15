@@ -19,8 +19,8 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.4.1",
-    "desc": "Added api to upload firmwares and changed from filesystem to database for firmware storage",
+    "name": "0.4.2",
+    "desc": "Improved error handling in firmware api's",
     "released": "2018-05-04"
   },
   "files": [

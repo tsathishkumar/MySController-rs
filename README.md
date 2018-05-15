@@ -30,7 +30,7 @@ Note: If you are using TCP for controller - the port value will be used to creat
     - DELETE `/firmwares/{type}/{version}`
     - POST `/firmwares` `{ "firmware_type": 10, "firmware_version": 1, "firmware_name": "Blink", "file": <file>}` - Done
     - PUT `/firmwares` `{ "firmware_type": 10, "firmware_version": 1, "firmware_name": "Blink", "file": <file>}` - Done
-- [ ] Improve error handling in api's (handling unique constraint in insert, updating unavailable firmwares etc)    
+- [x] Improve error handling in api's (handling unique constraint in insert, updating unavailable firmwares etc)    
 - [ ] Improve logging (parsed message for OTA request etc)
 - [ ] MQTT integration
 - [ ] Node name support

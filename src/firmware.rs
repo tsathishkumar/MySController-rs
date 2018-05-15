@@ -19,7 +19,7 @@ table! {
     }
 }
 
-#[derive(Debug, Queryable, Serialize, Deserialize, Insertable)]
+#[derive(Debug, Queryable, Serialize, Deserialize, Insertable, Clone)]
 #[table_name = "firmwares"]
 pub struct Firmware {
     pub firmware_type: i32,
