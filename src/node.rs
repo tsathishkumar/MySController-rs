@@ -8,9 +8,11 @@ use channel::{Receiver, Sender};
 pub fn create_node(conn: &SqliteConnection, id: i32) -> usize {
     let new_node = Node {
         node_id: id,
+        node_name: "New Node".to_owned(),
         firmware_type: 0,
         firmware_version: 0,
         auto_update: false,
+        scheduled: false,
     };
 
     diesel::insert_into(nodes)
