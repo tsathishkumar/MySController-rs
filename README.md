@@ -6,10 +6,48 @@ This server acts as a proxy between Gateway and the Controller. Both might be ei
 
 Before running the server, set the correct connection type and connection port for Gateway and Controller in conf.ini file.
 
-To run the proxy server:
+## To run the proxy server:
 ```
 cargo run
 ```
+
+## To install and run as a service in a debian/ubuntu flavour machine
+- Add the following to your /etc/apt/sources.list system config file:
+    ```bash
+    echo "deb http://dl.bintray.com/tsathishkumar/myscontroller-rs vivid main" | sudo tee -a /etc/apt/sources.list
+    ```
+- Update the package list
+    ```bash
+    apt-get update
+    ```
+- Install the package
+    ```bash
+    apt install myscontroller-rs
+    ```
+- The configuration of the server can be found at the below location. 
+    ```bash
+    /etc/myscontroller-rs/conf.ini
+    ```
+    Example settings:
+    ```bash
+    encoding=utf-8
+
+    [Gateway]
+    type=TCP
+    port=10.11.12.13:5003
+
+    [Controller]
+    type=TCP
+    port=0.0.0.0:5003
+
+    [Server]
+    database_url=/var/lib/myscontroller-rs/sqlite.db
+    ```
+- Set up the right Gateway IP and Controller IP and restart the service.
+    ```bash
+    systemctl restart myscontroller-rs.service
+    ```
+
 
 Note: If you are using TCP for controller - the port value will be used to create TCP server listening on the specified port. (So it shoud be the address of the machine running MyRController)
 
