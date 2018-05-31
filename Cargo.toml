@@ -17,10 +17,10 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 chrono = "0.4"
-rocket = "0.3.11"
-rocket_codegen = "0.3.11"
+rocket = {git = "https://github.com/SergioBenitez/Rocket.git"}
+rocket_codegen = {git = "https://github.com/SergioBenitez/Rocket.git"}
 r2d2 = "0.8.2"
-rocket_contrib = {version = "0.3.10", default-features = false,features = ["json"]}
+rocket_contrib = {git = "https://github.com/SergioBenitez/Rocket.git"}
 crossbeam-channel = "0.1"
 multipart = "0.14.2"
 

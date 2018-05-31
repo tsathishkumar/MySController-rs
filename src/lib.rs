@@ -1,6 +1,7 @@
 #![feature(untagged_unions)]
 #![feature(rustc_private)]
 #![feature(plugin)]
+#![feature(decl_macro)]
 #![plugin(rocket_codegen)]
 #![feature(slice_patterns)]
 
