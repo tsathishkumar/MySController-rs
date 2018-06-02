@@ -1,15 +1,19 @@
+use super::connection::*;
+use super::interceptor;
+use super::ota;
 use channel;
 use channel::{Receiver, Sender};
-use connection::*;
-use interceptor;
-use node;
-use ota;
-use pool;
+use handler::node;
+use model::db;
 use std::thread;
 
-pub fn start(gateway_info: StreamInfo,
-             controller_info: StreamInfo, pool: pool::SqlitePool,
-             controller_in_sender: Sender<String>, controller_in_receiver: Receiver<String>) {
+pub fn start(
+    gateway_info: StreamInfo,
+    controller_info: StreamInfo,
+    pool: db::SqlitePool,
+    controller_in_sender: Sender<String>,
+    controller_in_receiver: Receiver<String>,
+) {
     let (gateway_sender, gateway_receiver) = channel::unbounded();
     let (ota_sender, ota_receiver) = channel::unbounded();
 
@@ -19,16 +23,21 @@ pub fn start(gateway_info: StreamInfo,
     let node_manager_out = controller_in_sender.clone();
 
     let message_interceptor = thread::spawn(move || {
-        interceptor::intercept(&gateway_receiver, &ota_sender, &node_manager_sender, &controller_out_sender);
+        interceptor::intercept(
+            &gateway_receiver,
+            &ota_sender,
+            &node_manager_sender,
+            &controller_out_sender,
+        );
     });
 
-    let connection = pool::DbConn(pool.get().unwrap());
+    let connection = db::DbConn(pool.get().unwrap());
 
     let ota_processor = thread::spawn(move || {
         ota::process_ota(&ota_receiver, &ota_fw_sender, connection);
     });
 
-    let connection = pool::DbConn(pool.get().unwrap());
+    let connection = db::DbConn(pool.get().unwrap());
 
     let node_manager = thread::spawn(move || {
         node::handle_node_id_request(&node_manager_in, &node_manager_out, connection);
@@ -39,7 +48,11 @@ pub fn start(gateway_info: StreamInfo,
     });
 
     let controller_read_write = thread::spawn(move || {
-        stream_read_write(controller_info, controller_in_sender, controller_out_receiver);
+        stream_read_write(
+            controller_info,
+            controller_in_sender,
+            controller_out_receiver,
+        );
     });
 
     message_interceptor.join().unwrap();

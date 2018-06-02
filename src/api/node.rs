@@ -1,11 +1,11 @@
 use channel::Sender;
 use diesel;
 use diesel::prelude::*;
-use pool::DbConn;
+use model::db::DbConn;
 use rocket;
 use rocket_contrib::Json;
-use schema::Node;
-use schema::nodes::dsl::*;
+use model::node::Node;
+use model::node::nodes::dsl::*;
 
 #[get("/")]
 fn index() -> &'static str {

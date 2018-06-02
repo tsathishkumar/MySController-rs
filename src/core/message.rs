@@ -1,5 +1,5 @@
 use enum_primitive;
-use firmware::Firmware;
+use model::firmware::Firmware;
 use hex;
 use num::FromPrimitive;
 use std::mem;

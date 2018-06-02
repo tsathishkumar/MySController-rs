@@ -1,14 +1,14 @@
 use channel::{Receiver, Sender};
 use diesel::prelude::*;
-use firmware::Firmware;
-use firmware::firmwares::dsl::firmwares;
-use message::{CommandMessage, CommandSubType, MessagePayloadType};
-use pool;
-use schema::Node;
-use schema::nodes::dsl::*;
+use model::firmware::Firmware;
+use model::firmware::firmwares::dsl::firmwares;
+use super::message::{CommandMessage, CommandSubType, MessagePayloadType};
+use model::db;
+use model::node::Node;
+use model::node::nodes::dsl::*;
 
 pub fn process_ota(ota_receiver: &Receiver<CommandMessage>,
-                   sender: &Sender<String>, db_connection: pool::DbConn) {
+                   sender: &Sender<String>, db_connection: db::DbConn) {
     loop {
         match ota_receiver.recv() {
             Ok(command_message_request) => match command_message_request.sub_type {

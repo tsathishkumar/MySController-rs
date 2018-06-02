@@ -1,9 +1,9 @@
 use diesel;
 use diesel::prelude::*;
-use pool;
-use schema::Node;
-use schema::nodes::dsl::nodes;
 use channel::{Receiver, Sender};
+use model::node::nodes::dsl;
+use model::db;
+use model::node::Node;
 
 pub fn create_node(conn: &SqliteConnection, id: i32) -> usize {
     let new_node = Node {
@@ -15,14 +15,14 @@ pub fn create_node(conn: &SqliteConnection, id: i32) -> usize {
         scheduled: false,
     };
 
-    diesel::insert_into(nodes)
+    diesel::insert_into(dsl::nodes)
         .values(&new_node)
         .execute(conn)
         .expect("Error saving new node")
 }
 
 pub fn get_next_node_id(conn: &SqliteConnection) -> u8 {
-    let existing_nodes = nodes
+    let existing_nodes = dsl::nodes
         .load::<Node>(conn).expect("error while loading existing nodes");
     match existing_nodes.iter()
         .map(|node| node.node_id())
@@ -35,7 +35,7 @@ pub fn get_next_node_id(conn: &SqliteConnection) -> u8 {
 pub fn handle_node_id_request(
     receiver: &Receiver<String>,
     sender: &Sender<String>,
-    db_connection: pool::DbConn,
+    db_connection: db::DbConn,
 ) {
     loop {
         match receiver.recv() {

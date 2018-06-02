@@ -1,13 +1,13 @@
 use diesel;
 use diesel::prelude::*;
 use diesel::result::Error::DatabaseError;
-use firmware::Firmware;
-use firmware::firmwares::dsl::*;
+use model::firmware::Firmware;
+use model::firmware::firmwares::dsl::*;
 use multipart::mock::StdoutTee;
 use multipart::server::Multipart;
 use multipart::server::save::SaveResult::*;
 use multipart::server::save::{Entries, SavedData};
-use pool::DbConn;
+use model::db::DbConn;
 use rocket::Data;
 use rocket::http::{ContentType, Status};
 use rocket::response::Stream;

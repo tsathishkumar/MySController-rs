@@ -24,14 +24,7 @@ extern crate r2d2;
 extern crate crossbeam_channel as channel;
 extern crate multipart;
 
-pub mod firmware;
-pub mod connection;
-pub mod interceptor;
-pub mod message;
-pub mod ota;
-pub mod proxy;
-pub mod schema;
-pub mod node;
-pub mod node_api;
-pub mod firmware_api;
-pub mod pool;
+pub mod api;
+pub mod core;
+pub mod model;
+pub mod handler;

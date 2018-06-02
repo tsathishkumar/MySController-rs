@@ -1,4 +1,4 @@
-use message;
+use super::message;
 use channel::{Receiver, Sender};
 
 pub fn intercept(
