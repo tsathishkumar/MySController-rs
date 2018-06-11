@@ -70,6 +70,7 @@ Note: If you are using TCP for controller - the port value will be used to creat
     - PUT `/firmwares` `{ "firmware_type": 10, "firmware_version": 1, "firmware_name": "Blink", "file": <file>}` - Done
 - [x] Improve error handling in api's (handling unique constraint in insert, updating unavailable firmwares etc)    
 - [ ] Improve logging (parsed message for OTA request etc)
+- [ ] Improve error handling across project (remove unwraps)
 - [ ] MQTT integration
 - [ ] Node name support
 - [ ] Child sensors support

@@ -2,7 +2,7 @@ before_install:
   - sudo apt-get install libudev-dev
 language: rust
 rust:
-  - nightly
+  - 1.26.2
 cache: cargo
 script:
 - cargo install cargo-deb
