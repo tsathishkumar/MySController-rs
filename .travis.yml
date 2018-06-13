@@ -1,5 +1,6 @@
 before_install:
   - sudo apt-get install libudev-dev
+before_script:  
   - cargo install cargo-deb || :
 language: rust
 rust:
