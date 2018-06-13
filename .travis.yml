@@ -1,6 +1,6 @@
 before_install:
   - sudo apt-get install libudev-dev
-  - cargo install cargo-deb
+  - cargo install cargo-deb || :
 language: rust
 rust:
   - 1.26.2
