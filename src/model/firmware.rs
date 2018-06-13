@@ -105,11 +105,11 @@ mod test {
 
     #[test]
     fn reader_respects_all_newline_formats() {
-        let input = String::new() + &":100490008B002097E1F30E940000F9CF0895F894B3";
-
+        let mut input = String::new() + &"\n:100490008B002097E1F30E940000F9CF0895F894B3\r";
+        input.pop();
         assert_eq!(
             String::from("8B002097E1F30E940000F9CF0895F894"),
-            hex::encode_upper(Firmware::ihex_to_bin(&Record::from_record_string(&input).unwrap()))
+            hex::encode_upper(Firmware::ihex_to_bin(&Record::from_record_string(&input.trim()).unwrap()))
         );
     }
 

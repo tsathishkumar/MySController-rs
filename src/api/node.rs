@@ -4,7 +4,7 @@ use futures::future::Future;
 use handler::node::*;
 use http::StatusCode;
 
-pub fn list_nodes(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
+pub fn list(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
     req.state()
         .db
         .send(ListNodes)
@@ -16,7 +16,7 @@ pub fn list_nodes(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
         .responder()
 }
 
-pub fn create_node(
+pub fn create(
     node_update: Json<NewNode>,
     req: HttpRequest<AppState>,
 ) -> FutureResponse<HttpResponse> {
@@ -38,7 +38,7 @@ pub fn create_node(
         .responder()
 }
 
-pub fn update_node(
+pub fn update(
     node_update: Json<NodeUpdate>,
     req: HttpRequest<AppState>,
 ) -> FutureResponse<HttpResponse> {
@@ -60,7 +60,7 @@ pub fn update_node(
         .responder()
 }
 
-pub fn delete_node(
+pub fn delete(
     node_delete: Json<DeleteNode>,
     req: HttpRequest<AppState>,
 ) -> FutureResponse<HttpResponse> {

@@ -19,13 +19,13 @@ serde_json = "1.0"
 chrono = "0.4"
 r2d2 = "0.8.2"
 crossbeam-channel = "0.1"
-multipart = {version = "0.14.2", default-features = false, features = ["server"]}
 actix = "^0.5"
-actix-web = "^0.5"
-http = "^0.1.0"
+actix-web = "^0.6.12"
+http = "^0.1.5"
 env_logger = "^0.5.0"
 futures = "^0.1.0"
 num_cpus = "1.0"
+bytes = "0.4.8"
 
 [package.metadata.deb]
 maintainer = "Sathishkumar <tsatiz@gmail.com>"

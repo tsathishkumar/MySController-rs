@@ -11,11 +11,15 @@ extern crate ini;
 extern crate myscontroller_rs;
 
 use actix::*;
-use actix_web::{http::Method, middleware, middleware::cors::Cors, server, App};
+use actix_web::{
+    error, http::Method, middleware, middleware::cors::Cors, multipart, server, App, Error,
+    FutureResponse, HttpMessage, HttpRequest, HttpResponse,
+};
 use diesel::prelude::SqliteConnection;
 use diesel::r2d2::{ConnectionManager, Pool};
 
 use ini::Ini;
+use myscontroller_rs::api::firmware;
 use myscontroller_rs::api::index;
 use myscontroller_rs::api::index::AppState;
 use myscontroller_rs::api::node;
@@ -61,10 +65,19 @@ fn main() {
                             r.method(Method::GET).h(index::home);
                         })
                         .resource("/nodes", |r| {
-                            r.method(Method::GET).h(node::list_nodes);
-                            r.method(Method::POST).with2(node::create_node);
-                            r.method(Method::PUT).with2(node::update_node);
-                            r.method(Method::DELETE).with2(node::delete_node);
+                            r.method(Method::GET).h(node::list);
+                            r.method(Method::POST).with2(node::create);
+                            r.method(Method::PUT).with2(node::update);
+                            r.method(Method::DELETE).with2(node::delete);
+                        })
+                        .resource("/firmwares", |r| {
+                            r.method(Method::GET).h(firmware::list);
+                            r.method(Method::POST).with(firmware::create);
+                            // r.method(Method::PUT).with2(node::update_node);
+                            r.method(Method::DELETE).with2(firmware::delete);
+                        })
+                        .resource("/firmwares/upload", |r| {
+                            r.method(Method::GET).with(firmware::upload_form);
                         })
                         .resource("/nodes/{node_id}", |r| {
                             r.method(Method::GET).h(node::get_node);

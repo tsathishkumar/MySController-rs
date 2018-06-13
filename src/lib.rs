@@ -14,10 +14,10 @@ extern crate diesel;
 #[macro_use]
 extern crate serde_derive;
 extern crate crossbeam_channel as channel;
-extern crate multipart;
 extern crate r2d2;
 extern crate serde_json;
 extern crate futures;
+extern crate bytes;
 
 pub mod api;
 pub mod core;
