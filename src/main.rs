@@ -70,7 +70,7 @@ fn main() {
                         .resource("/firmwares", |r| {
                             r.method(Method::GET).h(firmware::list);
                             r.method(Method::POST).with(firmware::create);
-                            // r.method(Method::PUT).with2(node::update_node);
+                            r.method(Method::PUT).with(firmware::update);
                             r.method(Method::DELETE).with2(firmware::delete);
                         })
                         .resource("/firmwares/upload", |r| {
@@ -84,8 +84,7 @@ fn main() {
                         })
                         .register()
                 })
-        }, // .mount("/", routes![node::index, node::list, node::update_node, node::reboot_node])
-           // .mount("/", routes![firmware::upload, firmware::list, firmware::update, firmware::delete])
+        }, 
     ).bind("0.0.0.0:8000")
         .unwrap()
         .shutdown_timeout(3)

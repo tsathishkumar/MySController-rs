@@ -94,6 +94,50 @@ impl Handler<NewFirmware> for ConnDsl {
     }
 }
 
+pub struct UpdateFirmware(pub NewFirmware);
+
+impl Message for UpdateFirmware {
+    type Result = Result<Msgs, diesel::result::Error>;
+}
+
+impl Handler<UpdateFirmware> for ConnDsl {
+    type Result = Result<Msgs, diesel::result::Error>;
+
+    fn handle(&mut self, update_firmware: UpdateFirmware, _: &mut Self::Context) -> Self::Result {
+        use model::firmware::firmwares::dsl::*;
+        match &self.0.get() {
+            Ok(conn) => {
+                let updated = diesel::update(firmwares)
+                    .filter(&firmware_type.eq(&update_firmware.0.firmware_type))
+                    .set((
+                        firmware_type.eq(update_firmware.0.firmware_type),
+                        firmware_version.eq(update_firmware.0.firmware_version),
+                        name.eq(update_firmware.0.name),
+                        blocks.eq(update_firmware.0.blocks),
+                        crc.eq(update_firmware.0.crc),
+                        data.eq(update_firmware.0.data),
+                    ))
+                    .execute(conn);
+                match updated {
+                    Ok(1) => Ok(Msgs {
+                        status: 200,
+                        message: "update node success.".to_string(),
+                    }),
+                    Ok(_) => Ok(Msgs {
+                        status: 400,
+                        message: "update failed. node id is not present".to_string(),
+                    }),
+                    Err(e) => Err(e),
+                }
+            }
+            Err(_) => Ok(Msgs {
+                status: 500,
+                message: "update failed. internal server error".to_string(),
+            }),
+        }
+    }
+}
+
 impl FirmwareDto {
     fn new(firmware: &Firmware) -> FirmwareDto {
         FirmwareDto {

@@ -3,14 +3,15 @@ use actix_web::{
     HttpResponse, Json,
 };
 use api::index::AppState;
-use handler::firmware::*;
-use http::StatusCode;
-use model::firmware::Firmware;
-
 use bytes::Bytes;
 use futures::future;
 use futures::{Future, Stream};
+use handler::firmware::UpdateFirmware;
+use handler::firmware::*;
+use handler::response::Msgs;
+use http::StatusCode;
 use ihex::record::Record;
+use model::firmware::Firmware;
 use std;
 
 pub fn upload_form(_req: HttpRequest<AppState>) -> Result<HttpResponse, error::Error> {
@@ -68,70 +69,131 @@ pub fn create(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
         .map(handle_multipart_item)
         .flatten()
         .collect()
-        .and_then(move |fields| {
-            req.state()
+        .and_then(move |fields| match get_firmware(fields) {
+            Ok(firmware) => req
+                .state()
                 .db
-                .send(create_firmware(fields))
+                .send(firmware)
                 .from_err()
                 .and_then(|res| match res {
                     Ok(msg) => Ok(
                         HttpResponse::build(StatusCode::from_u16(msg.status).unwrap()).json(msg),
                     ),
                     Err(e) => {
-                        println!("{:?}", e);
+                        println!("Error while uploading firmware {:?}", e);
                         Ok(HttpResponse::InternalServerError().into())
                     }
                 })
-                .responder()
+                .responder(),
+            Err(msg) => Box::new(future::result(Ok(HttpResponse::build(
+                StatusCode::from_u16(msg.status).unwrap(),
+            ).json(msg)))),
         })
         .responder()
 }
 
-fn extract_single_field(
-    fields: &Vec<(Option<String>, Option<Vec<Bytes>>)>,
-    field_name: &str,
-) -> Vec<Bytes> {
-    fields
-        .into_iter()
-        .find(|(field_header, _field_value)| match field_header {
-            Some(ref header) => header.contains(field_name),
-            None => false,
+pub fn update(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
+    let req_clone = req.clone();
+    req_clone
+        .multipart()
+        .map_err(error::ErrorInternalServerError)
+        .map(handle_multipart_item)
+        .flatten()
+        .collect()
+        .and_then(move |fields| match get_firmware(fields) {
+            Ok(firmware) => req
+                .state()
+                .db
+                .send(UpdateFirmware(firmware))
+                .from_err()
+                .and_then(|res| match res {
+                    Ok(msg) => Ok(
+                        HttpResponse::build(StatusCode::from_u16(msg.status).unwrap()).json(msg),
+                    ),
+                    Err(e) => {
+                        println!("Error while uploading firmware {:?}", e);
+                        Ok(HttpResponse::InternalServerError().into())
+                    }
+                })
+                .responder(),
+            Err(msg) => Box::new(future::result(Ok(HttpResponse::build(
+                StatusCode::from_u16(msg.status).unwrap(),
+            ).json(msg)))),
         })
-        .map(|(_field_header, field_value)| match field_value {
-            Some(value) => value.to_owned(),
-            None => Vec::new(),
-        })
-        .unwrap_or(Vec::new())
+        .responder()
 }
 
-fn create_firmware(fields: Vec<(Option<String>, Option<Vec<Bytes>>)>) -> NewFirmware {
+fn extract_single_field<'a>(
+    fields: &Vec<(Option<String>, Option<Vec<Bytes>>)>,
+    field_name: &'a str,
+) -> (&'a str, Option<Vec<Bytes>>) {
+    (
+        field_name,
+        fields
+            .into_iter()
+            .find(|(field_header, _field_value)| match field_header {
+                Some(ref header) => header.contains(field_name),
+                None => false,
+            })
+            .map(|(_field_header, field_value)| match field_value {
+                Some(value) => value.to_owned(),
+                None => Vec::new(),
+            }),
+    )
+}
+
+fn get_firmware(fields: Vec<(Option<String>, Option<Vec<Bytes>>)>) -> Result<NewFirmware, Msgs> {
     let firmware_name = extract_single_field(&fields, "firmware_name");
     let firmware_type = extract_single_field(&fields, "firmware_type");
     let firmware_version = extract_single_field(&fields, "firmware_version");
     let firmware_file = extract_single_field(&fields, "firmware_file");
 
-    let firmware_name = to_string(firmware_name);
-    let firmware_type = to_string(firmware_type);
-    let firmware_version = to_string(firmware_version);
-    let binary_data: Vec<u8> = firmware_file
-        .into_iter()
-        .map(|b| {
-            String::from(std::str::from_utf8(b.as_ref()).unwrap())
-                .trim()
-                .to_owned()
-        })
-        .filter(|line| !line.is_empty())
-        .flat_map(|line| Firmware::ihex_to_bin(&Record::from_record_string(&line).unwrap()))
-        .collect();
-
-    let new_firmware = NewFirmware::prepare_in_memory(
-        firmware_type.parse::<i32>().unwrap(),
-        firmware_version.parse::<i32>().unwrap(),
+    let expected_fields = vec![
         firmware_name,
-        binary_data,
-    );
-    println!("new_firmware {:?}", new_firmware);
-    new_firmware
+        firmware_type,
+        firmware_version,
+        firmware_file,
+    ];
+
+    if let [(_, Some(firmware_name)), (_, Some(firmware_type)), (_, Some(firmware_version)), (_, Some(firmware_file))] =
+        &expected_fields.as_slice()
+    {
+        let firmware_name = to_string(&firmware_name);
+        let firmware_type = to_string(&firmware_type);
+        let firmware_version = to_string(&firmware_version);
+        let binary_data: Vec<u8> = firmware_file
+            .into_iter()
+            .map(|b| {
+                String::from(std::str::from_utf8(b.as_ref()).unwrap())
+                    .trim()
+                    .to_owned()
+            })
+            .filter(|line| !line.is_empty())
+            .flat_map(|line| Firmware::ihex_to_bin(&Record::from_record_string(&line).unwrap()))
+            .collect();
+
+        println!(
+            "upload request for new firmware {} type {}, version {}",
+            firmware_name, firmware_type, firmware_version
+        );
+        let new_firmware = NewFirmware::prepare_in_memory(
+            firmware_type.parse::<i32>().unwrap(),
+            firmware_version.parse::<i32>().unwrap(),
+            firmware_name,
+            binary_data,
+        );
+
+        return Ok(new_firmware);
+    }
+    let missing_fields: Vec<&str> = expected_fields
+        .into_iter()
+        .filter(|(_, v)| v.is_none())
+        .map(|(name, _)| name)
+        .collect();
+    Err(Msgs {
+        status: 400,
+        message: String::from(format!("Missing fields [{}]", missing_fields.join(", "))),
+    })
 }
 
 fn handle_multipart_item(
@@ -152,7 +214,7 @@ fn handle_multipart_item(
 fn extract_field_value(
     field: multipart::Field<HttpRequest<AppState>>,
 ) -> Box<Future<Item = (Option<String>, Option<Vec<Bytes>>), Error = Error>> {
-    println!("field: {:?}", field);
+    println!("field {:?}", field);
     Box::new(future::result(Ok((
         content_disposition(&field),
         field
@@ -172,7 +234,7 @@ fn content_disposition(field: &multipart::Field<HttpRequest<AppState>>) -> Optio
         .and_then(|f| f.to_str().map(|string| string.to_owned()).ok())
 }
 
-fn to_string(value: Vec<Bytes>) -> String {
+fn to_string(value: &Vec<Bytes>) -> String {
     String::from(
         std::str::from_utf8(
             value
