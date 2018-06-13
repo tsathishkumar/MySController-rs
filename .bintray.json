@@ -19,9 +19,9 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.4.2",
-    "desc": "Improved error handling in firmware api's",
-    "released": "2018-05-04"
+    "name": "0.5.0",
+    "desc": "Migrated from Rocket to actix-web to stablize the builds and fasten development.",
+    "released": "2018-06-14"
   },
   "files": [
     {
