@@ -5,6 +5,7 @@ use diesel;
 use diesel::prelude::*;
 use diesel::result::DatabaseErrorKind;
 use diesel::result::Error::DatabaseError;
+use model;
 use model::db::ConnDsl;
 use model::firmware::Firmware;
 
@@ -15,11 +16,82 @@ pub struct FirmwareDto {
     pub firmware_name: String,
 }
 
+#[derive(Debug)]
 pub struct NewFirmware {
     pub firmware_type: i32,
     pub firmware_version: i32,
     pub name: String,
+    pub blocks: i32,
+    pub crc: i32,
     pub data: Vec<u8>,
+}
+
+impl Message for NewFirmware {
+    type Result = Result<Msgs, diesel::result::Error>;
+}
+
+impl NewFirmware {
+    pub fn prepare_in_memory(
+        fimware_type: i32,
+        version: i32,
+        name: String,
+        mut binary_data: Vec<u8>,
+    ) -> NewFirmware {
+        let pads: usize = binary_data.len() % 128; // 128 bytes per page for atmega328
+        for _ in 0..(128 - pads) {
+            binary_data.push(255);
+        }
+        let blocks: i32 = binary_data.len() as i32 / model::firmware::FIRMWARE_BLOCK_SIZE;
+        let crc = Firmware::compute_crc(&binary_data) as i32;
+        NewFirmware {
+            firmware_type: fimware_type,
+            firmware_version: version,
+            blocks: blocks,
+            data: binary_data,
+            name: name,
+            crc: crc,
+        }
+    }
+}
+
+impl Handler<NewFirmware> for ConnDsl {
+    type Result = Result<Msgs, diesel::result::Error>;
+
+    fn handle(&mut self, new_firmware: NewFirmware, _: &mut Self::Context) -> Self::Result {
+        use model::firmware::firmwares::dsl::*;
+        match &self.0.get() {
+            Ok(conn) => {
+                let new_firmware = Firmware {
+                    firmware_type: new_firmware.firmware_type,
+                    firmware_version: new_firmware.firmware_version,
+                    name: new_firmware.name,
+                    blocks: new_firmware.blocks,
+                    crc: new_firmware.crc,
+                    data: new_firmware.data,
+                };
+
+                let result = diesel::insert_into(firmwares)
+                    .values(&new_firmware)
+                    .execute(conn);
+
+                match result {
+                    Ok(_) => Ok(Msgs {
+                        status: 200,
+                        message: "create firmware success.".to_string(),
+                    }),
+                    Err(DatabaseError(DatabaseErrorKind::UniqueViolation, _)) => Ok(Msgs {
+                        status: 400,
+                        message: "firmware already present.".to_string(),
+                    }),
+                    Err(e) => Err(e),
+                }
+            }
+            Err(_) => Ok(Msgs {
+                status: 500,
+                message: "internal server error.".to_string(),
+            }),
+        }
+    }
 }
 
 impl FirmwareDto {

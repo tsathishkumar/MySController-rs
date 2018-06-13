@@ -11,10 +11,7 @@ extern crate ini;
 extern crate myscontroller_rs;
 
 use actix::*;
-use actix_web::{
-    error, http::Method, middleware, middleware::cors::Cors, multipart, server, App, Error,
-    FutureResponse, HttpMessage, HttpRequest, HttpResponse,
-};
+use actix_web::{http::Method, middleware, middleware::cors::Cors, server, App};
 use diesel::prelude::SqliteConnection;
 use diesel::r2d2::{ConnectionManager, Pool};
 

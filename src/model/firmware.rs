@@ -6,7 +6,7 @@ use std::io::prelude::*;
 use std::iter::FromIterator;
 use std::path::{Path};
 
-const FIRMWARE_BLOCK_SIZE: i32 = 16;
+pub const FIRMWARE_BLOCK_SIZE: i32 = 16;
 
 table! {
     firmwares (firmware_type, firmware_version) {
@@ -90,7 +90,7 @@ impl Firmware {
         Firmware::new(_type, version, blocks, data, name)
     }
 
-    fn compute_crc(data: &[u8]) -> u16 {
+    pub fn compute_crc(data: &[u8]) -> u16 {
         let mut state = State::<MODBUS>::new();
         state.update(data);
         state.get()
