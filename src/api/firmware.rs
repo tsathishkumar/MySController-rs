@@ -18,6 +18,7 @@ pub fn upload_form(_req: HttpRequest<AppState>) -> Result<HttpResponse, error::E
         <head><title>Upload Test</title></head>
         <body>
             <form action="/firmwares" method="post" enctype="multipart/form-data">
+                Name: <input type="text" name="firmware_name"/><br>
                 Type: <input type="text" name="firmware_type"/><br>
                 Version: <input type="text" name="firmware_version"/><br>
                 <input type="file" name="firmware_file"/><br>
@@ -61,15 +62,14 @@ pub fn delete(
 
 pub fn create(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
     let req_clone = req.clone();
-    req.clone()
+    req_clone
         .multipart()
         .map_err(error::ErrorInternalServerError)
         .map(handle_multipart_item)
         .flatten()
         .collect()
-        .map(|fields| {
-            req_clone
-                .state()
+        .and_then(move |fields| {
+            req.state()
                 .db
                 .send(create_firmware(fields))
                 .from_err()
@@ -77,13 +77,14 @@ pub fn create(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
                     Ok(msg) => Ok(
                         HttpResponse::build(StatusCode::from_u16(msg.status).unwrap()).json(msg),
                     ),
-                    Err(_) => Ok(HttpResponse::InternalServerError().into()),
+                    Err(e) => {
+                        println!("{:?}", e);
+                        Ok(HttpResponse::InternalServerError().into())
+                    }
                 })
                 .responder()
         })
-        .wait()
-        .ok()
-        .unwrap()
+        .responder()
 }
 
 fn extract_single_field(
