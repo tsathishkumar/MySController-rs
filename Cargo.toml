@@ -11,18 +11,21 @@ enum_primitive = "0.1"
 num = "0.1"
 crc16 = "0.3.4"
 rust-ini = "0.10"
-diesel = { version = "1.3.0", features = ["sqlite", "chrono", "r2d2"] }
+diesel = { version = "^1.3.0", features = ["sqlite", "chrono","serde_json", "r2d2"] }
 diesel_migrations = "1.3.0"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 chrono = "0.4"
-rocket = {git = "https://github.com/SergioBenitez/Rocket.git"}
-rocket_codegen = {git = "https://github.com/SergioBenitez/Rocket.git"}
 r2d2 = "0.8.2"
-rocket_contrib = {git = "https://github.com/SergioBenitez/Rocket.git"}
 crossbeam-channel = "0.1"
-multipart = {version = "0.14.2", default-features = false, features = ["server"]}
+actix = "^0.5"
+actix-web = "^0.6.12"
+http = "^0.1.5"
+env_logger = "^0.5.0"
+futures = "^0.1.0"
+num_cpus = "1.0"
+bytes = "0.4.8"
 
 [package.metadata.deb]
 maintainer = "Sathishkumar <tsatiz@gmail.com>"

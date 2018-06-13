@@ -3,14 +3,16 @@ use super::interceptor;
 use super::ota;
 use channel;
 use channel::{Receiver, Sender};
-use handler::node;
-use model::db;
 use std::thread;
+use diesel::r2d2::{ConnectionManager,Pool};
+use diesel::prelude::SqliteConnection;
+use super::message_handler;
 
 pub fn start(
     gateway_info: StreamInfo,
     controller_info: StreamInfo,
-    pool: db::SqlitePool,
+    pool: Pool<ConnectionManager<SqliteConnection>>,
+
     controller_in_sender: Sender<String>,
     controller_in_receiver: Receiver<String>,
 ) {
@@ -31,16 +33,16 @@ pub fn start(
         );
     });
 
-    let connection = db::DbConn(pool.get().unwrap());
+    let connection = pool.get().unwrap();
 
     let ota_processor = thread::spawn(move || {
         ota::process_ota(&ota_receiver, &ota_fw_sender, connection);
     });
 
-    let connection = db::DbConn(pool.get().unwrap());
+    let connection = pool.get().unwrap();
 
     let node_manager = thread::spawn(move || {
-        node::handle_node_id_request(&node_manager_in, &node_manager_out, connection);
+        message_handler::handle_node_id_request(&node_manager_in, &node_manager_out, connection);
     });
 
     let gateway_read_write = thread::spawn(move || {

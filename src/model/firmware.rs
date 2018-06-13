@@ -6,7 +6,7 @@ use std::io::prelude::*;
 use std::iter::FromIterator;
 use std::path::{Path};
 
-const FIRMWARE_BLOCK_SIZE: i32 = 16;
+pub const FIRMWARE_BLOCK_SIZE: i32 = 16;
 
 table! {
     firmwares (firmware_type, firmware_version) {
@@ -90,7 +90,7 @@ impl Firmware {
         Firmware::new(_type, version, blocks, data, name)
     }
 
-    fn compute_crc(data: &[u8]) -> u16 {
+    pub fn compute_crc(data: &[u8]) -> u16 {
         let mut state = State::<MODBUS>::new();
         state.update(data);
         state.get()
@@ -105,11 +105,11 @@ mod test {
 
     #[test]
     fn reader_respects_all_newline_formats() {
-        let input = String::new() + &":100490008B002097E1F30E940000F9CF0895F894B3";
-
+        let mut input = String::new() + &"\n:100490008B002097E1F30E940000F9CF0895F894B3\r";
+        input.pop();
         assert_eq!(
             String::from("8B002097E1F30E940000F9CF0895F894"),
-            hex::encode_upper(Firmware::ihex_to_bin(&Record::from_record_string(&input).unwrap()))
+            hex::encode_upper(Firmware::ihex_to_bin(&Record::from_record_string(&input.trim()).unwrap()))
         );
     }
 

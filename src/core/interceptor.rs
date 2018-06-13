@@ -13,8 +13,8 @@ pub fn intercept(
             Ok(req) => req,
             Err(_e) => {
                 println!("Error while trying to receive in interceptor {:?}", _e);
-                break
-            },
+                break;
+            }
         };
 
         if request == node_id_request {

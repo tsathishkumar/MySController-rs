@@ -1,11 +1,12 @@
 before_install:
   - sudo apt-get install libudev-dev
+before_script:  
+  - cargo install cargo-deb || echo 'cargo-deb already installed, ignoring failure'
 language: rust
 rust:
-  - nightly
+  - 1.26.2
 cache: cargo
 script:
-- cargo install cargo-deb
 - cargo build --release --target x86_64-unknown-linux-gnu
 - cargo test
 - cargo deb --no-strip
