@@ -12,6 +12,8 @@ pub fn create_node(conn: &SqliteConnection, id: i32) -> usize {
         node_name: "New Node".to_owned(),
         firmware_type: 0,
         firmware_version: 0,
+        desired_firmware_type: 0,
+        desired_firmware_version: 0,
         auto_update: false,
         scheduled: false,
     };

@@ -1,7 +1,8 @@
 use super::message::{CommandMessage, CommandSubType, MessagePayloadType};
 use channel::{Receiver, Sender};
+use diesel;
 use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager};
+use diesel::r2d2::ConnectionManager;
 use model::firmware::firmwares::dsl::firmwares;
 use model::firmware::Firmware;
 use model::node::nodes::dsl::*;
@@ -34,44 +35,58 @@ fn send_response(
     mut command_message: CommandMessage,
     db_connection: &SqliteConnection,
 ) {
-    let node = nodes
+    if let Ok(node) = nodes
         .find(command_message.node_id as i32)
         .first::<Node>(db_connection)
         .optional()
-        .unwrap();
-    match response_fw_type_version(command_message, node) {
-        Some((_type, version)) => match firmwares
-            .find((_type as i32, version as i32))
-            .first::<Firmware>(&*db_connection)
-        {
-            Ok(firmware) => {
-                command_message.to_response(&firmware);
-                let response = command_message.serialize();
-                serial_sender.send(response).unwrap();
-            }
-            Err(_message) => {
-                println!(
-                    "no firmware found -- for type {} - version {}",
-                    _type, version
-                );
-            }
-        },
-        None => (),
+    {
+        match response_fw_type_version(command_message, node, db_connection) {
+            Some((_type, version)) => match firmwares
+                .find((_type as i32, version as i32))
+                .first::<Firmware>(&*db_connection)
+            {
+                Ok(firmware) => {
+                    command_message.to_response(&firmware);
+                    let response = command_message.serialize();
+                    serial_sender.send(response).unwrap();
+                }
+                Err(_message) => {
+                    println!(
+                        "no firmware found -- for type {} - version {}",
+                        _type, version
+                    );
+                }
+            },
+            None => (),
+        }
     }
 }
 
 fn response_fw_type_version(
     command_message: CommandMessage,
     node: Option<Node>,
+    connection: &SqliteConnection,
 ) -> Option<(u16, u16)> {
     match command_message.payload {
-        MessagePayloadType::FwConfigRequest(_request) => {
+        MessagePayloadType::FwConfigRequest(request) => {
             println!(
                 "Firmware requested by node {} - type {} ,version {}",
-                command_message.node_id, _request._type, _request.version
+                command_message.node_id, request._type, request.version
             );
+
             match node {
-                Some(_node) => Some((_node.firmware_type as u16, _node.firmware_version as u16)),
+                Some(_node) => {
+                    diesel::update(nodes.filter(node_id.eq(_node.node_id)))
+                        .set((
+                            firmware_type.eq(request._type as i32),
+                            firmware_version.eq(request.version as i32),
+                        ))
+                        .execute(connection).unwrap();
+                    Some((
+                        _node.desired_firmware_type as u16,
+                        _node.desired_firmware_version as u16,
+                    ))
+                }
                 None => None,
             }
         }

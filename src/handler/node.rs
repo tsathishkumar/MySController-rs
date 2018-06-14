@@ -83,8 +83,8 @@ impl Handler<NodeUpdate> for ConnDsl {
                     .filter(&node_id.eq(&node_update.node_id))
                     .set((
                         node_name.eq(node_update.node_name),
-                        firmware_type.eq(node_update.firmware_type),
-                        firmware_version.eq(node_update.firmware_version),
+                        desired_firmware_type.eq(node_update.firmware_type),
+                        desired_firmware_version.eq(node_update.firmware_version),
                         auto_update.eq(node_update.auto_update),
                         scheduled.eq(node_update.scheduled),
                     ))
@@ -149,8 +149,10 @@ impl Handler<NewNode> for ConnDsl {
                 let new_node = Node {
                     node_id: new_node.node_id,
                     node_name: new_node.node_name,
-                    firmware_type: new_node.firmware_type,
-                    firmware_version: new_node.firmware_version,
+                    firmware_type: 0,
+                    firmware_version: 0,
+                    desired_firmware_type: new_node.firmware_type,
+                    desired_firmware_version: new_node.firmware_version,
                     auto_update: new_node.auto_update,
                     scheduled: new_node.scheduled,
                 };
