@@ -27,7 +27,7 @@ pub struct NewFirmware {
 }
 
 impl Message for NewFirmware {
-    type Result = Result<Msgs, diesel::result::Error>;
+    type Result = Result<Msgs, Msgs>;
 }
 
 impl NewFirmware {
@@ -55,12 +55,17 @@ impl NewFirmware {
 }
 
 impl Handler<NewFirmware> for ConnDsl {
-    type Result = Result<Msgs, diesel::result::Error>;
+    type Result = Result<Msgs, Msgs>;
 
     fn handle(&mut self, new_firmware: NewFirmware, _: &mut Self::Context) -> Self::Result {
         use model::firmware::firmwares::dsl::*;
-        match &self.0.get() {
-            Ok(conn) => {
+        self.0
+            .get()
+            .map_err(|_| Msgs {
+                status: 500,
+                message: "internal server error.".to_string(),
+            })
+            .and_then(|conn| {
                 let new_firmware = Firmware {
                     firmware_type: new_firmware.firmware_type,
                     firmware_version: new_firmware.firmware_version,
@@ -70,71 +75,97 @@ impl Handler<NewFirmware> for ConnDsl {
                     data: new_firmware.data,
                 };
 
-                let result = diesel::insert_into(firmwares)
+                diesel::insert_into(firmwares)
                     .values(&new_firmware)
-                    .execute(conn);
-
-                match result {
-                    Ok(_) => Ok(Msgs {
-                        status: 200,
-                        message: "create firmware success.".to_string(),
-                    }),
-                    Err(DatabaseError(DatabaseErrorKind::UniqueViolation, _)) => Ok(Msgs {
-                        status: 400,
-                        message: "firmware already present.".to_string(),
-                    }),
-                    Err(e) => Err(e),
-                }
-            }
-            Err(_) => Ok(Msgs {
-                status: 500,
-                message: "internal server error.".to_string(),
-            }),
-        }
+                    .execute(&conn)
+                    .map_err(|e| match e {
+                        DatabaseError(DatabaseErrorKind::UniqueViolation, _) => Msgs {
+                            status: 400,
+                            message: "firmware already present.".to_string(),
+                        },
+                        _ => Msgs {
+                            status: 500,
+                            message: "internal server error.".to_string(),
+                        },
+                    })
+                    .and_then(|_| auto_update_nodes(&conn, new_firmware))
+            })
     }
+}
+
+fn auto_update_nodes(connection: &SqliteConnection, new_firmware: Firmware) -> Result<Msgs, Msgs> {
+    use model::node::nodes::dsl::*;
+    diesel::update(nodes)
+        .filter(auto_update.eq(true))
+        .filter(
+            desired_firmware_type
+                .eq(new_firmware.firmware_type)
+                .and(desired_firmware_version.lt(new_firmware.firmware_version)),
+        )
+        .set((
+            desired_firmware_version.eq(new_firmware.firmware_version),
+            scheduled.eq(true),
+        ))
+        .execute(connection)
+        .map(|update_count| Msgs {
+            status: 200,
+            message: format!(
+                "create firmware success. upgraded for {} nodes",
+                update_count
+            ).to_string(),
+        })
+        .map_err(|_| Msgs {
+            status: 400,
+            message: "create firmware success. upgraded for nodes failed".to_string(),
+        })
 }
 
 pub struct UpdateFirmware(pub NewFirmware);
 
 impl Message for UpdateFirmware {
-    type Result = Result<Msgs, diesel::result::Error>;
+    type Result = Result<Msgs, Msgs>;
 }
 
 impl Handler<UpdateFirmware> for ConnDsl {
-    type Result = Result<Msgs, diesel::result::Error>;
+    type Result = Result<Msgs, Msgs>;
 
     fn handle(&mut self, update_firmware: UpdateFirmware, _: &mut Self::Context) -> Self::Result {
         use model::firmware::firmwares::dsl::*;
-        match &self.0.get() {
-            Ok(conn) => {
-                let updated = diesel::update(firmwares)
-                    .filter(&firmware_type.eq(&update_firmware.0.firmware_type))
+        self.0
+            .get()
+            .map_err(|_| Msgs {
+                status: 500,
+                message: "internal server error.".to_string(),
+            })
+            .and_then(|conn| {
+                diesel::update(firmwares)
+                    .filter(
+                        firmware_type
+                            .eq(update_firmware.0.firmware_type)
+                            .and(firmware_version.eq(update_firmware.0.firmware_version)),
+                    )
                     .set((
-                        firmware_type.eq(update_firmware.0.firmware_type),
-                        firmware_version.eq(update_firmware.0.firmware_version),
                         name.eq(update_firmware.0.name),
                         blocks.eq(update_firmware.0.blocks),
                         crc.eq(update_firmware.0.crc),
                         data.eq(update_firmware.0.data),
                     ))
-                    .execute(conn);
-                match updated {
-                    Ok(1) => Ok(Msgs {
-                        status: 200,
-                        message: "update node success.".to_string(),
-                    }),
-                    Ok(_) => Ok(Msgs {
-                        status: 400,
-                        message: "update failed. node id is not present".to_string(),
-                    }),
-                    Err(e) => Err(e),
-                }
-            }
-            Err(_) => Ok(Msgs {
-                status: 500,
-                message: "update failed. internal server error".to_string(),
-            }),
-        }
+                    .execute(&conn)
+                    .map_err(|_| Msgs {
+                        status: 500,
+                        message: "update failed. internal server error".to_string(),
+                    })
+                    .map(|updated_count| match updated_count {
+                        1 => Msgs {
+                            status: 200,
+                            message: "update node success.".to_string(),
+                        },
+                        _ => Msgs {
+                            status: 400,
+                            message: "update failed. node id is not present".to_string(),
+                        },
+                    })
+            })
     }
 }
 

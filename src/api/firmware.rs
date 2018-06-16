@@ -1,7 +1,5 @@
-use actix_web::{
-    error, multipart, AsyncResponder, Error, FutureResponse, HttpMessage, HttpRequest,
-    HttpResponse, Json,
-};
+use actix_web::{error, multipart, AsyncResponder, Error, FutureResponse, HttpMessage, HttpRequest,
+                HttpResponse, Json};
 use api::index::AppState;
 use bytes::Bytes;
 use futures::future;
@@ -70,18 +68,18 @@ pub fn create(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
         .flatten()
         .collect()
         .and_then(move |fields| match get_firmware(fields) {
-            Ok(firmware) => req
-                .state()
+            Ok(firmware) => req.state()
                 .db
                 .send(firmware)
                 .from_err()
-                .and_then(|res| match res {
-                    Ok(msg) => Ok(
-                        HttpResponse::build(StatusCode::from_u16(msg.status).unwrap()).json(msg),
-                    ),
-                    Err(e) => {
+                .map(|res| match res {
+                    Ok(msg) => {
+                        HttpResponse::build(StatusCode::from_u16(msg.status).unwrap()).json(msg)
+                    }
+
+                    Err( e) => {
                         println!("Error while uploading firmware {:?}", e);
-                        Ok(HttpResponse::InternalServerError().into())
+                        HttpResponse::build(StatusCode::from_u16(e.status).unwrap()).json(e)
                     }
                 })
                 .responder(),
@@ -101,8 +99,7 @@ pub fn update(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
         .flatten()
         .collect()
         .and_then(move |fields| match get_firmware(fields) {
-            Ok(firmware) => req
-                .state()
+            Ok(firmware) => req.state()
                 .db
                 .send(UpdateFirmware(firmware))
                 .from_err()
@@ -214,7 +211,6 @@ fn handle_multipart_item(
 fn extract_field_value(
     field: multipart::Field<HttpRequest<AppState>>,
 ) -> Box<Future<Item = (Option<String>, Option<Vec<Bytes>>), Error = Error>> {
-    println!("field {:?}", field);
     Box::new(future::result(Ok((
         content_disposition(&field),
         field
@@ -226,8 +222,7 @@ fn extract_field_value(
 }
 
 fn content_disposition(field: &multipart::Field<HttpRequest<AppState>>) -> Option<String> {
-    // RFC 7578: 'Each part MUST contain a Content-Disposition header field
-    // where the disposition type is "form-data".'
+    //TODO: refactor to use from actix-web after upgrade
     field
         .headers()
         .get(::http::header::CONTENT_DISPOSITION)
