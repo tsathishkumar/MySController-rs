@@ -58,21 +58,46 @@ Note: If you are using TCP for controller - the port value will be used to creat
 - [x] Ability to restart the node using api
 - [x] Manage nodes and the firmwares installed, expose api's 
     - GET `/nodes`
-    - PUT `/node` `<node>`
-    - POST `/reboot_node/<node_id>`
+    - POST `/nodes` payload 
+    ```json
+    {
+        "node_id": 1,
+        "node_name": "New switch",
+        "firmware_type": 0,
+        "firmware_version": 0,
+        "desired_firmware_type": 10,
+        "desired_firmware_version": 4,
+        "auto_update": true,
+        "scheduled": true
+    }
+    ```
+    - PUT `/nodes` payload 
+    ```json
+    {
+        "node_id": 1,
+        "node_name": "New switch",
+        "firmware_type": 0,
+        "firmware_version": 0,
+        "desired_firmware_type": 10,
+        "desired_firmware_version": 4,
+        "auto_update": true,
+        "scheduled": true
+    }
+    ```
+    - POST `/nodes/{node_id}/reboot`
 - [x] Get node's firmware type and version from database and use it for ota request from node
-- [ ] Handle auto update flag in node 
+- [x] Handle auto update flag in node 
     - whenever there is new version for a firmware, it should automatically update all nodes which have auto update as `true` to latest version
 - [x] Manage firmwares type and version, ability to upload newer versions of firmwares, expose apis 
-    - GET `/firmwares` - `[{"firmware_type": 10, "firmware_version": 1, "firmware_name", "Blink"}]`
-    - DELETE `/firmwares/{type}/{version}`
-    - POST `/firmwares` `{ "firmware_type": 10, "firmware_version": 1, "firmware_name": "Blink", "file": <file>}` - Done
-    - PUT `/firmwares` `{ "firmware_type": 10, "firmware_version": 1, "firmware_name": "Blink", "file": <file>}` - Done
+    - GET `/firmwares` - response `[{"firmware_type": 10, "firmware_version": 1, "firmware_name", "Blink"}]`
+    - DELETE `/firmwares` - `[{"firmware_type": 10, "firmware_version": 1}]
+    - POST `/firmwares` - payload `{ "firmware_type": 10, "firmware_version": 1, "firmware_name": "Blink", "firmware_file": <file>}`
+    - PUT `/firmwares` - payload `{ "firmware_type": 10, "firmware_version": 1, "firmware_name": "Blink", "firmware_file": <file>}`
 - [x] Improve error handling in api's (handling unique constraint in insert, updating unavailable firmwares etc)    
+- [x] Node name support
 - [ ] Improve logging (parsed message for OTA request etc)
 - [ ] Improve error handling across project (remove unwraps)
 - [ ] MQTT integration
-- [ ] Node name support
 - [ ] Child sensors support
 
 
