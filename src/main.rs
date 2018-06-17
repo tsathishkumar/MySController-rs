@@ -6,6 +6,8 @@ extern crate num_cpus;
 extern crate actix;
 extern crate actix_web;
 extern crate diesel;
+#[macro_use]
+extern crate log;
 extern crate env_logger;
 extern crate ini;
 extern crate myscontroller_rs;
@@ -28,9 +30,6 @@ use std::thread;
 
 fn main() {
     embed_migrations!("migrations");
-    ::std::env::set_var("RUST_LOG", "actix_web=info");
-    ::std::env::set_var("RUST_BACKTRACE", "1");
-    env_logger::init();
 
     let sys = actix::System::new("webapp");
 
@@ -38,6 +37,10 @@ fn main() {
         Ok(_conf) => _conf,
         Err(_) => Ini::load_from_file("conf.ini").unwrap(),
     };
+
+    ::std::env::set_var("RUST_LOG", log_level(&conf));
+    ::std::env::set_var("RUST_BACKTRACE", "1");
+    env_logger::init();
 
     let database_url = server_configs(&conf);
     let manager = ConnectionManager::<SqliteConnection>::new(database_url);
@@ -92,8 +95,10 @@ fn main() {
 
     match conn_clone.get() {
         Ok(conn) => embedded_migrations::run_with_output(&conn, &mut std::io::stdout()).unwrap(),
-        Err(e) => println!("Error while running migration {:?}", e),
+        Err(e) => error!("Error while running migration {:?}", e),
     };
+
+    info!("Starting proxy server");
 
     thread::spawn(move || {
         proxy::start(
@@ -118,6 +123,10 @@ pub fn server_configs(config: &Ini) -> String {
     let database_path = Path::new(database_url);
     create_dir_all(database_path.parent().unwrap()).unwrap();
     database_url.to_owned()
+}
+
+pub fn log_level(config: &Ini) -> String {
+    config.get_from(Some("Server"), "log_level").unwrap_or("myscontroller_rs=info,actix_web=info").to_owned()
 }
 
 fn get_mys_controller<'s>(config: &'s Ini) -> connection::StreamInfo {

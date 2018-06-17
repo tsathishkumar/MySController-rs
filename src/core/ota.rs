@@ -1,4 +1,4 @@
-use super::message::{CommandMessage, CommandSubType, MessagePayloadType};
+use super::message::stream_message::*;
 use channel::{Receiver, Sender};
 use diesel;
 use diesel::prelude::*;
@@ -10,21 +10,13 @@ use model::node::Node;
 use r2d2::*;
 
 pub fn process_ota(
-    ota_receiver: &Receiver<CommandMessage>,
+    ota_receiver: &Receiver<StreamMessage>,
     sender: &Sender<String>,
     db_connection: PooledConnection<ConnectionManager<SqliteConnection>>,
 ) {
     loop {
         match ota_receiver.recv() {
-            Ok(command_message_request) => match command_message_request.sub_type {
-                CommandSubType::StFirmwareConfigRequest => {
-                    send_response(sender, command_message_request.clone(), &db_connection)
-                }
-                CommandSubType::StFirmwareRequest => {
-                    send_response(sender, command_message_request.clone(), &db_connection)
-                }
-                _ => (),
-            },
+            Ok(stream_request) => send_response(sender, stream_request.clone(), &db_connection),
             _ => (),
         }
     }
@@ -32,26 +24,28 @@ pub fn process_ota(
 
 fn send_response(
     serial_sender: &Sender<String>,
-    mut command_message: CommandMessage,
+    mut stream_message: StreamMessage,
     db_connection: &SqliteConnection,
 ) {
     if let Ok(node) = nodes
-        .find(command_message.node_id as i32)
+        .find(stream_message.node_id as i32)
         .first::<Node>(db_connection)
         .optional()
     {
-        match response_fw_type_version(command_message, node, db_connection) {
+        match response_fw_type_version(stream_message, node, db_connection) {
             Some((_type, version)) => match firmwares
                 .find((_type as i32, version as i32))
                 .first::<Firmware>(&*db_connection)
             {
                 Ok(firmware) => {
-                    command_message.to_response(&firmware);
-                    let response = command_message.serialize();
+                    debug!("Request {:?}", stream_message);
+                    stream_message.to_response(&firmware);
+                    debug!("Response {:?}", stream_message);
+                    let response = stream_message.to_string();
                     serial_sender.send(response).unwrap();
                 }
                 Err(_message) => {
-                    println!(
+                    warn!(
                         "no firmware found -- for type {} - version {}",
                         _type, version
                     );
@@ -63,15 +57,15 @@ fn send_response(
 }
 
 fn response_fw_type_version(
-    command_message: CommandMessage,
+    stream_message: StreamMessage,
     node: Option<Node>,
     connection: &SqliteConnection,
 ) -> Option<(u16, u16)> {
-    match command_message.payload {
-        MessagePayloadType::FwConfigRequest(request) => {
-            println!(
+    match stream_message.payload {
+        StreamPayload::FwConfigRequest(request) => {
+            info!(
                 "Firmware requested by node {} - type {} ,version {}",
-                command_message.node_id, request._type, request.version
+                stream_message.node_id, request._type, request.version
             );
 
             match node {
@@ -90,7 +84,7 @@ fn response_fw_type_version(
                 None => None,
             }
         }
-        MessagePayloadType::FwRequest(request) => {
+        StreamPayload::FwRequest(request) => {
             Some((request.firmware_type, request.firmware_version))
         }
         _ => None,

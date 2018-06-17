@@ -18,6 +18,8 @@ extern crate r2d2;
 extern crate serde_json;
 extern crate futures;
 extern crate bytes;
+#[macro_use]
+extern crate log;
 
 pub mod api;
 pub mod core;

@@ -52,15 +52,15 @@ pub trait Connection: Send {
             match receiver.recv_timeout(Duration::from_secs(5)) {
                 Ok(received_value) => {
                     match self.write(&received_value.as_bytes()) {
-                        Ok(_) => println!("{} << {:?}", self.port(), received_value),
+                        Ok(_) => info!("{} << {:?}", self.port(), received_value),
                         Err(e) => {
-                            eprintln!("Error while writing -- {:?}", e);
+                            error!("Error while writing -- {:?}", e);
                             break;
                         }
                     }
                 }
                 Err(channel::RecvTimeoutError::Timeout) => (),
-                Err(_error) => eprintln!("Error while receiving -- {:?}", _error),
+                Err(_error) => error!("Error while receiving -- {:?}", _error),
             }
         }
         (receiver)
@@ -80,7 +80,7 @@ pub trait Connection: Send {
                             Err(_e) => break,
                         };
                         if s == "\u{0}" {
-                            println!("Error while reading -- reached EOF");
+                            error!("Error while reading -- reached EOF");
                             broken_connection = true;
                             break;
                         }
@@ -91,7 +91,7 @@ pub trait Connection: Send {
                     }
                     Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                     Err(e) => {
-                        println!("Error while reading -- {:?}", e);
+                        error!("Error while reading -- {:?}", e);
                         broken_connection = true;
                         break;
                     }
@@ -100,7 +100,7 @@ pub trait Connection: Send {
             if broken_connection {
                 break;
             }
-            println!("{} >> {:?}", self.port(), line);
+            info!("{} >> {:?}", self.port(), line);
             sender.send(line).unwrap();
         }
         (sender)
@@ -162,7 +162,7 @@ pub fn create_connection(connection_type: ConnectionType, port: &String) -> Box<
         ConnectionType::Serial => create_serial_connection(port),
         ConnectionType::TcpClient => {
             let stream: TcpStream;
-            println!("Waiting for server connection -- {} ...", port);
+            info!("Waiting for server connection -- {} ...", port);
             loop {
                 stream = match TcpStream::connect(port) {
                     Ok(stream) => stream,
@@ -171,16 +171,16 @@ pub fn create_connection(connection_type: ConnectionType, port: &String) -> Box<
                         continue;
                     }
                 };
-                println!("Connected to -- {}", port);
+                info!("Connected to -- {}", port);
                 break;
             }
             Box::new(TcpConnection { tcp_port: port.clone(), tcp_stream: stream })
         }
         ConnectionType::TcpServer => {
             let stream = TcpListener::bind(port).unwrap();
-            println!("Server listening on -- {}", port);
+            info!("Server listening on -- {}", port);
             let (mut stream, _socket) = stream.accept().unwrap();
-            println!("Accepted connection from {:?}", _socket);
+            info!("Accepted connection from {:?}", _socket);
             Box::new(TcpConnection { tcp_port: port.clone(), tcp_stream: stream })
         }
     }
@@ -191,7 +191,7 @@ fn create_serial_connection(port: &String) -> Box<Connection> {
     settings.timeout = Duration::from_millis(10);
     settings.baud_rate = BaudRate::Baud38400;
     let stream;
-    println!("Waiting for serial connection in -- {} ...", port);
+    info!("Waiting for serial connection in -- {} ...", port);
     loop {
         stream = match serialport::open_with_settings(&port, &settings) {
             Ok(stream) => stream,
@@ -200,7 +200,7 @@ fn create_serial_connection(port: &String) -> Box<Connection> {
                 continue;
             }
         };
-        println!("Connected to -- {}", port);
+        info!("Connected to -- {}", port);
         break;
     }
     Box::new(SerialConnection { serial_port: port.clone(), stream })

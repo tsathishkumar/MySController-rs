@@ -78,7 +78,7 @@ pub fn create(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
                     }
 
                     Err( e) => {
-                        println!("Error while uploading firmware {:?}", e);
+                        error!("Error while uploading firmware {:?}", e);
                         HttpResponse::build(StatusCode::from_u16(e.status).unwrap()).json(e)
                     }
                 })
@@ -108,7 +108,7 @@ pub fn update(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
                         HttpResponse::build(StatusCode::from_u16(msg.status).unwrap()).json(msg),
                     ),
                     Err(e) => {
-                        println!("Error while uploading firmware {:?}", e);
+                        error!("Error while uploading firmware {:?}", e);
                         Ok(HttpResponse::InternalServerError().into())
                     }
                 })
@@ -169,7 +169,7 @@ fn get_firmware(fields: Vec<(Option<String>, Option<Vec<Bytes>>)>) -> Result<New
             .flat_map(|line| Firmware::ihex_to_bin(&Record::from_record_string(&line).unwrap()))
             .collect();
 
-        println!(
+        error!(
             "upload request for new firmware {} type {}, version {}",
             firmware_name, firmware_type, firmware_version
         );

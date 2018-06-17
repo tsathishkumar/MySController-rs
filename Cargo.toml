@@ -26,6 +26,7 @@ env_logger = "^0.5.0"
 futures = "^0.1.0"
 num_cpus = "1.0"
 bytes = "0.4.8"
+log = "0.4"
 
 [package.metadata.deb]
 maintainer = "Sathishkumar <tsatiz@gmail.com>"
