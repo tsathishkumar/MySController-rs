@@ -55,8 +55,8 @@ impl StreamMessage {
         self.payload = match self.payload {
             StreamPayload::FwConfigRequest(_request) => {
                 StreamPayload::FwConfigResponse(FwConfigResponseMessage {
-                    _type: firmware.firmware_type as u16,
-                    version: firmware.firmware_version as u16,
+                    firmware_type: firmware.firmware_type as u16,
+                    firmware_version: firmware.firmware_version as u16,
                     blocks: firmware.blocks as u16,
                     crc: firmware.crc as u16,
                 })
@@ -139,34 +139,34 @@ impl FirmwarePayload {
 
 #[derive(Debug, Clone, Copy)]
 pub struct FwConfigRequestMessage {
-    pub _type: u16,
-    pub version: u16,
-    blocks: u16,
-    crc: u16,
-    bl_version: u16,
+    pub firmware_type: u16,
+    pub firmware_version: u16,
+    pub blocks: u16,
+    pub crc: u16,
+    pub bl_version: u16,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct FwConfigResponseMessage {
-    _type: u16,
-    version: u16,
-    blocks: u16,
-    crc: u16,
+    pub firmware_type: u16,
+    pub firmware_version: u16,
+    pub blocks: u16,
+    pub crc: u16,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct FwRequestMessage {
     pub firmware_type: u16,
     pub firmware_version: u16,
-    blocks: u16,
+    pub blocks: u16,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct FwResponseMessage {
-    firmware_type: u16,
-    firmware_version: u16,
-    blocks: u16,
-    data: [u8; 16],
+    pub firmware_type: u16,
+    pub firmware_version: u16,
+    pub blocks: u16,
+    pub data: [u8; 16],
 }
 
 fn vector_as_u8_32_array(vector: Vec<u8>) -> [u8; MAX_MESSAGE_LENGTH] {

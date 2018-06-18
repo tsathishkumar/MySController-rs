@@ -65,15 +65,15 @@ fn response_fw_type_version(
         StreamPayload::FwConfigRequest(request) => {
             info!(
                 "Firmware requested by node {} - type {} ,version {}",
-                stream_message.node_id, request._type, request.version
+                stream_message.node_id, request.firmware_type, request.firmware_version
             );
 
             match node {
                 Some(_node) => {
                     diesel::update(nodes.filter(node_id.eq(_node.node_id)))
                         .set((
-                            firmware_type.eq(request._type as i32),
-                            firmware_version.eq(request.version as i32),
+                            firmware_type.eq(request.firmware_type as i32),
+                            firmware_version.eq(request.firmware_version as i32),
                         ))
                         .execute(connection).unwrap();
                     Some((
