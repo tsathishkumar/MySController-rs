@@ -1,7 +1,7 @@
 use channel::{Receiver, Sender};
 use diesel;
 use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager};
+use diesel::r2d2::ConnectionManager;
 use model::node::nodes::dsl;
 use model::node::Node;
 use r2d2::*;
@@ -50,8 +50,11 @@ pub fn handle_node_id_request(
                     .collect::<Vec<&str>>();
                 node_id_response[4] = "4";
                 node_id_response[5] = &new_id;
-                sender.send(node_id_response.join(";")).unwrap();
                 create_node(&db_connection, new_node_id as i32);
+                match sender.send(node_id_response.join(";")) {
+                    Ok(_) => continue,
+                    Err(_) => error!("Error while sending to node_handler"),
+                }
             }
             _ => (),
         }

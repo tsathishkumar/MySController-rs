@@ -1,9 +1,10 @@
+use super::error::ParseError;
 use enum_primitive;
 use hex;
 use model::firmware::Firmware;
 use num::FromPrimitive;
-use std::mem;
 use std::fmt;
+use std::mem;
 
 const MAX_MESSAGE_LENGTH: usize = 32;
 
@@ -17,32 +18,38 @@ pub struct StreamMessage {
 }
 
 impl StreamMessage {
-    pub fn build(node_id: u8, child_sensor_id: u8, sub_type: u8, ack: u8, payload: &str) -> StreamMessage{
-        let array_val = hex::decode(payload).and_then(|vector| Ok(vector_as_u8_32_array(vector))).unwrap();
-        let sub_type= StreamType::from_u8(sub_type).unwrap();
+    pub fn build(
+        node_id: u8,
+        child_sensor_id: u8,
+        sub_type: u8,
+        ack: u8,
+        payload: &str,
+    ) -> Result<StreamMessage, ParseError> {
+        let array_val = hex::decode(payload)
+            .map_err(|_| ParseError::InvalidPayload)
+            .and_then(|vector| Ok(vector_as_u8_32_array(vector)))?;
+        let sub_type = StreamType::from_u8(sub_type).ok_or(ParseError::InvalidSubType)?;
         let payload = match sub_type {
-                    StreamType::StFirmwareConfigRequest => StreamPayload::FwConfigRequest(
-                        unsafe { FirmwarePayload::new(array_val).fw_config_request },
-                    ),
-                    StreamType::StFirmwareConfigResponse => {
-                        StreamPayload::FwConfigResponse(unsafe {
-                            FirmwarePayload::new(array_val).fw_config_response
-                        })
-                    }
-                    StreamType::StFirmwareRequest => StreamPayload::FwRequest(unsafe {
-                        FirmwarePayload::new(array_val).fw_request
-                    }),
-                    StreamType::StFirmwareResponse => StreamPayload::FwResponse(unsafe {
-                        FirmwarePayload::new(array_val).fw_response
-                    }),
-                };
-        StreamMessage {
+            StreamType::StFirmwareConfigRequest => StreamPayload::FwConfigRequest(unsafe {
+                FirmwarePayload::new(array_val).fw_config_request
+            }),
+            StreamType::StFirmwareConfigResponse => StreamPayload::FwConfigResponse(unsafe {
+                FirmwarePayload::new(array_val).fw_config_response
+            }),
+            StreamType::StFirmwareRequest => {
+                StreamPayload::FwRequest(unsafe { FirmwarePayload::new(array_val).fw_request })
+            }
+            StreamType::StFirmwareResponse => {
+                StreamPayload::FwResponse(unsafe { FirmwarePayload::new(array_val).fw_response })
+            }
+        };
+        Ok(StreamMessage {
             node_id: node_id,
             child_sensor_id: child_sensor_id,
             ack: ack,
             sub_type: sub_type,
             payload: payload,
-        }
+        })
     }
 
     pub fn to_response(&mut self, firmware: &Firmware) {
@@ -61,14 +68,12 @@ impl StreamMessage {
                     crc: firmware.crc as u16,
                 })
             }
-            StreamPayload::FwRequest(request) => {
-                StreamPayload::FwResponse(FwResponseMessage {
-                    firmware_type: firmware.firmware_type as u16,
-                    firmware_version: firmware.firmware_version as u16,
-                    blocks: request.blocks,
-                    data: firmware.get_block(request.blocks),
-                })
-            }
+            StreamPayload::FwRequest(request) => StreamPayload::FwResponse(FwResponseMessage {
+                firmware_type: firmware.firmware_type as u16,
+                firmware_version: firmware.firmware_version as u16,
+                blocks: request.blocks,
+                data: firmware.get_block(request.blocks),
+            }),
             _ => self.payload,
         };
     }
@@ -92,7 +97,8 @@ impl fmt::Display for StreamMessage {
                 hex::encode_upper(&unsafe { mem::transmute::<_, [u8; 6]>(stream_payload) })
             }
         };
-        write!(f,
+        write!(
+            f,
             "{:?};{};{:?};{};{:?};{}\n",
             self.node_id, self.child_sensor_id, _cmd, self.ack, _sub_type, &payload
         )
@@ -104,7 +110,7 @@ enum_from_primitive! {
     pub enum StreamType {
         StFirmwareConfigRequest  = 0,
         StFirmwareConfigResponse = 1,
-        StFirmwareRequest = 2,  
+        StFirmwareRequest = 2,
         StFirmwareResponse = 3
     }
 }
@@ -120,7 +126,7 @@ pub enum StreamPayload {
     FwConfigRequest(FwConfigRequestMessage),
     FwRequest(FwRequestMessage),
     FwConfigResponse(FwConfigResponseMessage),
-    FwResponse(FwResponseMessage)
+    FwResponse(FwResponseMessage),
 }
 
 pub union FirmwarePayload {

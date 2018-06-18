@@ -101,7 +101,10 @@ pub trait Connection: Send {
                 break;
             }
             info!("{} >> {:?}", self.port(), line);
-            sender.send(line).unwrap();
+            match sender.send(line) {
+                Ok(_) => (),
+                Err(_) => break,
+            }
         }
         (sender)
     }

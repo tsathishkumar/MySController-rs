@@ -18,14 +18,21 @@ pub fn intercept(
         };
 
         if request == node_id_request {
-            node_sender.send(request).unwrap();
-            continue;
+            match node_sender.send(request) {
+                Ok(_) => continue,
+                Err(_) => break,
+            }
         }
         let command_message_result = message::CommandMessage::new(&request);
 
         match command_message_result {
             Ok(command_message) => match command_message {
-                message::CommandMessage::Stream(stream_message) => ota_sender.send(stream_message).unwrap(),
+                message::CommandMessage::Stream(stream_message) => {
+                    match ota_sender.send(stream_message) {
+                        Ok(_) => (),
+                        Err(error) => error!("Error while sending to ota_sender {:?}", error),
+                    }
+                }
                 _ => match controller_sender.send(request) {
                     Ok(_) => (),
                     Err(error) => error!("Error while sending to controller {:?}", error),
@@ -36,7 +43,10 @@ pub fn intercept(
                     "Error while parsing command message {:?}, simply forwarding to controller",
                     message
                 );
-                controller_sender.send(request).unwrap();
+                match controller_sender.send(request) {
+                    Ok(_) => (),
+                    Err(error) => error!("Error while sending to controller {:?}", error),
+                }
             }
         }
     }

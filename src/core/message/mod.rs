@@ -1,6 +1,8 @@
+pub mod error;
 pub mod stream_message;
 
 use enum_primitive;
+use self::error::ParseError;
 use num::FromPrimitive;
 use std::fmt;
 
@@ -33,33 +35,29 @@ pub enum CommandMessage {
 
 //"node-id ; child-sensor-id ; command ; ack ; type ; payload \n"
 impl CommandMessage {
-    pub fn new(command_message: &String) -> Result<CommandMessage, String> {
+    pub fn new(command_message: &String) -> Result<CommandMessage, ParseError> {
         let message_parts = command_message.trim().split(";").collect::<Vec<&str>>();
 
         if message_parts.len() != 6 {
-            return Err(
-                "Invalid Command Message, should have 6 components separated by ';'".to_string(),
-            );
+            return Err(ParseError::InvalidCommandMessage);
         }
 
-        let node_id = match message_parts[0].parse::<u8>() {
-            Ok(result) => result,
-            _ => return Err("Error parsing string to node_id".to_string()),
-        };
-        let child_sensor_id = match message_parts[1].parse::<u8>() {
-            Ok(result) => result,
-            _ => return Err("Error parsing string to child_sensor_id".to_string()),
-        };
-        let command = match message_parts[2].parse::<u8>() {
-            Ok(result) => CommandType::from_u8(result).unwrap(),
-            _ => return Err("Error parsing string to command".to_string()),
-        };
+        let node_id = message_parts[0]
+            .parse::<u8>()
+            .map_err(|_| ParseError::InvalidNodeId)?;
+        let child_sensor_id = message_parts[1]
+            .parse::<u8>()
+            .map_err(|_| ParseError::InvalidChildSensorId)?;
+        let command = message_parts[2]
+            .parse::<u8>()
+            .map_err(|_| ParseError::InvalidCommand)
+            .and_then(|result| CommandType::from_u8(result).ok_or(ParseError::InvalidCommand))?;
         let ack = message_parts[3]
             .parse::<u8>()
-            .map_err(|_| "ACK is not a number")?;
+            .map_err(|_| ParseError::InvalidACK)?;
         let sub_type = message_parts[4]
             .parse::<u8>()
-            .map_err(|_| "Sub type is not a number")?;
+            .map_err(|_| ParseError::InvalidSubType)?;
         let payload = message_parts[5];
 
         Ok(match command {
@@ -69,7 +67,7 @@ impl CommandMessage {
                 sub_type,
                 ack,
                 payload,
-            )),
+            )?),
             _ => CommandMessage::Other(command_message.to_owned()),
         })
     }
