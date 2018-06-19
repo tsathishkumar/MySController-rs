@@ -22,7 +22,7 @@ use myscontroller_rs::api::firmware;
 use myscontroller_rs::api::index;
 use myscontroller_rs::api::index::AppState;
 use myscontroller_rs::api::node;
-use myscontroller_rs::core::{connection, proxy};
+use myscontroller_rs::core::{connection, server as mys_controller};
 use myscontroller_rs::model::db;
 use std::fs::create_dir_all;
 use std::path::Path;
@@ -101,7 +101,7 @@ fn main() {
     info!("Starting proxy server");
 
     thread::spawn(move || {
-        proxy::start(
+        mys_controller::start(
             get_mys_gateway(&conf),
             get_mys_controller(&conf),
             conn_clone,

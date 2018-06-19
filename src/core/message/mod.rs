@@ -1,7 +1,7 @@
 pub mod error;
-pub mod stream_message;
+pub mod presentation;
+pub mod stream;
 
-use enum_primitive;
 use self::error::ParseError;
 use num::FromPrimitive;
 use std::fmt;
@@ -17,20 +17,14 @@ enum_from_primitive! {
     }
 }
 
-impl CommandType {
-    pub fn _u8(value: u8) -> enum_primitive::Option<CommandType> {
-        CommandType::from_u8(value)
-    }
-}
-
 #[derive(Debug)]
 pub enum CommandMessage {
-    // Presentation(PresentationMessage),
+    Presentation(presentation::PresentationMessage),
     // Set(SetMessage),
     // Req(ReqMessage),
     // Internal(InternalMessage),
     Other(String),
-    Stream(stream_message::StreamMessage),
+    Stream(stream::StreamMessage),
 }
 
 //"node-id ; child-sensor-id ; command ; ack ; type ; payload \n"
@@ -61,13 +55,22 @@ impl CommandMessage {
         let payload = message_parts[5];
 
         Ok(match command {
-            CommandType::STREAM => CommandMessage::Stream(stream_message::StreamMessage::build(
+            CommandType::STREAM => CommandMessage::Stream(stream::StreamMessage::build(
                 node_id,
                 child_sensor_id,
                 sub_type,
                 ack,
                 payload,
             )?),
+            CommandType::PRESENTATION => {
+                CommandMessage::Presentation(presentation::PresentationMessage::build(
+                    node_id,
+                    child_sensor_id,
+                    ack,
+                    sub_type,
+                    payload,
+                )?)
+            }
             _ => CommandMessage::Other(command_message.to_owned()),
         })
     }
@@ -77,6 +80,7 @@ impl fmt::Display for CommandMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             CommandMessage::Stream(ref message) => write!(f, "{}", message.to_string()),
+            CommandMessage::Presentation(ref message) => write!(f, "{}", message.to_string()),
             CommandMessage::Other(ref message) => write!(f, "{}", message),
         }
     }
@@ -114,12 +118,10 @@ mod test {
         {
             assert_eq!(
                 message.sub_type,
-                stream_message::StreamType::StFirmwareConfigRequest
+                stream::StreamType::StFirmwareConfigRequest
             );
             let stream_payload = match message.payload {
-                stream_message::StreamPayload::FwConfigRequest(stream_payload) => {
-                    Some(stream_payload)
-                }
+                stream::StreamPayload::FwConfigRequest(stream_payload) => Some(stream_payload),
                 _ => None,
             }.unwrap();
             assert_eq!(stream_payload.firmware_type, 10);
@@ -140,12 +142,10 @@ mod test {
         {
             assert_eq!(
                 message.sub_type,
-                stream_message::StreamType::StFirmwareConfigResponse
+                stream::StreamType::StFirmwareConfigResponse
             );
             let stream_payload = match message.payload {
-                stream_message::StreamPayload::FwConfigResponse(stream_payload) => {
-                    Some(stream_payload)
-                }
+                stream::StreamPayload::FwConfigResponse(stream_payload) => Some(stream_payload),
                 _ => None,
             }.unwrap();
             assert_eq!(stream_payload.firmware_type, 10);
@@ -163,13 +163,10 @@ mod test {
         if let Ok(CommandMessage::Stream(message)) =
             CommandMessage::new(&String::from(message_string))
         {
-            assert_eq!(
-                message.sub_type,
-                stream_message::StreamType::StFirmwareRequest
-            );
+            assert_eq!(message.sub_type, stream::StreamType::StFirmwareRequest);
 
             let stream_payload = match message.payload {
-                stream_message::StreamPayload::FwRequest(stream_payload) => Some(stream_payload),
+                stream::StreamPayload::FwRequest(stream_payload) => Some(stream_payload),
                 _ => None,
             }.unwrap();
 
@@ -187,12 +184,9 @@ mod test {
         if let Ok(CommandMessage::Stream(message)) =
             CommandMessage::new(&String::from(message_string))
         {
-            assert_eq!(
-                message.sub_type,
-                stream_message::StreamType::StFirmwareResponse
-            );
+            assert_eq!(message.sub_type, stream::StreamType::StFirmwareResponse);
             let stream_payload = match message.payload {
-                stream_message::StreamPayload::FwResponse(stream_payload) => Some(stream_payload),
+                stream::StreamPayload::FwResponse(stream_payload) => Some(stream_payload),
                 _ => None,
             }.unwrap();
 

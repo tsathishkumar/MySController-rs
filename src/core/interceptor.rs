@@ -3,7 +3,7 @@ use channel::{Receiver, Sender};
 
 pub fn intercept(
     receiver: &Receiver<String>,
-    ota_sender: &Sender<message::stream_message::StreamMessage>,
+    stream_sender: &Sender<message::stream::StreamMessage>,
     node_sender: &Sender<String>,
     controller_sender: &Sender<String>,
 ) {
@@ -28,9 +28,9 @@ pub fn intercept(
         match command_message_result {
             Ok(command_message) => match command_message {
                 message::CommandMessage::Stream(stream_message) => {
-                    match ota_sender.send(stream_message) {
+                    match stream_sender.send(stream_message) {
                         Ok(_) => (),
-                        Err(error) => error!("Error while sending to ota_sender {:?}", error),
+                        Err(error) => error!("Error while sending to stream_sender {:?}", error),
                     }
                 }
                 _ => match controller_sender.send(request) {

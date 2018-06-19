@@ -1,5 +1,4 @@
 use super::error::ParseError;
-use enum_primitive;
 use hex;
 use model::firmware::Firmware;
 use num::FromPrimitive;
@@ -7,6 +6,16 @@ use std::fmt;
 use std::mem;
 
 const MAX_MESSAGE_LENGTH: usize = 32;
+
+enum_from_primitive! {
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub enum StreamType {
+        StFirmwareConfigRequest  = 0,
+        StFirmwareConfigResponse = 1,
+        StFirmwareRequest = 2,
+        StFirmwareResponse = 3
+    }
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct StreamMessage {
@@ -102,22 +111,6 @@ impl fmt::Display for StreamMessage {
             "{:?};{};{:?};{};{:?};{}\n",
             self.node_id, self.child_sensor_id, _cmd, self.ack, _sub_type, &payload
         )
-    }
-}
-
-enum_from_primitive! {
-    #[derive(Debug, PartialEq, Clone, Copy)]
-    pub enum StreamType {
-        StFirmwareConfigRequest  = 0,
-        StFirmwareConfigResponse = 1,
-        StFirmwareRequest = 2,
-        StFirmwareResponse = 3
-    }
-}
-
-impl StreamType {
-    pub fn _u8(value: u8) -> enum_primitive::Option<StreamType> {
-        StreamType::from_u8(value)
     }
 }
 
