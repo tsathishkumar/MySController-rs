@@ -11,7 +11,10 @@ pub fn list(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
         .from_err()
         .and_then(|res| match res {
             Ok(msg) => Ok(HttpResponse::Ok().json(msg)),
-            Err(_) => Ok(HttpResponse::InternalServerError().into()),
+            Err(e) => {
+                error!("Error while getting nodes list {:?}", e);
+                Ok(HttpResponse::InternalServerError().into())
+            }
         })
         .responder()
 }
@@ -33,7 +36,10 @@ pub fn create(
         .from_err()
         .and_then(|res| match res {
             Ok(msg) => Ok(HttpResponse::build(StatusCode::from_u16(msg.status).unwrap()).json(msg)),
-            Err(_) => Ok(HttpResponse::InternalServerError().into()),
+            Err(e) => {
+                error!("Error while creating node {:?}", e);
+                Ok(HttpResponse::InternalServerError().into())
+            }
         })
         .responder()
 }
@@ -55,7 +61,10 @@ pub fn update(
         .from_err()
         .and_then(|res| match res {
             Ok(msg) => Ok(HttpResponse::build(StatusCode::from_u16(msg.status).unwrap()).json(msg)),
-            Err(_) => Ok(HttpResponse::InternalServerError().into()),
+            Err(e) => {
+                error!("Error while getting nodes {:?}", e);
+                Ok(HttpResponse::InternalServerError().into())
+            }
         })
         .responder()
 }
@@ -72,7 +81,10 @@ pub fn delete(
         .from_err()
         .and_then(|res| match res {
             Ok(msg) => Ok(HttpResponse::build(StatusCode::from_u16(msg.status).unwrap()).json(msg)),
-            Err(_) => Ok(HttpResponse::InternalServerError().into()),
+            Err(e) => {
+                error!("Error while deleting node {:?}", e);
+                Ok(HttpResponse::InternalServerError().into())
+            }
         })
         .responder()
 }
@@ -86,9 +98,13 @@ pub fn get_node(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
         .from_err()
         .and_then(|res| match res {
             Ok(msg) => Ok(HttpResponse::Ok().json(msg)),
-            Err(()) => Ok(
-                HttpResponse::build(StatusCode::from_u16(400).unwrap()).body("Node not present")
-            ),
+            Err(e) => {
+                error!("Error while getting node {:?}", e);
+                Ok(
+                    HttpResponse::build(StatusCode::from_u16(400).unwrap())
+                        .body("Node not present"),
+                )
+            }
         })
         .responder()
 }
@@ -108,9 +124,13 @@ pub fn reboot_node(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
                     .unwrap();
                 Ok(HttpResponse::Ok().body("Sent reboot request to node"))
             }
-            Err(_) => Ok(
-                HttpResponse::build(StatusCode::from_u16(400).unwrap()).body("Node not present")
-            ),
+            Err(e) => {
+                error!("Error while rebooting node {:?}", e);
+                Ok(
+                    HttpResponse::build(StatusCode::from_u16(400).unwrap())
+                        .body("Node not present"),
+                )
+            }
         })
         .responder()
 }
