@@ -19,9 +19,9 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.5.0",
-    "desc": "Migrated from Rocket to actix-web to stablize the builds and fasten development.",
-    "released": "2018-06-14"
+    "name": "0.5.1",
+    "desc": "Added api for sensors",
+    "released": "2018-06-20"
   },
   "files": [
     {

@@ -18,10 +18,8 @@ use diesel::prelude::SqliteConnection;
 use diesel::r2d2::{ConnectionManager, Pool};
 
 use ini::Ini;
-use myscontroller_rs::api::firmware;
-use myscontroller_rs::api::index;
 use myscontroller_rs::api::index::AppState;
-use myscontroller_rs::api::node;
+use myscontroller_rs::api::{firmware, index, node, sensor};
 use myscontroller_rs::core::{connection, server as mys_controller};
 use myscontroller_rs::model::db;
 use std::fs::create_dir_all;
@@ -52,43 +50,48 @@ fn main() {
 
     let (controller_in_sender, controller_in_receiver) = channel::unbounded();
     let reset_signal_sender = controller_in_sender.clone();
-    server::new(
-        move || {
-            App::with_state(AppState {
-                db: database_addr.clone(),
-                reset_sender: reset_signal_sender.clone(),
-            }).middleware(middleware::Logger::default())
-                .configure(|app| {
-                    Cors::for_app(app)
-                        .allowed_methods(vec!["GET", "PUT", "POST", "DELETE"])
-                        .resource("/", |r| {
-                            r.method(Method::GET).h(index::home);
-                        })
-                        .resource("/nodes", |r| {
-                            r.method(Method::GET).h(node::list);
-                            r.method(Method::POST).with2(node::create);
-                            r.method(Method::PUT).with2(node::update);
-                            r.method(Method::DELETE).with2(node::delete);
-                        })
-                        .resource("/firmwares", |r| {
-                            r.method(Method::GET).h(firmware::list);
-                            r.method(Method::POST).with(firmware::create);
-                            r.method(Method::PUT).with(firmware::update);
-                            r.method(Method::DELETE).with2(firmware::delete);
-                        })
-                        .resource("/firmwares/upload", |r| {
-                            r.method(Method::GET).with(firmware::upload_form);
-                        })
-                        .resource("/nodes/{node_id}", |r| {
-                            r.method(Method::GET).h(node::get_node);
-                        })
-                        .resource("/nodes/{node_id}/reboot", |r| {
-                            r.method(Method::POST).h(node::reboot_node);
-                        })
-                        .register()
-                })
-        }, 
-    ).bind("0.0.0.0:8000")
+    server::new(move || {
+        App::with_state(AppState {
+            db: database_addr.clone(),
+            reset_sender: reset_signal_sender.clone(),
+        }).middleware(middleware::Logger::default())
+            .configure(|app| {
+                Cors::for_app(app)
+                    .allowed_methods(vec!["GET", "PUT", "POST", "DELETE"])
+                    .resource("/", |r| {
+                        r.method(Method::GET).h(index::home);
+                    })
+                    .resource("/nodes", |r| {
+                        r.method(Method::GET).h(node::list);
+                        r.method(Method::POST).with2(node::create);
+                        r.method(Method::PUT).with2(node::update);
+                        r.method(Method::DELETE).with2(node::delete);
+                    })
+                    .resource("/nodes/{node_id}", |r| {
+                        r.method(Method::GET).h(node::get_node);
+                    })
+                    .resource("/nodes/{node_id}/reboot", |r| {
+                        r.method(Method::POST).h(node::reboot_node);
+                    })
+                    .resource("/sensors", |r| {
+                        r.method(Method::GET).h(sensor::list);
+                        r.method(Method::DELETE).with2(node::delete);
+                    })
+                    .resource("/sensors/{node_id}/{child_sensor_id}", |r| {
+                        r.method(Method::GET).h(sensor::get_sensor);
+                    })
+                    .resource("/firmwares", |r| {
+                        r.method(Method::GET).h(firmware::list);
+                        r.method(Method::POST).with(firmware::create);
+                        r.method(Method::PUT).with(firmware::update);
+                        r.method(Method::DELETE).with2(firmware::delete);
+                    })
+                    .resource("/firmwares/upload", |r| {
+                        r.method(Method::GET).with(firmware::upload_form);
+                    })
+                    .register()
+            })
+    }).bind("0.0.0.0:8000")
         .unwrap()
         .shutdown_timeout(3)
         .start();
@@ -126,7 +129,10 @@ pub fn server_configs(config: &Ini) -> String {
 }
 
 pub fn log_level(config: &Ini) -> String {
-    config.get_from(Some("Server"), "log_level").unwrap_or("myscontroller_rs=info,actix_web=info").to_owned()
+    config
+        .get_from(Some("Server"), "log_level")
+        .unwrap_or("myscontroller_rs=info,actix_web=info")
+        .to_owned()
 }
 
 fn get_mys_controller<'s>(config: &'s Ini) -> connection::StreamInfo {
