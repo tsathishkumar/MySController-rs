@@ -12,6 +12,8 @@ extern crate serialport;
 #[macro_use]
 extern crate diesel;
 #[macro_use]
+extern crate diesel_derive_enum;
+#[macro_use]
 extern crate serde_derive;
 extern crate crossbeam_channel as channel;
 extern crate r2d2;

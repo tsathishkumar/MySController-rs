@@ -3,7 +3,7 @@ use num::FromPrimitive;
 use std::fmt;
 
 enum_from_primitive! {
-    #[derive(Debug, PartialEq, Clone, Copy)]
+    #[derive(DbEnum, Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
     pub enum PresentationType {
         Door=0,
         Motion=1,

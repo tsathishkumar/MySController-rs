@@ -7,6 +7,7 @@ use std::thread;
 use diesel::r2d2::{ConnectionManager,Pool};
 use diesel::prelude::SqliteConnection;
 use super::message_handler::internal;
+use super::message_handler::presentation;
 
 pub fn start(
     gateway_info: StreamInfo,
@@ -18,31 +19,41 @@ pub fn start(
 ) {
     let (gateway_sender, gateway_receiver) = channel::unbounded();
     let (stream_sender, stream_receiver) = channel::unbounded();
+    let (internal_sender, internal_receiver) = channel::unbounded();
+    let (presentation_sender, presentation_receiver) = channel::unbounded();
 
     let (controller_out_sender, controller_out_receiver) = channel::unbounded();
-    let (node_manager_sender, node_manager_in) = channel::unbounded();
+    
     let stream_response_sender = controller_in_sender.clone();
-    let node_manager_out = controller_in_sender.clone();
+    let internal_response_sender = controller_in_sender.clone();
+    let presentation_forward_sender = controller_out_sender.clone();
 
     let message_interceptor = thread::spawn(move || {
         interceptor::intercept(
             &gateway_receiver,
             &stream_sender,
-            &node_manager_sender,
+            &internal_sender,
+            &presentation_sender,
             &controller_out_sender,
         );
     });
 
     let connection = pool.get().unwrap();
 
-    let stream_processor = thread::spawn(move || {
+    let stream_message_processor = thread::spawn(move || {
         stream::handle(&stream_receiver, &stream_response_sender, connection);
     });
 
     let connection = pool.get().unwrap();
 
-    let node_manager = thread::spawn(move || {
-        internal::handle(&node_manager_in, &node_manager_out, connection);
+    let internal_message_processor = thread::spawn(move || {
+        internal::handle(&internal_receiver, &internal_response_sender, connection);
+    });
+
+    let connection = pool.get().unwrap();
+
+    let presentation_message_processor = thread::spawn(move || {
+        presentation::handle(&presentation_receiver, &presentation_forward_sender, connection);
     });
 
     let gateway_read_write = thread::spawn(move || {
@@ -57,9 +68,10 @@ pub fn start(
         );
     });
 
-    message_interceptor.join().unwrap();
-    stream_processor.join().unwrap();
-    node_manager.join().unwrap();
     gateway_read_write.join().unwrap();
     controller_read_write.join().unwrap();
+    message_interceptor.join().unwrap();
+    stream_message_processor.join().unwrap();
+    internal_message_processor.join().unwrap();
+    presentation_message_processor.join().unwrap();
 }

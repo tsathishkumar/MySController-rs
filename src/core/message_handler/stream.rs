@@ -23,7 +23,7 @@ pub fn handle(
 }
 
 fn send_response(
-    serial_sender: &Sender<String>,
+    stream_response_sender: &Sender<String>,
     mut stream: StreamMessage,
     db_connection: &SqliteConnection,
 ) {
@@ -42,7 +42,10 @@ fn send_response(
                     stream.to_response(&firmware);
                     debug!("Response {:?}", stream);
                     let response = stream.to_string();
-                    serial_sender.send(response).unwrap();
+                    match stream_response_sender.send(response) {
+                        Ok(_) => (),
+                        Err(_) => error!("Error sending to stream response sender"),
+                    }
                 }
                 Err(_message) => {
                     warn!(
@@ -70,13 +73,16 @@ fn response_fw_type_version(
 
             match node {
                 Some(_node) => {
-                    diesel::update(nodes.filter(node_id.eq(_node.node_id)))
+                    match diesel::update(nodes.filter(node_id.eq(_node.node_id)))
                         .set((
                             firmware_type.eq(request.firmware_type as i32),
                             firmware_version.eq(request.firmware_version as i32),
                         ))
                         .execute(connection)
-                        .unwrap();
+                    {
+                        Ok(_) => (),
+                        Err(_) => error!("Error while updating node with advertised firmware"),
+                    }
                     Some((
                         _node.desired_firmware_type as u16,
                         _node.desired_firmware_version as u16,

@@ -1,10 +1,10 @@
 use crc16::*;
 use ihex::record::Record;
-use std::fs::{File};
-use std::io::BufReader;
+use std::fs::File;
 use std::io::prelude::*;
+use std::io::BufReader;
 use std::iter::FromIterator;
-use std::path::{Path};
+use std::path::Path;
 
 pub const FIRMWARE_BLOCK_SIZE: i32 = 16;
 
@@ -37,7 +37,13 @@ pub struct FirmwareKey {
 }
 
 impl Firmware {
-    pub fn new(firmware_type: i32, firmware_version: i32, blocks: i32, data: Vec<u8>, name: String) -> Firmware {
+    pub fn new(
+        firmware_type: i32,
+        firmware_version: i32,
+        blocks: i32,
+        data: Vec<u8>,
+        name: String,
+    ) -> Firmware {
         Firmware {
             firmware_type,
             firmware_version,
@@ -76,18 +82,27 @@ impl Firmware {
         }
     }
 
-    pub fn prepare_fw(_type: i32, version: i32, name: String, path: &Path) -> Firmware {
-        let f = File::open(path).unwrap();
-        let f = BufReader::new(f);
-        let mut data: Vec<u8> = f.lines()
-            .flat_map(|line| Firmware::ihex_to_bin(&Record::from_record_string(&line.unwrap()).unwrap()))
-            .collect();
-        let pads: usize = data.len() % 128; // 128 bytes per page for atmega328
-        for _ in 0..(128 - pads) {
-            data.push(255);
+    pub fn prepare_fw(_type: i32, version: i32, name: String, path: &Path) -> Option<Firmware> {
+        match File::open(path) {
+            Ok(f) => {
+                let f = BufReader::new(f);
+                let mut data: Vec<u8> = f.lines()
+                    .flat_map(|line| {
+                        Firmware::ihex_to_bin(&Record::from_record_string(&line.unwrap()).unwrap())
+                    })
+                    .collect();
+                let pads: usize = data.len() % 128; // 128 bytes per page for atmega328
+                for _ in 0..(128 - pads) {
+                    data.push(255);
+                }
+                let blocks: i32 = data.len() as i32 / FIRMWARE_BLOCK_SIZE;
+                Some(Firmware::new(_type, version, blocks, data, name))
+            }
+            Err(_) => {
+                error!("Error opening file {:?}", path);
+                None
+            }
         }
-        let blocks: i32 = data.len() as i32 / FIRMWARE_BLOCK_SIZE;
-        Firmware::new(_type, version, blocks, data, name)
     }
 
     pub fn compute_crc(data: &[u8]) -> u16 {
@@ -99,8 +114,8 @@ impl Firmware {
 
 #[cfg(test)]
 mod test {
-    use hex;
     use super::*;
+    use hex;
     use std::path::PathBuf;
 
     #[test]
@@ -109,27 +124,45 @@ mod test {
         input.pop();
         assert_eq!(
             String::from("8B002097E1F30E940000F9CF0895F894"),
-            hex::encode_upper(Firmware::ihex_to_bin(&Record::from_record_string(&input.trim()).unwrap()))
+            hex::encode_upper(Firmware::ihex_to_bin(
+                &Record::from_record_string(&input.trim()).unwrap()
+            ))
         );
     }
 
     #[test]
     fn hex_file_to_vector() {
-        let fw_binary = Firmware::prepare_fw(10, 2, String::from("Blink"), &PathBuf::from("firmwares/10__2__Blink.ino.hex"));
+        let fw_binary = Firmware::prepare_fw(
+            10,
+            2,
+            String::from("Blink"),
+            &PathBuf::from("firmwares/10__2__Blink.ino.hex"),
+        );
         assert_eq!(fw_binary.data.len(), 1280);
     }
 
     #[test]
     fn extract_given_block_from_binary_data() {
-        let fw_binary = Firmware::prepare_fw(10, 2, String::from("Blink"), &PathBuf::from("firmwares/10__2__Blink.ino.hex"));
-        assert_eq!(fw_binary.get_block(1), [
-            12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0
-        ]);
+        let fw_binary = Firmware::prepare_fw(
+            10,
+            2,
+            String::from("Blink"),
+            &PathBuf::from("firmwares/10__2__Blink.ino.hex"),
+        );
+        assert_eq!(
+            fw_binary.get_block(1),
+            [12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0,]
+        );
     }
 
     #[test]
     fn compute_correct_crc() {
-        let fw_binary = Firmware::prepare_fw(10, 2, String::from("Blink"), &PathBuf::from("firmwares/10__2__Blink.ino.hex"));
+        let fw_binary = Firmware::prepare_fw(
+            10,
+            2,
+            String::from("Blink"),
+            &PathBuf::from("firmwares/10__2__Blink.ino.hex"),
+        );
         assert_eq!(Firmware::compute_crc(&fw_binary.data), 0x46D4);
     }
 }

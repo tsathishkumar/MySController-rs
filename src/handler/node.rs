@@ -187,14 +187,9 @@ impl Handler<GetNode> for ConnDsl {
 
         let conn = &self.0.get().map_err(|_| ())?;
 
-        let existing_node = nodes
-            .find(node.node_id)
-            .first::<Node>(conn)
-            .optional()
-            .unwrap();
-        match existing_node {
-            Some(v) => Ok(v),
-            None => return Err(()),
+        match nodes.find(node.node_id).first::<Node>(conn) {
+            Ok(v) => Ok(v),
+            _ => return Err(()),
         }
     }
 }

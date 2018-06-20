@@ -1,10 +1,11 @@
-use super::message;
+use super::message::{CommandMessage, stream::*, presentation::*};
 use channel::{Receiver, Sender};
 
 pub fn intercept(
     receiver: &Receiver<String>,
-    stream_sender: &Sender<message::stream::StreamMessage>,
+    stream_sender: &Sender<StreamMessage>,
     node_sender: &Sender<String>,
+    presentation_sender: &Sender<PresentationMessage>,
     controller_sender: &Sender<String>,
 ) {
     let node_id_request: String = "255;255;3;0;3;0\n".to_string();
@@ -23,16 +24,20 @@ pub fn intercept(
                 Err(_) => break,
             }
         }
-        let command_message_result = message::CommandMessage::new(&request);
+        let command_message_result = CommandMessage::new(&request);
 
         match command_message_result {
             Ok(command_message) => match command_message {
-                message::CommandMessage::Stream(stream_message) => {
+                CommandMessage::Stream(stream_message) => {
                     match stream_sender.send(stream_message) {
                         Ok(_) => (),
                         Err(error) => error!("Error while sending to stream_sender {:?}", error),
                     }
-                }
+                },
+                CommandMessage::Presentation(presentation_message) => match presentation_sender.send(presentation_message) {
+                    Ok(_) => (),
+                    Err(error) => error!("Error while sending to presentation_sender {:?}", error),
+                },
                 _ => match controller_sender.send(request) {
                     Ok(_) => (),
                     Err(error) => error!("Error while sending to controller {:?}", error),

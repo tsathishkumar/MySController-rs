@@ -259,14 +259,12 @@ impl Handler<GetFirmware> for ConnDsl {
 
         let conn = &self.0.get().map_err(|_| ())?;
 
-        let existing_firmware = firmwares
+        match firmwares
             .find((firmware.firmware_type, firmware.firmware_version))
             .first::<Firmware>(conn)
-            .optional()
-            .unwrap();
-        match existing_firmware {
-            Some(v) => Ok(v),
-            None => return Err(()),
+        {
+            Ok(v) => Ok(v),
+            Err(_) => return Err(()),
         }
     }
 }

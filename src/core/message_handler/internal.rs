@@ -25,10 +25,12 @@ pub fn handle(
                         .collect::<Vec<&str>>();
                     node_id_response[4] = "4";
                     node_id_response[5] = &new_id;
-                    create_node(&db_connection, new_node_id as i32);
-                    match sender.send(node_id_response.join(";")) {
-                        Ok(_) => continue,
-                        Err(_) => error!("Error while sending to node_handler"),
+                    match create_node(&db_connection, new_node_id as i32) {
+                        Ok(_) => match sender.send(node_id_response.join(";")) {
+                            Ok(_) => continue,
+                            Err(_) => error!("Error while sending to node_handler"),
+                        },
+                        Err(_) => error!("Error while creating node with new id"),
                     }
                 }
                 None => error!("There is no free node id! All 254 id's are already reserved!"),
@@ -38,7 +40,7 @@ pub fn handle(
     }
 }
 
-pub fn create_node(conn: &SqliteConnection, id: i32) -> usize {
+pub fn create_node(conn: &SqliteConnection, id: i32) -> Result<usize, diesel::result::Error> {
     let new_node = Node {
         node_id: id,
         node_name: "New Node".to_owned(),
@@ -53,7 +55,6 @@ pub fn create_node(conn: &SqliteConnection, id: i32) -> usize {
     diesel::insert_into(dsl::nodes)
         .values(&new_node)
         .execute(conn)
-        .expect("Error saving new node")
 }
 
 pub fn get_next_node_id(conn: &SqliteConnection) -> Option<u8> {

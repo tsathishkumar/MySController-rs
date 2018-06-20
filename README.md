@@ -95,15 +95,14 @@ Note: If you are using TCP for controller - the port value will be used to creat
     - PUT `/firmwares` - payload `{ "firmware_type": 10, "firmware_version": 1, "firmware_name": "Blink", "firmware_file": <file>}`
 - [x] Improve error handling in api's (handling unique constraint in insert, updating unavailable firmwares etc)    
 - [x] Node name support
-- [ ] Improve logging (parsed message for OTA request etc)
-- [ ] Improve error handling across project (remove unwraps)
-- [ ] MQTT integration
+- [x] Improve error handling across project (remove unwraps)
+- [x] Improve logging (parsed message for OTA request etc)
 - [ ] Child sensors support
 
 
 ## Future goals:
 
-- Parse all the data and expose WoT API's using [webthing-rust](https://github.com/mozilla-iot/webthing-rust)
-- MQTT support
-- Store the "states" of each nodes - to make it standalone
-- Beats/Telegraph support - to store "telemetri" data
+- [ ] Parse all the data and expose WoT API's using [webthing-rust](https://github.com/mozilla-iot/webthing-rust)
+- [ ] MQTT support
+- [ ] Store the "states" of each nodes - to make it standalone
+- [ ] Beats/Telegraph support - to store "telemetri" data
