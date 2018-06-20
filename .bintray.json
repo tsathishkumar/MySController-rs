@@ -19,8 +19,8 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.5.1",
-    "desc": "Added api for sensors",
+    "name": "0.5.2",
+    "desc": "Added WoT api for Binary sensors",
     "released": "2018-06-20"
   },
   "files": [

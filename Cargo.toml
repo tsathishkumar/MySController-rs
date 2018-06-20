@@ -1,6 +1,6 @@
 [package]
 name = "myscontroller-rs"
-version = "0.5.1"
+version = "0.5.2"
 authors = ["tsathish <tsatiz@gmail.com>"]
 
 [dependencies]
@@ -28,6 +28,7 @@ futures = "^0.1.0"
 num_cpus = "1.0"
 bytes = "0.4.8"
 log = "0.4"
+webthing = { git = "https://github.com/mozilla-iot/webthing-rust" }
 
 [package.metadata.deb]
 maintainer = "Sathishkumar <tsatiz@gmail.com>"

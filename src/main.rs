@@ -22,6 +22,7 @@ use myscontroller_rs::api::index::AppState;
 use myscontroller_rs::api::{firmware, index, node, sensor};
 use myscontroller_rs::core::{connection, server as mys_controller};
 use myscontroller_rs::model::db;
+use myscontroller_rs::wot;
 use std::fs::create_dir_all;
 use std::path::Path;
 use std::thread;
@@ -49,6 +50,7 @@ fn main() {
     let database_addr = SyncArbiter::start(num_cpus::get() * 4, move || db::ConnDsl(conn.clone()));
 
     let (controller_in_sender, controller_in_receiver) = channel::unbounded();
+    let (set_message_sender, set_message_receiver) = channel::unbounded();
     let reset_signal_sender = controller_in_sender.clone();
     server::new(move || {
         App::with_state(AppState {
@@ -103,6 +105,8 @@ fn main() {
 
     info!("Starting proxy server");
 
+    let conn_pool_clone = conn_clone.clone();
+
     thread::spawn(move || {
         mys_controller::start(
             get_mys_gateway(&conf),
@@ -110,10 +114,13 @@ fn main() {
             conn_clone,
             controller_in_sender,
             controller_in_receiver,
+            set_message_receiver,
         );
     });
-
+    
+    wot::start_server(conn_pool_clone, set_message_sender);
     sys.run();
+    
 }
 
 pub fn server_configs(config: &Ini) -> String {

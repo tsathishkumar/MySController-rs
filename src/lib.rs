@@ -15,15 +15,18 @@ extern crate diesel;
 extern crate diesel_derive_enum;
 #[macro_use]
 extern crate serde_derive;
-extern crate crossbeam_channel as channel;
-extern crate r2d2;
-extern crate serde_json;
-extern crate futures;
 extern crate bytes;
+extern crate crossbeam_channel as channel;
+extern crate futures;
+extern crate r2d2;
+#[macro_use]
+extern crate serde_json;
 #[macro_use]
 extern crate log;
+extern crate webthing;
 
 pub mod api;
 pub mod core;
 pub mod handler;
 pub mod model;
+pub mod wot;
