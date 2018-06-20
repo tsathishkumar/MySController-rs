@@ -260,7 +260,7 @@ mod test {
                 2,
                 String::from("Blink"),
                 &PathBuf::from("firmwares/10__2__Blink.ino.hex"),
-            ));
+            ).unwrap());
             assert_eq!(
                 message.to_string(),
                 String::from("1;255;4;0;3;0A000200070000030407000000000000000001020408\n")

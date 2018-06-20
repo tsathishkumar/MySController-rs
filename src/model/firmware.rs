@@ -137,7 +137,7 @@ mod test {
             2,
             String::from("Blink"),
             &PathBuf::from("firmwares/10__2__Blink.ino.hex"),
-        );
+        ).unwrap();
         assert_eq!(fw_binary.data.len(), 1280);
     }
 
@@ -148,7 +148,7 @@ mod test {
             2,
             String::from("Blink"),
             &PathBuf::from("firmwares/10__2__Blink.ino.hex"),
-        );
+        ).unwrap();
         assert_eq!(
             fw_binary.get_block(1),
             [12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0,]
@@ -162,7 +162,7 @@ mod test {
             2,
             String::from("Blink"),
             &PathBuf::from("firmwares/10__2__Blink.ino.hex"),
-        );
+        ).unwrap();
         assert_eq!(Firmware::compute_crc(&fw_binary.data), 0x46D4);
     }
 }
