@@ -1,4 +1,6 @@
-before_install: ./install_dependencies.sh
+before_install: 
+  - ./install_dependencies.sh
+  - sudo apt-get install libudev-dev
 before_script:  
   - cargo install cargo-deb || echo 'cargo-deb already installed, ignoring failure'
 language: rust

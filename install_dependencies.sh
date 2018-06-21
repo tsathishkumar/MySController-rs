@@ -1,6 +1,4 @@
 #!/bin/bash -e
-sudo apt-get install libudev-dev
-
 # Manually build OpenSSL. The openssl create requires 1.0.2+, but Travis CI
 # only includes 1.0.0.
 wget https://www.openssl.org/source/openssl-1.1.0h.tar.gz
