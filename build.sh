@@ -9,6 +9,5 @@ make >/dev/null
 sudo make install >/dev/null
 sudo ldconfig
 cd ..
-cargo build --release --target x86_64-unknown-linux-gnu
 cargo test
-cargo deb --no-strip
+cargo deb
