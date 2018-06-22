@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/tsathishkumar/MySController-rs.svg?branch=master)](https://travis-ci.org/tsathishkumar/MySController-rs) [ ![Download](https://api.bintray.com/packages/tsathishkumar/myscontroller-rs/myscontroller-rs/images/download.svg) ](https://bintray.com/tsathishkumar/myscontroller-rs/myscontroller-rs/_latestVersion)
 # MySController-rs
-Started a project to support OTA for MySensors and proxy for all other requests. Now exposes (WebOfThings APIs)[https://iot.mozilla.org/] for MySensors (supporting very few sensors at the moment). Contributions to support other sensors are welcome.
+Started a project to support OTA for MySensors and proxy for all other requests. Now exposes [WebOfThings APIs](https://iot.mozilla.org/) for MySensors (supporting very few sensors at the moment). Contributions to support other sensors are welcome.
 
 This server also acts as a proxy between Gateway and the Controller. Both might be either connected through a serial port or a TCP connection.
 
