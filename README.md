@@ -1,10 +1,12 @@
 [![Build Status](https://travis-ci.org/tsathishkumar/MySController-rs.svg?branch=master)](https://travis-ci.org/tsathishkumar/MySController-rs) [ ![Download](https://api.bintray.com/packages/tsathishkumar/myscontroller-rs/myscontroller-rs/images/download.svg) ](https://bintray.com/tsathishkumar/myscontroller-rs/myscontroller-rs/_latestVersion)
 # MySController-rs
-Proxy controller for MySensors written in Rust lang. It is to perform OTA firmware updates, and proxy all other requests to the actual controllers like homeassist. Mainly to add OTA support for homeassist controller, but can work with any other controllers.
+Started a project to support OTA for MySensors and proxy for all other requests. Now exposes (WebOfThings APIs)[https://iot.mozilla.org/] for MySensors (supporting very few sensors at the moment). Contributions to support other sensors are welcome.
 
-This server acts as a proxy between Gateway and the Controller. Both might be either connected through a serial port or a TCP connection.
+This server also acts as a proxy between Gateway and the Controller. Both might be either connected through a serial port or a TCP connection.
 
 Before running the server, set the correct connection type and connection port for Gateway and Controller in conf.ini file.
+
+WoT api's are exposed at `https://{host}:8888`
 
 ## To run the proxy server:
 ```
@@ -49,7 +51,7 @@ cargo run
     ```
 
 
-Note: If you are using TCP for controller - the port value will be used to create TCP server listening on the specified port. (So it shoud be the address of the machine running MyRController)
+Note: If you are using TCP for controller - the port value will be used to create TCP server listening on the specified port. (So it shoud be the address of the machine running MySController)
 
 ## TODO
 
@@ -99,6 +101,8 @@ Note: If you are using TCP for controller - the port value will be used to creat
 - [x] Improve logging (parsed message for OTA request etc)
 - [x] Child sensors support
 - [ ] Parse all the data and expose WoT API's using [webthing-rust](https://github.com/mozilla-iot/webthing-rust)
+- [ ] Add swagger UI for node/firmware management APIs
+- [ ] Add UI for node/firmware management    
 
 
 ## Future goals:
