@@ -107,23 +107,24 @@ impl SetReqType {
 
     pub fn property_name(&self) -> String {
         match *self {
-            SetReqType::Temp => "temp".to_owned(),
             SetReqType::Status => "on".to_owned(),
+            SetReqType::Percentage => "level".to_owned(),
             _ => "".to_owned(),
         }
     }
 
     pub fn data_type(&self) -> String {
         match *self {
-            SetReqType::Temp => "boolean".to_owned(),
             SetReqType::Status => "boolean".to_owned(),
+            SetReqType::Percentage => "number".to_owned(),
             _ => "".to_owned(),
         }
     }
 
     pub fn description(&self) -> String {
         match *self {
-            SetReqType::Status => "Whether the lamp is on".to_owned(),
+            SetReqType::Status => "Whether the thing is on".to_owned(),
+            SetReqType::Percentage => "The level of the thing from 0-100".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -135,6 +136,10 @@ impl SetReqType {
                     true => Some("1".to_owned()),
                     false => Some("0".to_owned()),
                 },
+                _ => Some("".to_owned()),
+            },
+            SetReqType::Percentage => match value {
+                serde_json::Value::Number(number) => Some(number.to_string()),
                 _ => Some("".to_owned()),
             },
             _ => None,
@@ -154,6 +159,7 @@ mod test {
     #[test]
     fn supported_sub_type() {
         assert!(SetReqType::Status.is_supported());
+        assert!(SetReqType::Percentage.is_supported());
     }
 
     #[test]
