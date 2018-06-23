@@ -86,12 +86,14 @@ pub fn start_server(
                 None => (),
             }
         }
-        let server = WebThingServer::new(
-            ThingsType::Multiple(things, "LightAndTempDevice".to_owned()),
-            Some(8888),
-            None,
-            Box::new(Generator),
-        );
-        server.start();
+        if !things.is_empty() {
+            let server = WebThingServer::new(
+                ThingsType::Multiple(things, "LightAndTempDevice".to_owned()),
+                Some(8888),
+                None,
+                Box::new(Generator),
+            );
+            server.start();
+        }
     });
 }
