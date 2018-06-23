@@ -1,4 +1,5 @@
 use super::error::ParseError;
+use super::set::SetReqType;
 use num::FromPrimitive;
 use std::fmt;
 
@@ -45,6 +46,29 @@ enum_from_primitive! {
         Gas=37,
         Gps=38,
         WaterQuality=39,
+    }
+}
+
+impl PresentationType {
+    pub fn thing_type(&self) -> String {
+        match *self {
+            PresentationType::Binary => "onOffLight".to_owned(),
+            _ => "".to_owned(),
+        }
+    }
+
+    pub fn thing_description(&self) -> String {
+        match *self {
+            PresentationType::Binary => "A web connected lamp".to_owned(),
+            _ => "".to_owned(),
+        }
+    }
+
+    pub fn set_types(&self) -> Vec<SetReqType> {
+        match *self {
+            PresentationType::Binary => vec![SetReqType::Status],
+            _ => Vec::new(),
+        }
     }
 }
 

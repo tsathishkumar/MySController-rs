@@ -1,4 +1,4 @@
-use super::message::{CommandMessage, stream::*, presentation::*};
+use super::message::{presentation::*, stream::*, CommandMessage};
 use channel::{Receiver, Sender};
 
 pub fn intercept(
@@ -33,8 +33,10 @@ pub fn intercept(
                         Ok(_) => (),
                         Err(error) => error!("Error while sending to stream_sender {:?}", error),
                     }
-                },
-                CommandMessage::Presentation(presentation_message) => match presentation_sender.send(presentation_message) {
+                }
+                CommandMessage::Presentation(presentation_message) => match presentation_sender
+                    .send(presentation_message)
+                {
                     Ok(_) => (),
                     Err(error) => error!("Error while sending to presentation_sender {:?}", error),
                 },

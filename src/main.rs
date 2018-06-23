@@ -117,10 +117,9 @@ fn main() {
             set_message_receiver,
         );
     });
-    
+
     wot::start_server(conn_pool_clone, set_message_sender);
     sys.run();
-    
 }
 
 pub fn server_configs(config: &Ini) -> String {

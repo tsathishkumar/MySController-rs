@@ -1,3 +1,4 @@
+use serde_json;
 use std::fmt;
 
 pub struct SetMessage {
@@ -93,5 +94,68 @@ enum_from_primitive! {
         Var = 54,
         Va = 55,
         PowerFactor = 56,
+    }
+}
+
+impl SetReqType {
+    pub fn property_name(&self) -> String {
+        match *self {
+            SetReqType::Status => "on".to_owned(),
+            _ => "".to_owned(),
+        }
+    }
+
+    pub fn data_type(&self) -> String {
+        match *self {
+            SetReqType::Status => "boolean".to_owned(),
+            _ => "".to_owned(),
+        }
+    }
+
+    pub fn description(&self) -> String {
+        match *self {
+            SetReqType::Status => "Whether the lamp is on".to_owned(),
+            _ => "".to_owned(),
+        }
+    }
+
+    pub fn to_string_value(&self, value: serde_json::Value) -> String {
+        let value_str = match *self {
+            SetReqType::Status => match value {
+                serde_json::Value::Bool(status) => match status {
+                    true => "1",
+                    false => "0",
+                },
+                _ => "",
+            },
+            _ => "",
+        };
+        value_str.to_owned()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_enum_primitive() {
+        assert_eq!(0, SetReqType::Temp as u8);
+    }
+
+    #[test]
+    fn test_set_message_display_method() {
+        assert_eq!(
+            "1;2;1;0;2;1\n",
+            SetMessage {
+                node_id: 1,
+                child_sensor_id: 2,
+                ack: 0,
+                value: Value {
+                    set_type: SetReqType::Status,
+                    value: "1".to_owned()
+                }
+            }.to_string()
+        )
     }
 }

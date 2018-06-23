@@ -1,7 +1,7 @@
 pub mod error;
 pub mod presentation;
-pub mod stream;
 pub mod set;
+pub mod stream;
 
 use self::error::ParseError;
 use num::FromPrimitive;

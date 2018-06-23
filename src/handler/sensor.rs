@@ -83,7 +83,10 @@ impl Handler<GetSensor> for ConnDsl {
 
         let conn = &self.0.get().map_err(|_| ())?;
 
-        match sensors.find((sensor.node_id, sensor.child_sensor_id)).first::<Sensor>(conn) {
+        match sensors
+            .find((sensor.node_id, sensor.child_sensor_id))
+            .first::<Sensor>(conn)
+        {
             Ok(v) => Ok(v),
             _ => return Err(()),
         }

@@ -1,3 +1,5 @@
+use channel;
+use channel::{Receiver, Sender};
 use serialport;
 use serialport::prelude::*;
 use std::io;
@@ -6,8 +8,6 @@ use std::io::Result;
 use std::io::Write;
 use std::net::{TcpListener, TcpStream};
 use std::str;
-use channel;
-use channel::{Receiver, Sender};
 use std::thread;
 use std::time::Duration;
 
@@ -43,22 +43,24 @@ pub trait Connection: Send {
     fn clone(&self) -> Box<Connection>;
     fn port(&self) -> &String;
 
-    fn write_loop(&mut self, receiver: Receiver<String>, stop_receiver: Receiver<String>) -> Receiver<String> {
+    fn write_loop(
+        &mut self,
+        receiver: Receiver<String>,
+        stop_receiver: Receiver<String>,
+    ) -> Receiver<String> {
         loop {
             match stop_receiver.recv_timeout(Duration::from_millis(10)) {
                 Ok(_) => break,
-                Err(_) => ()
+                Err(_) => (),
             }
             match receiver.recv_timeout(Duration::from_secs(5)) {
-                Ok(received_value) => {
-                    match self.write(&received_value.as_bytes()) {
-                        Ok(_) => info!("{} << {:?}", self.port(), received_value),
-                        Err(e) => {
-                            error!("Error while writing -- {:?}", e);
-                            break;
-                        }
+                Ok(received_value) => match self.write(&received_value.as_bytes()) {
+                    Ok(_) => info!("{} << {:?}", self.port(), received_value),
+                    Err(e) => {
+                        error!("Error while writing -- {:?}", e);
+                        break;
                     }
-                }
+                },
                 Err(channel::RecvTimeoutError::Timeout) => (),
                 Err(_error) => error!("Error while receiving -- {:?}", _error),
             }
@@ -120,37 +122,39 @@ pub struct TcpConnection {
     pub tcp_stream: TcpStream,
 }
 
-pub fn stream_read_write(stream_info: StreamInfo,
-                         mut sender: Sender<String>,
-                         mut receiver: Receiver<String>) {
+pub fn stream_read_write(
+    stream_info: StreamInfo,
+    mut sender: Sender<String>,
+    mut receiver: Receiver<String>,
+) {
     loop {
         let (cancel_token_sender, cancel_token_receiver) = channel::unbounded();
-        let simple_consumer = thread::spawn(move || {
-            consume(receiver, cancel_token_receiver)
-        });
+        let simple_consumer = thread::spawn(move || consume(receiver, cancel_token_receiver));
         let mut read_connection = create_connection(stream_info.connection_type, &stream_info.port);
         cancel_token_sender.send(String::from("stop")).unwrap();
         receiver = simple_consumer.join().unwrap();
 
         let (cancel_token_sender, cancel_token_receiver) = channel::unbounded();
         let mut write_connection = read_connection.clone();
-        let reader = thread::spawn(move || {
-            read_connection.read_loop(sender)
-        });
-        let writer = thread::spawn(move || {
-            write_connection.write_loop(receiver, cancel_token_receiver)
-        });
+        let reader = thread::spawn(move || read_connection.read_loop(sender));
+        let writer =
+            thread::spawn(move || write_connection.write_loop(receiver, cancel_token_receiver));
         sender = reader.join().unwrap();
-        cancel_token_sender.send(String::from("reader stopped")).unwrap();
+        cancel_token_sender
+            .send(String::from("reader stopped"))
+            .unwrap();
         receiver = writer.join().unwrap();
     }
 }
 
-fn consume(receiver: Receiver<String>, cancel_token_receiver: Receiver<String>) -> Receiver<String> {
+fn consume(
+    receiver: Receiver<String>,
+    cancel_token_receiver: Receiver<String>,
+) -> Receiver<String> {
     loop {
         match cancel_token_receiver.recv_timeout(Duration::from_millis(500)) {
             Ok(_) => break,
-            Err(_) => ()
+            Err(_) => (),
         }
         match receiver.recv_timeout(Duration::from_millis(500)) {
             _ => continue,
@@ -158,7 +162,6 @@ fn consume(receiver: Receiver<String>, cancel_token_receiver: Receiver<String>) 
     }
     receiver
 }
-
 
 pub fn create_connection(connection_type: ConnectionType, port: &String) -> Box<Connection> {
     match connection_type {
@@ -177,14 +180,20 @@ pub fn create_connection(connection_type: ConnectionType, port: &String) -> Box<
                 info!("Connected to -- {}", port);
                 break;
             }
-            Box::new(TcpConnection { tcp_port: port.clone(), tcp_stream: stream })
+            Box::new(TcpConnection {
+                tcp_port: port.clone(),
+                tcp_stream: stream,
+            })
         }
         ConnectionType::TcpServer => {
             let stream = TcpListener::bind(port).unwrap();
             info!("Server listening on -- {}", port);
             let (mut stream, _socket) = stream.accept().unwrap();
             info!("Accepted connection from {:?}", _socket);
-            Box::new(TcpConnection { tcp_port: port.clone(), tcp_stream: stream })
+            Box::new(TcpConnection {
+                tcp_port: port.clone(),
+                tcp_stream: stream,
+            })
         }
     }
 }
@@ -206,7 +215,10 @@ fn create_serial_connection(port: &String) -> Box<Connection> {
         info!("Connected to -- {}", port);
         break;
     }
-    Box::new(SerialConnection { serial_port: port.clone(), stream })
+    Box::new(SerialConnection {
+        serial_port: port.clone(),
+        stream,
+    })
 }
 
 impl Connection for SerialConnection {
@@ -219,7 +231,10 @@ impl Connection for SerialConnection {
     }
 
     fn clone(&self) -> Box<Connection> {
-        Box::new(SerialConnection { serial_port: self.serial_port.clone(), stream: self.stream.try_clone().unwrap() })
+        Box::new(SerialConnection {
+            serial_port: self.serial_port.clone(),
+            stream: self.stream.try_clone().unwrap(),
+        })
     }
 
     fn port(&self) -> &String {
@@ -237,7 +252,10 @@ impl Connection for TcpConnection {
     }
 
     fn clone(&self) -> Box<Connection> {
-        Box::new(TcpConnection { tcp_port: self.tcp_port.clone(), tcp_stream: self.tcp_stream.try_clone().unwrap() })
+        Box::new(TcpConnection {
+            tcp_port: self.tcp_port.clone(),
+            tcp_stream: self.tcp_stream.try_clone().unwrap(),
+        })
     }
 
     fn port(&self) -> &String {

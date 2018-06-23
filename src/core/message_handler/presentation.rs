@@ -55,15 +55,13 @@ pub fn create_or_update_sensor(
                 Err(e) => error!("Update sensor failed {:?}", e),
             }
         },
-        Err(diesel::result::Error::NotFound) => {
-            match diesel::insert_into(sensors)
-                .values(&sensor_message)
-                .execute(conn)
-            {
-                Ok(_) => info!("Created sensor {:?}", &sensor_message),
-                Err(e) => error!("Create sensor failed {:?}", e),
-            }
-        }
+        Err(diesel::result::Error::NotFound) => match diesel::insert_into(sensors)
+            .values(&sensor_message)
+            .execute(conn)
+        {
+            Ok(_) => info!("Created sensor {:?}", &sensor_message),
+            Err(e) => error!("Create sensor failed {:?}", e),
+        },
         Err(e) => error!(
             "Error while checking for existing sensor{:?} {:?}",
             &sensor_message, e
