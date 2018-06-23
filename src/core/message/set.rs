@@ -98,8 +98,16 @@ enum_from_primitive! {
 }
 
 impl SetReqType {
+    pub fn is_supported(&self) -> bool {
+        !(self.property_name().is_empty() || self.data_type().is_empty()
+            || self.description().is_empty()
+            || self.to_string_value(serde_json::Value::String("test".to_owned()))
+                .is_none())
+    }
+
     pub fn property_name(&self) -> String {
         match *self {
+            SetReqType::Temp => "temp".to_owned(),
             SetReqType::Status => "on".to_owned(),
             _ => "".to_owned(),
         }
@@ -107,6 +115,7 @@ impl SetReqType {
 
     pub fn data_type(&self) -> String {
         match *self {
+            SetReqType::Temp => "boolean".to_owned(),
             SetReqType::Status => "boolean".to_owned(),
             _ => "".to_owned(),
         }
@@ -119,18 +128,17 @@ impl SetReqType {
         }
     }
 
-    pub fn to_string_value(&self, value: serde_json::Value) -> String {
-        let value_str = match *self {
+    pub fn to_string_value(&self, value: serde_json::Value) -> Option<String> {
+        match *self {
             SetReqType::Status => match value {
                 serde_json::Value::Bool(status) => match status {
-                    true => "1",
-                    false => "0",
+                    true => Some("1".to_owned()),
+                    false => Some("0".to_owned()),
                 },
-                _ => "",
+                _ => Some("".to_owned()),
             },
-            _ => "",
-        };
-        value_str.to_owned()
+            _ => None,
+        }
     }
 }
 
@@ -139,12 +147,22 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_enum_primitive() {
+    fn enum_primitive() {
         assert_eq!(0, SetReqType::Temp as u8);
     }
 
     #[test]
-    fn test_set_message_display_method() {
+    fn supported_sub_type() {
+        assert!(SetReqType::Status.is_supported());
+    }
+
+    #[test]
+    fn unsupported_sub_type() {
+        assert_eq!(false, SetReqType::Temp.is_supported());
+    }
+
+    #[test]
+    fn set_message_display_method() {
         assert_eq!(
             "1;2;1;0;2;1\n",
             SetMessage {

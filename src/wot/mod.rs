@@ -88,7 +88,7 @@ pub fn start_server(
         }
         if !things.is_empty() {
             let server = WebThingServer::new(
-                ThingsType::Multiple(things, "LightAndTempDevice".to_owned()),
+                ThingsType::Multiple(things, "MySensors".to_owned()),
                 Some(8888),
                 None,
                 Box::new(Generator),

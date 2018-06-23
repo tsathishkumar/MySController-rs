@@ -50,6 +50,14 @@ enum_from_primitive! {
 }
 
 impl PresentationType {
+    pub fn is_supported(&self) -> bool {
+        !(self.thing_type().is_empty() || self.thing_description().is_empty()
+            || !(self.property_types()
+                .into_iter()
+                .map(|p| p.is_supported())
+                .fold(true, |f, s| s && f)))
+    }
+
     pub fn thing_type(&self) -> String {
         match *self {
             PresentationType::Binary => "onOffLight".to_owned(),
@@ -64,7 +72,7 @@ impl PresentationType {
         }
     }
 
-    pub fn set_types(&self) -> Vec<SetReqType> {
+    pub fn property_types(&self) -> Vec<SetReqType> {
         match *self {
             PresentationType::Binary => vec![SetReqType::Status],
             _ => Vec::new(),
@@ -109,5 +117,15 @@ impl fmt::Display for PresentationMessage {
             "{:?};{};{:?};{};{:?};{}\n",
             self.node_id, self.child_sensor_id, _cmd, self.ack, _sub_type, &self.payload
         )
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn supported_sensor_types() {
+        assert!(PresentationType::Binary.is_supported());
     }
 }
