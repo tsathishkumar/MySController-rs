@@ -89,21 +89,21 @@ fn get_things(
 fn set_property(set_message: SetMessage, thing: &Arc<RwLock<Box<Thing + 'static>>>) {
     match set_message.value.to_json() {
         Some(new_value) => {
-            info!("new value is {:?}", &new_value);
-            {
-                let mut t = thing.write().unwrap();
-                match t.find_property(set_message.value.set_type.property_name().to_string()) {
-                    Some(prop) => {
-                        let _ = prop.set_value(new_value.clone());
-                    }
-                    None => warn!("No property found for {:?}", &set_message),
-                };
-            }
-
+            // We don't need to set the property to things, we only need to publish it when we receive from sensors
+            // {
+            //     let mut t = thing.write().unwrap();
+            //     match t.find_property(set_message.value.set_type.property_name()) {
+            //         Some(prop) => {
+            //             info!("Received {:?}", &set_message);
+            //             // let _ = prop.set_value(new_value.clone());
+            //         }
+            //         None => warn!("No property found for {:?}", &set_message),
+            //     };
+            // }
             thing
                 .write()
                 .unwrap()
-                .property_notify("level".to_owned(), new_value);
+                .property_notify(set_message.value.set_type.property_name(), new_value);
         }
         None => warn!("Unsupported set message {:?}", set_message),
     }

@@ -166,13 +166,21 @@ impl SetReqType {
             || self.description().is_empty())
     }
 
-    pub fn property_name(&self) -> &'static str {
+    pub fn is_forwardable(&self) -> bool {
+        match *self {
+            SetReqType::Temp => false,
+            SetReqType::Percentage | SetReqType::Status => true,
+            _ => false,
+        }
+    }
+
+    pub fn property_name(&self) -> String {
         match *self {
             SetReqType::Temp => "level",
             SetReqType::Status => "on",
             SetReqType::Percentage => "level",
             _ => "",
-        }
+        }.to_string()
     }
 
     pub fn data_type(&self) -> &'static str {

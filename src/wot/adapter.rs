@@ -3,6 +3,7 @@ use core::message::set::{SetMessage, SetReqType, Value};
 use model::sensor::Sensor;
 use serde_json;
 use std::sync::{Arc, RwLock};
+use webthing::property::EmptyValueForwarder;
 use webthing::property::ValueForwarder;
 use webthing::{BaseProperty, BaseThing, Thing};
 
@@ -82,14 +83,18 @@ fn build_property(
         "type": set_type.data_type(),
         "description": set_type.description()
     });
-    BaseProperty::new(
-        set_type.property_name().to_string(),
-        json!(true),
-        Some(Box::new(PropertyValueForwarder {
+    let value_forwarder: Option<Box<ValueForwarder>> = match set_type.is_forwardable() {
+        true => Some(Box::new(PropertyValueForwarder {
             sensor,
             set_type,
             set_message_sender,
         })),
+        false => Some(Box::new(EmptyValueForwarder)),
+    };
+    BaseProperty::new(
+        set_type.property_name(),
+        json!(true),
+        value_forwarder,
         Some(description.as_object().unwrap().clone()),
     )
 }
