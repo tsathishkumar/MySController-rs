@@ -21,7 +21,7 @@ enum_from_primitive! {
 #[derive(Debug)]
 pub enum CommandMessage {
     Presentation(presentation::PresentationMessage),
-    // Set(SetMessage),
+    Set(set::SetMessage),
     // Req(ReqMessage),
     // Internal(InternalMessage),
     Other(String),
@@ -72,6 +72,13 @@ impl CommandMessage {
                     payload,
                 )?)
             }
+            CommandType::SET => CommandMessage::Set(set::SetMessage::build(
+                node_id,
+                child_sensor_id,
+                ack,
+                sub_type,
+                payload,
+            )?),
             _ => CommandMessage::Other(command_message.to_owned()),
         })
     }
@@ -82,6 +89,7 @@ impl fmt::Display for CommandMessage {
         match *self {
             CommandMessage::Stream(ref message) => write!(f, "{}", message.to_string()),
             CommandMessage::Presentation(ref message) => write!(f, "{}", message.to_string()),
+            CommandMessage::Set(ref message) => write!(f, "{}", message.to_string()),
             CommandMessage::Other(ref message) => write!(f, "{}", message),
         }
     }

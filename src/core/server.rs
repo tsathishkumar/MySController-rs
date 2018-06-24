@@ -15,6 +15,7 @@ pub fn start(
 
     gateway_out_sender: Sender<String>,
     gateway_out_receiver: Receiver<String>,
+    in_set_sender: Sender<SetMessage>,
     set_message_receiver: Receiver<SetMessage>,
 ) {
     let (gateway_sender, gateway_receiver) = channel::unbounded();
@@ -35,12 +36,13 @@ pub fn start(
             &stream_sender,
             &internal_sender,
             &presentation_sender,
+            &in_set_sender,
             &controller_out_sender,
         );
     });
 
     let set_message_processor = thread::spawn(move || {
-        set::handle(&set_message_receiver, &set_response_sender);
+        set::handle_from_controller(&set_message_receiver, &set_response_sender);
     });
 
     let connection = pool.get().unwrap();

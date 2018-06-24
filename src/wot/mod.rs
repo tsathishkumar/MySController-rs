@@ -1,6 +1,6 @@
 pub mod adapter;
 
-use channel::Sender;
+use channel::{Receiver, Sender};
 use core::message::set::SetMessage;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
@@ -37,12 +37,13 @@ impl ActionGenerator for Generator {
     }
 }
 
-pub fn start_server(
+fn get_things(
     pool: Pool<ConnectionManager<SqliteConnection>>,
     set_message_sender: Sender<SetMessage>,
-) {
+) -> Vec<(Sensor, Arc<RwLock<Box<Thing + 'static>>>)> {
     let mut sensor_list: Vec<Sensor> = vec![];
     let mut node_list: Vec<Node> = vec![];
+    let mut things: Vec<(Sensor, Arc<RwLock<Box<Thing + 'static>>>)> = Vec::new();
 
     {
         match pool.get() {
@@ -62,30 +63,84 @@ pub fn start_server(
             Err(e) => error!("Error while trying to get db connection {:?}", e),
         }
     }
-
-    thread::spawn(move || {
-        let mut things: Vec<Arc<RwLock<Box<Thing + 'static>>>> = Vec::new();
-
-        for sensor in sensor_list {
-            match (&node_list)
-                .into_iter()
-                .find(|node| node.node_id == sensor.node_id)
-                .map(|node| node.node_name.clone())
-            {
-                Some(node_name) => {
-                    let thing = adapter::build_thing(
-                        format!("{} - {}", node_name, sensor.child_sensor_id).to_owned(),
-                        sensor,
-                        set_message_sender.clone(),
-                    );
-                    match thing {
-                        Some(thing) => things.push(thing.clone()),
-                        None => (),
-                    }
+    for sensor in sensor_list {
+        match (&node_list)
+            .into_iter()
+            .find(|node| node.node_id == sensor.node_id)
+            .map(|node| node.node_name.clone())
+        {
+            Some(node_name) => {
+                let thing = adapter::build_thing(
+                    format!("{} - {}", node_name, sensor.child_sensor_id).to_owned(),
+                    sensor,
+                    set_message_sender.clone(),
+                );
+                match thing {
+                    Some(thing) => things.push(thing),
+                    None => (),
                 }
-                None => (),
             }
+            None => (),
         }
+    }
+    things
+}
+
+fn set_property(set_message: SetMessage, thing: &Arc<RwLock<Box<Thing + 'static>>>) {
+    match set_message.value.to_json() {
+        Some(new_value) => {
+            info!("new value is {:?}", &new_value);
+            {
+                let mut t = thing.write().unwrap();
+                match t.find_property(set_message.value.set_type.property_name().to_string()) {
+                    Some(prop) => {
+                        let _ = prop.set_value(new_value.clone());
+                    }
+                    None => warn!("No property found for {:?}", &set_message),
+                };
+            }
+
+            thing
+                .write()
+                .unwrap()
+                .property_notify("level".to_owned(), new_value);
+        }
+        None => warn!("Unsupported set message {:?}", set_message),
+    }
+}
+
+fn handle_sensor_outputs(
+    things: &Vec<(Sensor, Arc<RwLock<Box<Thing + 'static>>>)>,
+    in_set_receiver: Receiver<SetMessage>,
+) {
+    loop {
+        match in_set_receiver.recv() {
+            Ok(set_message) => match things
+                .into_iter()
+                .find(|(sensor, _)| set_message.for_sensor(sensor))
+                .map(|(_, thing)| thing)
+            {
+                Some(thing) => set_property(set_message, thing),
+                None => warn!("No thing found matching {:?}", &set_message),
+            },
+            _ => (),
+        }
+    }
+}
+
+pub fn start_server(
+    pool: Pool<ConnectionManager<SqliteConnection>>,
+    set_message_sender: Sender<SetMessage>,
+    in_set_receiver: Receiver<SetMessage>,
+) {
+    let things = get_things(pool, set_message_sender);
+    let things_clone = things.clone();
+    thread::spawn(move || {
+        handle_sensor_outputs(&things_clone, in_set_receiver);
+    });
+    let things: Vec<Arc<RwLock<Box<Thing + 'static>>>> =
+        things.into_iter().map(|(_, thing)| thing).collect();
+    thread::spawn(move || {
         if !things.is_empty() {
             let server = WebThingServer::new(
                 ThingsType::Multiple(things, "MySensors".to_owned()),

@@ -14,17 +14,12 @@ pub struct PropertyValueForwarder {
 
 impl PropertyValueForwarder {
     pub fn build_message(&self, value: serde_json::Value) -> Option<SetMessage> {
-        self.set_type
-            .to_string_value(value)
-            .map(|value| SetMessage {
-                node_id: self.sensor.node_id as u8,
-                child_sensor_id: self.sensor.child_sensor_id as u8,
-                ack: 0,
-                value: Value {
-                    set_type: self.set_type,
-                    value: value,
-                },
-            })
+        Value::build(self.set_type, value).map(|value| SetMessage {
+            node_id: self.sensor.node_id as u8,
+            child_sensor_id: self.sensor.child_sensor_id as u8,
+            ack: 0,
+            value: value,
+        })
     }
 }
 
@@ -46,7 +41,7 @@ pub fn build_thing(
     name: String,
     sensor: Sensor,
     set_message_sender: Sender<SetMessage>,
-) -> Option<Arc<RwLock<Box<Thing + 'static>>>> {
+) -> Option<(Sensor, Arc<RwLock<Box<Thing + 'static>>>)> {
     match sensor.sensor_type.is_supported() {
         true => {
             let mut thing = BaseThing::new(
@@ -54,10 +49,10 @@ pub fn build_thing(
                 Some(sensor.sensor_type.thing_type()),
                 Some(sensor.sensor_type.thing_description()),
             );
-            build_properties(sensor, set_message_sender)
+            build_properties(&sensor, set_message_sender)
                 .into_iter()
                 .for_each(|property| thing.add_property(Box::new(property)));
-            Some(Arc::new(RwLock::new(Box::new(thing))))
+            Some((sensor, Arc::new(RwLock::new(Box::new(thing)))))
         }
         false => {
             warn!(
@@ -69,7 +64,7 @@ pub fn build_thing(
     }
 }
 
-fn build_properties(sensor: Sensor, set_message_sender: Sender<SetMessage>) -> Vec<BaseProperty> {
+fn build_properties(sensor: &Sensor, set_message_sender: Sender<SetMessage>) -> Vec<BaseProperty> {
     sensor
         .sensor_type
         .property_types()
@@ -88,7 +83,7 @@ fn build_property(
         "description": set_type.description()
     });
     BaseProperty::new(
-        set_type.property_name(),
+        set_type.property_name().to_string(),
         json!(true),
         Some(Box::new(PropertyValueForwarder {
             sensor,

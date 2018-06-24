@@ -1,6 +1,10 @@
+use super::error::ParseError;
+use model::sensor::Sensor;
+use num::FromPrimitive;
 use serde_json;
 use std::fmt;
 
+#[derive(Debug)]
 pub struct SetMessage {
     pub node_id: u8,
     pub child_sensor_id: u8,
@@ -23,6 +27,32 @@ impl fmt::Display for SetMessage {
     }
 }
 
+impl SetMessage {
+    pub fn build(
+        node_id: u8,
+        child_sensor_id: u8,
+        ack: u8,
+        sub_type: u8,
+        payload: &str,
+    ) -> Result<SetMessage, ParseError> {
+        let sub_type = SetReqType::from_u8(sub_type).ok_or(ParseError::InvalidSubType)?;
+        Ok(SetMessage {
+            node_id,
+            child_sensor_id,
+            ack,
+            value: Value {
+                set_type: sub_type,
+                value: String::from(payload),
+            },
+        })
+    }
+
+    pub fn for_sensor(&self, sensor: &Sensor) -> bool {
+        self.node_id == sensor.node_id as u8 && self.child_sensor_id == sensor.child_sensor_id as u8
+    }
+}
+
+#[derive(Debug)]
 pub struct Value {
     pub set_type: SetReqType,
     pub value: String,
@@ -31,6 +61,39 @@ pub struct Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{};{}", self.set_type as u8, &self.value)
+    }
+}
+
+impl Value {
+    pub fn to_json(&self) -> Option<serde_json::Value> {
+        match self.set_type.data_type() {
+            "boolean" => match self.value.as_str() {
+                "1" => Some(json!(true)),
+                "0" => Some(json!(false)),
+                _ => None,
+            },
+            "number" => match self.value.parse::<f64>() {
+                Ok(number) => Some(json!(number)),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    pub fn build(set_type: SetReqType, value: serde_json::Value) -> Option<Value> {
+        let value = match set_type.data_type() {
+            "boolean" => match value {
+                serde_json::Value::Bool(true) => Some("1".to_owned()),
+                serde_json::Value::Bool(false) => Some("0".to_owned()),
+                _ => Some("".to_owned()),
+            },
+            "number" => match value {
+                serde_json::Value::Number(number) => Some(number.to_string()),
+                _ => Some("".to_owned()),
+            },
+            _ => None,
+        };
+        value.map(|value| Value { set_type, value })
     }
 }
 
@@ -100,49 +163,33 @@ enum_from_primitive! {
 impl SetReqType {
     pub fn is_supported(&self) -> bool {
         !(self.property_name().is_empty() || self.data_type().is_empty()
-            || self.description().is_empty()
-            || self.to_string_value(serde_json::Value::String("test".to_owned()))
-                .is_none())
+            || self.description().is_empty())
     }
 
-    pub fn property_name(&self) -> String {
+    pub fn property_name(&self) -> &'static str {
         match *self {
-            SetReqType::Status => "on".to_owned(),
-            SetReqType::Percentage => "level".to_owned(),
-            _ => "".to_owned(),
+            SetReqType::Temp => "level",
+            SetReqType::Status => "on",
+            SetReqType::Percentage => "level",
+            _ => "",
         }
     }
 
-    pub fn data_type(&self) -> String {
+    pub fn data_type(&self) -> &'static str {
         match *self {
-            SetReqType::Status => "boolean".to_owned(),
-            SetReqType::Percentage => "number".to_owned(),
-            _ => "".to_owned(),
+            SetReqType::Status => "boolean",
+            SetReqType::Temp => "number",
+            SetReqType::Percentage => "number",
+            _ => "",
         }
     }
 
     pub fn description(&self) -> String {
         match *self {
+            SetReqType::Temp => "Temperature".to_owned(),
             SetReqType::Status => "Whether the thing is on".to_owned(),
             SetReqType::Percentage => "The level of the thing from 0-100".to_owned(),
             _ => "".to_owned(),
-        }
-    }
-
-    pub fn to_string_value(&self, value: serde_json::Value) -> Option<String> {
-        match *self {
-            SetReqType::Status => match value {
-                serde_json::Value::Bool(status) => match status {
-                    true => Some("1".to_owned()),
-                    false => Some("0".to_owned()),
-                },
-                _ => Some("".to_owned()),
-            },
-            SetReqType::Percentage => match value {
-                serde_json::Value::Number(number) => Some(number.to_string()),
-                _ => Some("".to_owned()),
-            },
-            _ => None,
         }
     }
 }
@@ -158,13 +205,9 @@ mod test {
 
     #[test]
     fn supported_sub_type() {
+        assert!(SetReqType::Temp.is_supported());
         assert!(SetReqType::Status.is_supported());
         assert!(SetReqType::Percentage.is_supported());
-    }
-
-    #[test]
-    fn unsupported_sub_type() {
-        assert_eq!(false, SetReqType::Temp.is_supported());
     }
 
     #[test]

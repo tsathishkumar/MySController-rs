@@ -60,6 +60,7 @@ impl PresentationType {
 
     pub fn thing_type(&self) -> String {
         match *self {
+            PresentationType::Temp => "multiLevelSensor".to_owned(),
             PresentationType::Binary => "onOffLight".to_owned(),
             PresentationType::Dimmer => "dimmableLight".to_owned(),
             _ => "".to_owned(),
@@ -68,14 +69,16 @@ impl PresentationType {
 
     pub fn thing_description(&self) -> String {
         match *self {
-            PresentationType::Binary => "A web connected lamp".to_owned(),
-            PresentationType::Dimmer => "A web connected dimmable lamp".to_owned(),
+            PresentationType::Temp => "Temperature sensor".to_owned(),
+            PresentationType::Binary => "Binary switch".to_owned(),
+            PresentationType::Dimmer => "Dimmable lamp".to_owned(),
             _ => "".to_owned(),
         }
     }
 
     pub fn property_types(&self) -> Vec<SetReqType> {
         match *self {
+            PresentationType::Temp => vec![SetReqType::Temp, SetReqType::Status],
             PresentationType::Binary => vec![SetReqType::Status],
             PresentationType::Dimmer => vec![SetReqType::Status, SetReqType::Percentage],
             _ => Vec::new(),
@@ -129,6 +132,7 @@ mod test {
 
     #[test]
     fn supported_sensor_types() {
+        assert!(PresentationType::Temp.is_supported());
         assert!(PresentationType::Binary.is_supported());
         assert!(PresentationType::Dimmer.is_supported());
     }

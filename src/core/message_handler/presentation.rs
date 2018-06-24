@@ -59,7 +59,7 @@ pub fn create_or_update_sensor(
             .values(&sensor_message)
             .execute(conn)
         {
-            Ok(_) => info!("Created sensor {:?}", &sensor_message),
+            Ok(_) => info!("Created {:?}", &sensor_message),
             Err(e) => error!("Create sensor failed {:?}", e),
         },
         Err(e) => error!(

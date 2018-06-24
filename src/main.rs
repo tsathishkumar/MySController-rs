@@ -50,7 +50,8 @@ fn main() {
     let database_addr = SyncArbiter::start(num_cpus::get() * 4, move || db::ConnDsl(conn.clone()));
 
     let (controller_in_sender, controller_in_receiver) = channel::unbounded();
-    let (set_message_sender, set_message_receiver) = channel::unbounded();
+    let (out_set_sender, out_set_receiver) = channel::unbounded();
+    let (in_set_sender, in_set_receiver) = channel::unbounded();
     let reset_signal_sender = controller_in_sender.clone();
     server::new(move || {
         App::with_state(AppState {
@@ -114,11 +115,12 @@ fn main() {
             conn_clone,
             controller_in_sender,
             controller_in_receiver,
-            set_message_receiver,
+            in_set_sender,
+            out_set_receiver,
         );
     });
 
-    wot::start_server(conn_pool_clone, set_message_sender);
+    wot::start_server(conn_pool_clone, out_set_sender, in_set_receiver);
     sys.run();
 }
 
