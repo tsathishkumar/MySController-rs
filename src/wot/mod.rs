@@ -87,6 +87,7 @@ fn get_things(
 }
 
 fn set_property(set_message: SetMessage, thing: &Arc<RwLock<Box<Thing + 'static>>>) {
+    info!("Received {:?}", &set_message);
     match set_message.value.to_json() {
         Some(new_value) => {
             // We don't need to set the property to things, we only need to publish it when we receive from sensors
@@ -100,6 +101,11 @@ fn set_property(set_message: SetMessage, thing: &Arc<RwLock<Box<Thing + 'static>
             //         None => warn!("No property found for {:?}", &set_message),
             //     };
             // }
+            info!(
+                "Notifying property {:?} with value {:?}",
+                &set_message.value.set_type.property_name(),
+                &new_value
+            );
             thing
                 .write()
                 .unwrap()

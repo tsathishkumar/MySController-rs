@@ -81,7 +81,8 @@ fn build_property(
 ) -> BaseProperty {
     let description = json!({
         "type": set_type.data_type(),
-        "description": set_type.description()
+        "description": set_type.description(),
+        "unit": set_type.unit(),
     });
     let value_forwarder: Option<Box<ValueForwarder>> = match set_type.is_forwardable() {
         true => Some(Box::new(PropertyValueForwarder {

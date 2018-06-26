@@ -192,6 +192,14 @@ impl SetReqType {
         }
     }
 
+    pub fn unit(&self) -> &'static str {
+        match *self {
+            SetReqType::Temp => "celsius",
+            SetReqType::Percentage => "%",
+            _ => "",
+        }
+    }
+
     pub fn description(&self) -> String {
         match *self {
             SetReqType::Temp => "Temperature".to_owned(),
