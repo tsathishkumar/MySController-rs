@@ -1,5 +1,6 @@
 use crc16::*;
 use ihex::record::Record;
+use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
@@ -19,7 +20,7 @@ table! {
     }
 }
 
-#[derive(Debug, Queryable, Serialize, Deserialize, Insertable, Clone)]
+#[derive(Queryable, Serialize, Deserialize, Insertable, Clone)]
 #[table_name = "firmwares"]
 pub struct Firmware {
     pub firmware_type: i32,
@@ -28,6 +29,16 @@ pub struct Firmware {
     pub blocks: i32,
     pub crc: i32,
     pub data: Vec<u8>,
+}
+
+impl fmt::Debug for Firmware {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Firmware {{ name: {}, firmware_type: {}, firmware_version: {}, blocks: {}, crc: {} }}",
+            self.name, self.firmware_type, self.firmware_version, self.blocks, self.crc
+        )
+    }
 }
 
 #[derive(PartialEq, Eq, Hash, Debug)]

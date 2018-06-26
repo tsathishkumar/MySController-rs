@@ -100,21 +100,22 @@ Note: If you are using TCP for controller - the port value will be used to creat
     - whenever there is new version for a firmware, it should automatically update all nodes which have auto update as `true` to latest version
 - [x] Manage firmwares type and version, ability to upload newer versions of firmwares, expose apis 
     - GET `/firmwares` - response `[{"firmware_type": 10, "firmware_version": 1, "firmware_name", "Blink"}]`
-    - DELETE `/firmwares` - `[{"firmware_type": 10, "firmware_version": 1}]
-    - POST `/firmwares` - payload `{ "firmware_type": 10, "firmware_version": 1, "firmware_name": "Blink", "firmware_file": <file>}`
-    - PUT `/firmwares` - payload `{ "firmware_type": 10, "firmware_version": 1, "firmware_name": "Blink", "firmware_file": <file>}`
+    - DELETE `/firmwares/10/1`
+    - POST `/firmwares/10/1?firmware_name=Blink` - multipart payload `{"firmware_file": <file>}`
+    - PUT `/firmwares/10/1?firmware_name=Blink` - multipart payload `{"firmware_file": <file>}`
 - [x] Improve error handling in api's (handling unique constraint in insert, updating unavailable firmwares etc)    
 - [x] Node name support
 - [x] Improve error handling across project (remove unwraps)
 - [x] Improve logging (parsed message for OTA request etc)
 - [x] Child sensors support
 - [ ] Parse all the data and expose WoT API's using [webthing-rust](https://github.com/mozilla-iot/webthing-rust)
+    Supported sensors:
+        - Temperature
+        - Binary
+        - Dimmer
+        - Motion
 - [ ] Add swagger UI for node/firmware management APIs
 - [ ] Add UI for node/firmware management    
-
-
-## Future goals:
-
 - [ ] MQTT support
 - [ ] Store the "states" of each nodes - to make it standalone
 - [ ] Beats/Telegraph support - to store "telemetri" data

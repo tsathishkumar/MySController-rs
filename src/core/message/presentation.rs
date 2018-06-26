@@ -63,6 +63,7 @@ impl PresentationType {
             PresentationType::Temp => "multiLevelSensor".to_owned(),
             PresentationType::Binary => "onOffLight".to_owned(),
             PresentationType::Dimmer => "dimmableLight".to_owned(),
+            PresentationType::Motion => "binarySensor".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -72,6 +73,7 @@ impl PresentationType {
             PresentationType::Temp => "Temperature sensor".to_owned(),
             PresentationType::Binary => "Binary switch".to_owned(),
             PresentationType::Dimmer => "Dimmable lamp".to_owned(),
+            PresentationType::Motion => "Motion sensor".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -80,6 +82,7 @@ impl PresentationType {
         match *self {
             PresentationType::Temp => vec![SetReqType::Temp, SetReqType::Status],
             PresentationType::Binary => vec![SetReqType::Status],
+            PresentationType::Motion => vec![SetReqType::Status],
             PresentationType::Dimmer => vec![SetReqType::Status, SetReqType::Percentage],
             _ => Vec::new(),
         }
@@ -135,5 +138,6 @@ mod test {
         assert!(PresentationType::Temp.is_supported());
         assert!(PresentationType::Binary.is_supported());
         assert!(PresentationType::Dimmer.is_supported());
+        assert!(PresentationType::Motion.is_supported());
     }
 }

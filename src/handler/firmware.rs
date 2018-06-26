@@ -14,6 +14,97 @@ pub struct FirmwareDto {
     pub firmware_type: i32,
     pub firmware_version: i32,
     pub firmware_name: String,
+    pub blocks: i32,
+    pub crc: i32,
+}
+
+pub enum CreateOrUpdate {
+    Create(NewFirmware),
+    Update(NewFirmware),
+}
+
+impl Message for CreateOrUpdate {
+    type Result = Result<Msgs, Msgs>;
+}
+
+impl Handler<CreateOrUpdate> for ConnDsl {
+    type Result = Result<Msgs, Msgs>;
+
+    fn handle(&mut self, create_or_update: CreateOrUpdate, _: &mut Self::Context) -> Self::Result {
+        use model::firmware::firmwares::dsl::*;
+        match create_or_update {
+            CreateOrUpdate::Create(new_firmware) => self.0
+                .get()
+                .map_err(|_| Msgs {
+                    status: 500,
+                    message: "internal server error.".to_string(),
+                })
+                .and_then(|conn| {
+                    let new_firmware = Firmware {
+                        firmware_type: new_firmware.firmware_type,
+                        firmware_version: new_firmware.firmware_version,
+                        name: new_firmware.name,
+                        blocks: new_firmware.blocks,
+                        crc: new_firmware.crc,
+                        data: new_firmware.data,
+                    };
+
+                    diesel::insert_into(firmwares)
+                        .values(&new_firmware)
+                        .execute(&conn)
+                        .map_err(|e| match e {
+                            DatabaseError(DatabaseErrorKind::UniqueViolation, _) => Msgs {
+                                status: 400,
+                                message: "firmware already present.".to_string(),
+                            },
+                            _ => Msgs {
+                                status: 500,
+                                message: "internal server error.".to_string(),
+                            },
+                        })
+                        .and_then(|_| {
+                            info!("Created new firmware - {:?}", &new_firmware);
+                            auto_update_nodes(&conn, new_firmware)
+                        })
+                }),
+            CreateOrUpdate::Update(new_firmware) => self.0
+                .get()
+                .map_err(|_| Msgs {
+                    status: 500,
+                    message: "internal server error.".to_string(),
+                })
+                .and_then(|conn| {
+                    diesel::update(firmwares)
+                        .filter(
+                            firmware_type
+                                .eq(new_firmware.firmware_type)
+                                .and(firmware_version.eq(new_firmware.firmware_version)),
+                        )
+                        .set((
+                            name.eq(new_firmware.name),
+                            blocks.eq(new_firmware.blocks),
+                            crc.eq(new_firmware.crc),
+                            data.eq(new_firmware.data),
+                        ))
+                        .execute(&conn)
+                        .map_err(|_| Msgs {
+                            status: 500,
+                            message: "update failed. internal server error".to_string(),
+                        })
+                        .map(|updated_count| match updated_count {
+                            1 => Msgs {
+                                status: 200,
+                                message: "update firmware success.".to_string(),
+                            },
+                            _ => Msgs {
+                                status: 400,
+                                message: "update firmware failed. type and version is not present"
+                                    .to_string(),
+                            },
+                        })
+                }),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -26,12 +117,8 @@ pub struct NewFirmware {
     pub data: Vec<u8>,
 }
 
-impl Message for NewFirmware {
-    type Result = Result<Msgs, Msgs>;
-}
-
 impl NewFirmware {
-    pub fn prepare_in_memory(
+    pub fn build(
         fimware_type: i32,
         version: i32,
         name: String,
@@ -51,45 +138,6 @@ impl NewFirmware {
             name: name,
             crc: crc,
         }
-    }
-}
-
-impl Handler<NewFirmware> for ConnDsl {
-    type Result = Result<Msgs, Msgs>;
-
-    fn handle(&mut self, new_firmware: NewFirmware, _: &mut Self::Context) -> Self::Result {
-        use model::firmware::firmwares::dsl::*;
-        self.0
-            .get()
-            .map_err(|_| Msgs {
-                status: 500,
-                message: "internal server error.".to_string(),
-            })
-            .and_then(|conn| {
-                let new_firmware = Firmware {
-                    firmware_type: new_firmware.firmware_type,
-                    firmware_version: new_firmware.firmware_version,
-                    name: new_firmware.name,
-                    blocks: new_firmware.blocks,
-                    crc: new_firmware.crc,
-                    data: new_firmware.data,
-                };
-
-                diesel::insert_into(firmwares)
-                    .values(&new_firmware)
-                    .execute(&conn)
-                    .map_err(|e| match e {
-                        DatabaseError(DatabaseErrorKind::UniqueViolation, _) => Msgs {
-                            status: 400,
-                            message: "firmware already present.".to_string(),
-                        },
-                        _ => Msgs {
-                            status: 500,
-                            message: "internal server error.".to_string(),
-                        },
-                    })
-                    .and_then(|_| auto_update_nodes(&conn, new_firmware))
-            })
     }
 }
 
@@ -120,61 +168,14 @@ fn auto_update_nodes(connection: &SqliteConnection, new_firmware: Firmware) -> R
         })
 }
 
-pub struct UpdateFirmware(pub NewFirmware);
-
-impl Message for UpdateFirmware {
-    type Result = Result<Msgs, Msgs>;
-}
-
-impl Handler<UpdateFirmware> for ConnDsl {
-    type Result = Result<Msgs, Msgs>;
-
-    fn handle(&mut self, update_firmware: UpdateFirmware, _: &mut Self::Context) -> Self::Result {
-        use model::firmware::firmwares::dsl::*;
-        self.0
-            .get()
-            .map_err(|_| Msgs {
-                status: 500,
-                message: "internal server error.".to_string(),
-            })
-            .and_then(|conn| {
-                diesel::update(firmwares)
-                    .filter(
-                        firmware_type
-                            .eq(update_firmware.0.firmware_type)
-                            .and(firmware_version.eq(update_firmware.0.firmware_version)),
-                    )
-                    .set((
-                        name.eq(update_firmware.0.name),
-                        blocks.eq(update_firmware.0.blocks),
-                        crc.eq(update_firmware.0.crc),
-                        data.eq(update_firmware.0.data),
-                    ))
-                    .execute(&conn)
-                    .map_err(|_| Msgs {
-                        status: 500,
-                        message: "update failed. internal server error".to_string(),
-                    })
-                    .map(|updated_count| match updated_count {
-                        1 => Msgs {
-                            status: 200,
-                            message: "update node success.".to_string(),
-                        },
-                        _ => Msgs {
-                            status: 400,
-                            message: "update failed. node id is not present".to_string(),
-                        },
-                    })
-            })
-    }
-}
-
 impl FirmwareDto {
     fn new(firmware: &Firmware) -> FirmwareDto {
         FirmwareDto {
             firmware_type: firmware.firmware_type,
             firmware_version: firmware.firmware_version,
             firmware_name: firmware.name.clone(),
+            blocks: firmware.blocks,
+            crc: firmware.crc,
         }
     }
 }

@@ -85,9 +85,11 @@ fn main() {
                     })
                     .resource("/firmwares", |r| {
                         r.method(Method::GET).h(firmware::list);
-                        r.method(Method::POST).with(firmware::create);
-                        r.method(Method::PUT).with(firmware::update);
-                        r.method(Method::DELETE).with2(firmware::delete);
+                    })
+                    .resource("/firmwares/{firmware_type}/{firmware_version}", |r| {
+                        r.method(Method::POST).with2(firmware::create);
+                        r.method(Method::PUT).with2(firmware::update);
+                        r.method(Method::DELETE).with(firmware::delete);
                     })
                     .resource("/firmwares/upload", |r| {
                         r.method(Method::GET).with(firmware::upload_form);

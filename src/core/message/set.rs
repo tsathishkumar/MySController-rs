@@ -179,6 +179,7 @@ impl SetReqType {
             SetReqType::Temp => "level",
             SetReqType::Status => "on",
             SetReqType::Percentage => "level",
+            SetReqType::Tripped => "on",
             _ => "",
         }.to_string()
     }
@@ -186,6 +187,7 @@ impl SetReqType {
     pub fn data_type(&self) -> &'static str {
         match *self {
             SetReqType::Status => "boolean",
+            SetReqType::Tripped => "boolean",
             SetReqType::Temp => "number",
             SetReqType::Percentage => "number",
             _ => "",
@@ -205,6 +207,7 @@ impl SetReqType {
             SetReqType::Temp => "Temperature".to_owned(),
             SetReqType::Status => "Whether the thing is on".to_owned(),
             SetReqType::Percentage => "The level of the thing from 0-100".to_owned(),
+            SetReqType::Tripped => "Whether the thing triggered or not".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -224,6 +227,7 @@ mod test {
         assert!(SetReqType::Temp.is_supported());
         assert!(SetReqType::Status.is_supported());
         assert!(SetReqType::Percentage.is_supported());
+        assert!(SetReqType::Tripped.is_supported());
     }
 
     #[test]
