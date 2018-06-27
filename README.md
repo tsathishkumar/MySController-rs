@@ -4,7 +4,9 @@
 Started as a project to support OTA for MySensors and proxy for all other requests. Now exposes [WebOfThings APIs](https://iot.mozilla.org/specification/) for MySensors (supporting very few sensors at the moment) and on it's way to be a fully functional API based controller for MySensors. Contributions to support other sensors are welcome.
 
 ## APIs to manage nodes and firmwares
-All the APIs are exported as [postman collection](https://www.getpostman.com/collections/3f99678c26301d779ebe)  and the docs can be found [here](https://documenter.getpostman.com/view/198173/myscontroller/RWEmHGeT#1d695865-c9c4-6738-e2b5-d75b31a880b7).
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/3f99678c26301d779ebe)
+
+All the APIs are available as postman collection and the docs can be found [here](https://documenter.getpostman.com/view/198173/myscontroller/RWEmHGeT#1d695865-c9c4-6738-e2b5-d75b31a880b7).
 
 There is also a pending task to add Swagger UI as part of the server.
 
