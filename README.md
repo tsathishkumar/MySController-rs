@@ -4,8 +4,9 @@
 Started as a project to support OTA for MySensors and proxy for all other requests. Now exposes [WebOfThings APIs](https://iot.mozilla.org/specification/) for MySensors (supporting very few sensors at the moment) and on it's way to be a fully functional API based controller for MySensors. Contributions to support other sensors are welcome.
 
 ## APIs to manage nodes and firmwares
-All the APIs are exported as [postman collection](https://documenter.getpostman.com/view/198173/myscontroller/RWEmHGeT#1d695865-c9c4-6738-e2b5-d75b31a880b7)
-There is a todo to add Swagger UI as part of the server.
+All the APIs are exported as [postman collection](https://www.getpostman.com/collections/3f99678c26301d779ebe)  and the docs can be found [here](https://documenter.getpostman.com/view/198173/myscontroller/RWEmHGeT#1d695865-c9c4-6738-e2b5-d75b31a880b7).
+
+There is also a pending task to add Swagger UI as part of the server.
 
 
 ## Screenshots
@@ -21,8 +22,10 @@ Before running the server, set the correct connection type and connection port f
 
 WoT api's are exposed at `https://{host}:8888`
 
-## To run the proxy server:
+## To run the server, by builing manually:
 ```
+git clone https://github.com/tsathishkumar/MySController-rs.git
+cd MySController-rs
 cargo run
 ```
 
@@ -66,61 +69,5 @@ cargo run
 
 Note: If you are using TCP for controller - the port value will be used to create TCP server listening on the specified port. (So it shoud be the address of the machine running MySController)
 
-## TODO
-
-- [x] Gracefully handle connection at both side, i.e never panic and wait for both connections
-- [x] Ability to handle ota requests even when there is no controller connected
-- [x] Ability to restart the node using api
-- [x] Manage nodes and the firmwares installed, expose api's 
-    - GET `/nodes`
-    - POST `/nodes` payload 
-    ```json
-    {
-        "node_id": 1,
-        "node_name": "New switch",
-        "firmware_type": 0,
-        "firmware_version": 0,
-        "desired_firmware_type": 10,
-        "desired_firmware_version": 4,
-        "auto_update": true,
-        "scheduled": true
-    }
-    ```
-    - PUT `/nodes` payload 
-    ```json
-    {
-        "node_id": 1,
-        "node_name": "New switch",
-        "firmware_type": 0,
-        "firmware_version": 0,
-        "desired_firmware_type": 10,
-        "desired_firmware_version": 4,
-        "auto_update": true,
-        "scheduled": true
-    }
-    ```
-    - POST `/nodes/{node_id}/reboot`
-- [x] Get node's firmware type and version from database and use it for ota request from node
-- [x] Handle auto update flag in node 
-    - whenever there is new version for a firmware, it should automatically update all nodes which have auto update as `true` to latest version
-- [x] Manage firmwares type and version, ability to upload newer versions of firmwares, expose apis 
-    - GET `/firmwares` - response `[{"firmware_type": 10, "firmware_version": 1, "firmware_name", "Blink"}]`
-    - DELETE `/firmwares/10/1`
-    - POST `/firmwares/10/1?firmware_name=Blink` - multipart payload `{"firmware_file": <file>}`
-    - PUT `/firmwares/10/1?firmware_name=Blink` - multipart payload `{"firmware_file": <file>}`
-- [x] Improve error handling in api's (handling unique constraint in insert, updating unavailable firmwares etc)    
-- [x] Node name support
-- [x] Improve error handling across project (remove unwraps)
-- [x] Improve logging (parsed message for OTA request etc)
-- [x] Child sensors support
-- [ ] Parse all the data and expose WoT API's using [webthing-rust](https://github.com/mozilla-iot/webthing-rust)
-    Supported sensors:
-    - Temperature
-    - Binary
-    - Dimmer
-    - Motion
-- [ ] Add swagger UI for node/firmware management APIs
-- [ ] Add UI for node/firmware management    
-- [ ] MQTT support
-- [ ] Store the "states" of each nodes - to make it standalone
-- [ ] Beats/Telegraph support - to store "telemetri" data
+## To Contribute
+Check out the [TODO list](https://github.com/tsathishkumar/MySController-rs/wiki/TODO-list), and pick whichever you are interested or raise issues if you have encountered any.
