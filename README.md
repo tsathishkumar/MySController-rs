@@ -110,10 +110,10 @@ Note: If you are using TCP for controller - the port value will be used to creat
 - [x] Child sensors support
 - [ ] Parse all the data and expose WoT API's using [webthing-rust](https://github.com/mozilla-iot/webthing-rust)
     Supported sensors:
-        - Temperature
-        - Binary
-        - Dimmer
-        - Motion
+    - Temperature
+    - Binary
+    - Dimmer
+    - Motion
 - [ ] Add swagger UI for node/firmware management APIs
 - [ ] Add UI for node/firmware management    
 - [ ] MQTT support
