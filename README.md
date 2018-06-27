@@ -24,7 +24,7 @@ Before running the server, set the correct connection type and connection port f
 
 WoT api's are exposed at `https://{host}:8888`
 
-## To run the server, by builing manually:
+## To build and run manually:
 ```
 git clone https://github.com/tsathishkumar/MySController-rs.git
 cd MySController-rs
