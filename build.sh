@@ -10,4 +10,4 @@ sudo make install >/dev/null
 sudo ldconfig
 cd ..
 cargo test
-cargo deb
+cargo deb --target x86_64-unknown-linux-gnu
