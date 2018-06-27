@@ -60,30 +60,33 @@ impl PresentationType {
 
     pub fn thing_type(&self) -> String {
         match *self {
+            PresentationType::Door => "onOffSwitch".to_owned(),
+            PresentationType::Motion => "binarySensor".to_owned(),
             PresentationType::Temp => "multiLevelSensor".to_owned(),
             PresentationType::Binary => "onOffLight".to_owned(),
             PresentationType::Dimmer => "dimmableLight".to_owned(),
-            PresentationType::Motion => "binarySensor".to_owned(),
             _ => "".to_owned(),
         }
     }
 
     pub fn thing_description(&self) -> String {
         match *self {
-            PresentationType::Temp => "Temperature sensor".to_owned(),
+            PresentationType::Door => "Door lock".to_owned(),
+            PresentationType::Motion => "Motion sensor".to_owned(),
             PresentationType::Binary => "Binary switch".to_owned(),
             PresentationType::Dimmer => "Dimmable lamp".to_owned(),
-            PresentationType::Motion => "Motion sensor".to_owned(),
+            PresentationType::Temp => "Temperature sensor".to_owned(),
             _ => "".to_owned(),
         }
     }
 
     pub fn property_types(&self) -> Vec<SetReqType> {
         match *self {
-            PresentationType::Temp => vec![SetReqType::Temp, SetReqType::Status],
+            PresentationType::Door => vec![SetReqType::Armed],
+            PresentationType::Motion => vec![SetReqType::Tripped],
             PresentationType::Binary => vec![SetReqType::Status],
-            PresentationType::Motion => vec![SetReqType::Status],
             PresentationType::Dimmer => vec![SetReqType::Status, SetReqType::Percentage],
+            PresentationType::Temp => vec![SetReqType::Temp, SetReqType::Status],
             _ => Vec::new(),
         }
     }
@@ -135,9 +138,10 @@ mod test {
 
     #[test]
     fn supported_sensor_types() {
-        assert!(PresentationType::Temp.is_supported());
+        assert!(PresentationType::Door.is_supported());
+        assert!(PresentationType::Motion.is_supported());
         assert!(PresentationType::Binary.is_supported());
         assert!(PresentationType::Dimmer.is_supported());
-        assert!(PresentationType::Motion.is_supported());
+        assert!(PresentationType::Temp.is_supported());
     }
 }

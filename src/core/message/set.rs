@@ -162,14 +162,14 @@ enum_from_primitive! {
 
 impl SetReqType {
     pub fn is_supported(&self) -> bool {
-        !(self.property_name().is_empty() || self.data_type().is_empty()
+        !(self.property_name().is_empty()
+            || self.data_type().is_empty()
             || self.description().is_empty())
     }
 
     pub fn is_forwardable(&self) -> bool {
         match *self {
-            SetReqType::Temp => false,
-            SetReqType::Percentage | SetReqType::Status => true,
+            SetReqType::Percentage | SetReqType::Status | SetReqType::Armed => true,
             _ => false,
         }
     }
@@ -180,6 +180,7 @@ impl SetReqType {
             SetReqType::Status => "on",
             SetReqType::Percentage => "level",
             SetReqType::Tripped => "on",
+            SetReqType::Armed => "on",
             _ => "",
         }.to_string()
     }
@@ -188,6 +189,7 @@ impl SetReqType {
         match *self {
             SetReqType::Status => "boolean",
             SetReqType::Tripped => "boolean",
+            SetReqType::Armed => "boolean",
             SetReqType::Temp => "number",
             SetReqType::Percentage => "number",
             _ => "",
@@ -208,6 +210,7 @@ impl SetReqType {
             SetReqType::Status => "Whether the thing is on".to_owned(),
             SetReqType::Percentage => "The level of the thing from 0-100".to_owned(),
             SetReqType::Tripped => "Whether the thing triggered or not".to_owned(),
+            SetReqType::Armed => "Whether the thing armed/normal state".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -228,6 +231,7 @@ mod test {
         assert!(SetReqType::Status.is_supported());
         assert!(SetReqType::Percentage.is_supported());
         assert!(SetReqType::Tripped.is_supported());
+        assert!(SetReqType::Armed.is_supported());
     }
 
     #[test]

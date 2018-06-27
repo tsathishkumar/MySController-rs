@@ -5,7 +5,7 @@ before_install:
 before_script:  
   - cargo install cargo-deb || echo 'cargo-deb already installed, ignoring failure'
 rust:
-  - 1.26.2
+  - stable
 cache: cargo
 script: ./build.sh
 deploy:
