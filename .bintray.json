@@ -19,8 +19,8 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.5.5",
-    "desc": "Added support for Door sensor",
+    "name": "0.5.6",
+    "desc": "Fixed issue of not forwarding set messages to controller",
     "released": "2018-06-27"
   },
   "files": [

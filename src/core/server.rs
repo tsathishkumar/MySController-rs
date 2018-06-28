@@ -22,6 +22,7 @@ pub fn start(
     let (stream_sender, stream_receiver) = channel::unbounded();
     let (internal_sender, internal_receiver) = channel::unbounded();
     let (presentation_sender, presentation_receiver) = channel::unbounded();
+    let (set_sender, set_receiver) = channel::unbounded();
 
     let (controller_out_sender, controller_out_receiver) = channel::unbounded();
 
@@ -29,6 +30,7 @@ pub fn start(
     let internal_response_sender = gateway_out_sender.clone();
     let set_response_sender = gateway_out_sender.clone();
     let presentation_forward_sender = controller_out_sender.clone();
+    let set_forward_sender = controller_out_sender.clone();
 
     let message_interceptor = thread::spawn(move || {
         interceptor::intercept(
@@ -36,13 +38,17 @@ pub fn start(
             &stream_sender,
             &internal_sender,
             &presentation_sender,
-            &in_set_sender,
+            &set_sender,
             &controller_out_sender,
         );
     });
 
-    let set_message_processor = thread::spawn(move || {
+    let set_message_writer = thread::spawn(move || {
         set::handle_from_controller(&set_message_receiver, &set_response_sender);
+    });
+
+    let set_message_reader = thread::spawn(move || {
+        set::handle_from_gateway(&set_receiver, &in_set_sender, &set_forward_sender);
     });
 
     let connection = pool.get().unwrap();
@@ -78,7 +84,8 @@ pub fn start(
     gateway_read_write.join().unwrap();
     controller_read_write.join().unwrap();
     message_interceptor.join().unwrap();
-    set_message_processor.join().unwrap();
+    set_message_writer.join().unwrap();
+    set_message_reader.join().unwrap();
     stream_message_processor.join().unwrap();
     internal_message_processor.join().unwrap();
     presentation_message_processor.join().unwrap();
