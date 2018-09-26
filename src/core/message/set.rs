@@ -177,7 +177,9 @@ impl SetReqType {
     pub fn property_name(&self) -> String {
         match *self {
             SetReqType::Temp => "level",
+            SetReqType::Hum => "level",
             SetReqType::Status => "on",
+            SetReqType::LockStatus => "on",
             SetReqType::Percentage => "level",
             SetReqType::Tripped => "on",
             SetReqType::Armed => "on",
@@ -187,10 +189,12 @@ impl SetReqType {
 
     pub fn data_type(&self) -> &'static str {
         match *self {
-            SetReqType::Status => "boolean",
-            SetReqType::Tripped => "boolean",
-            SetReqType::Armed => "boolean",
+            SetReqType::Status
+            | SetReqType::LockStatus
+            | SetReqType::Tripped
+            | SetReqType::Armed => "boolean",
             SetReqType::Temp => "number",
+            SetReqType::Hum => "number",
             SetReqType::Percentage => "number",
             _ => "",
         }
@@ -207,10 +211,12 @@ impl SetReqType {
     pub fn description(&self) -> String {
         match *self {
             SetReqType::Temp => "Temperature".to_owned(),
+            SetReqType::Hum => "Humidity".to_owned(),
             SetReqType::Status => "Whether the thing is on".to_owned(),
             SetReqType::Percentage => "The level of the thing from 0-100".to_owned(),
             SetReqType::Tripped => "Whether the thing triggered or not".to_owned(),
             SetReqType::Armed => "Whether the thing armed/normal state".to_owned(),
+            SetReqType::LockStatus => "Whether lock is on or not".to_owned(),
             _ => "".to_owned(),
         }
     }

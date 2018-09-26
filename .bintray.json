@@ -19,9 +19,9 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.5.6",
-    "desc": "Fixed issue of not forwarding set messages to controller",
-    "released": "2018-06-27"
+    "name": "0.5.7",
+    "desc": "Build fix after rust upgrade",
+    "released": "2018-09-26"
   },
   "files": [
     {

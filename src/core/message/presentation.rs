@@ -2,6 +2,8 @@ use super::error::ParseError;
 use super::set::SetReqType;
 use num::FromPrimitive;
 use std::fmt;
+use diesel;
+use diesel::prelude::*;
 
 enum_from_primitive! {
     #[derive(DbEnum, Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
@@ -62,9 +64,12 @@ impl PresentationType {
         match *self {
             PresentationType::Door => "onOffSwitch".to_owned(),
             PresentationType::Motion => "binarySensor".to_owned(),
-            PresentationType::Temp => "multiLevelSensor".to_owned(),
+            PresentationType::Smoke => "binarySensor".to_owned(),
             PresentationType::Binary => "onOffLight".to_owned(),
             PresentationType::Dimmer => "dimmableLight".to_owned(),
+            PresentationType::Temp => "multiLevelSensor".to_owned(),
+            PresentationType::Hum => "multiLevelSensor".to_owned(),
+            PresentationType::Lock => "onOffSwitch".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -73,9 +78,12 @@ impl PresentationType {
         match *self {
             PresentationType::Door => "Door lock".to_owned(),
             PresentationType::Motion => "Motion sensor".to_owned(),
+            PresentationType::Smoke => "Smoke sensor".to_owned(),
             PresentationType::Binary => "Binary switch".to_owned(),
             PresentationType::Dimmer => "Dimmable lamp".to_owned(),
             PresentationType::Temp => "Temperature sensor".to_owned(),
+            PresentationType::Hum => "Humidity sensor".to_owned(),
+            PresentationType::Lock => "Lock device".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -84,9 +92,12 @@ impl PresentationType {
         match *self {
             PresentationType::Door => vec![SetReqType::Armed],
             PresentationType::Motion => vec![SetReqType::Tripped],
+            PresentationType::Smoke => vec![SetReqType::Tripped],
             PresentationType::Binary => vec![SetReqType::Status],
             PresentationType::Dimmer => vec![SetReqType::Status, SetReqType::Percentage],
             PresentationType::Temp => vec![SetReqType::Temp, SetReqType::Status],
+            PresentationType::Hum => vec![SetReqType::Hum],
+            PresentationType::Lock => vec![SetReqType::LockStatus],
             _ => Vec::new(),
         }
     }
@@ -140,8 +151,11 @@ mod test {
     fn supported_sensor_types() {
         assert!(PresentationType::Door.is_supported());
         assert!(PresentationType::Motion.is_supported());
+        assert!(PresentationType::Smoke.is_supported());
         assert!(PresentationType::Binary.is_supported());
         assert!(PresentationType::Dimmer.is_supported());
         assert!(PresentationType::Temp.is_supported());
+        assert!(PresentationType::Hum.is_supported());
+        assert!(PresentationType::Lock.is_supported());
     }
 }
