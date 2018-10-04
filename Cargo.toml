@@ -30,6 +30,9 @@ bytes = "0.4"
 log = "0.4"
 webthing = "0.5"
 
+[target.armv7-unknown-linux-gnueabihf]
+linker = "arm-linux-gnueabihf-gcc-4.7"
+
 [package.metadata.deb]
 maintainer = "Sathishkumar <tsatiz@gmail.com>"
 extended-description = """\
@@ -38,15 +41,21 @@ to perform the ota updates."""
 depends = "$auto"
 section = "rust"
 priority = "optional"
-assets = [
-    ["target/x86_64-unknown-linux-gnu/release/myscontroller-rs", "/usr/local/bin/myscontroller-rs", "755"],
-    ["conf.ini", "/etc/myscontroller-rs/conf.ini", "644"],
-    ["service/systemd/myscontroller-rs.service", "/etc/systemd/system/myscontroller-rs.service", "644"],
-]
 conf-files = [
   "/etc/myscontroller-rs/conf.ini",
   "/etc/systemd/system/myscontroller-rs.service"
 ]
 
-[target.armv7-unknown-linux-gnueabihf]
-linker = "arm-linux-gnueabihf-gcc-4.7"
+[package.metadata.deb.variants.x86_64]
+assets = [
+    ["target/x86_64-unknown-linux-gnu/release/myscontroller-rs", "/usr/local/bin/myscontroller-rs", "755"],
+    ["conf.ini", "/etc/myscontroller-rs/conf.ini", "644"],
+    ["service/systemd/myscontroller-rs.service", "/etc/systemd/system/myscontroller-rs.service", "644"],
+]
+
+[package.metadata.deb.variants.armv7]
+assets = [
+    ["target/armv7-unknown-linux-gnueabihf/release/myscontroller-rs", "/usr/local/bin/myscontroller-rs", "755"],
+    ["conf.ini", "/etc/myscontroller-rs/conf.ini", "644"],
+    ["service/systemd/myscontroller-rs.service", "/etc/systemd/system/myscontroller-rs.service", "644"],
+]
