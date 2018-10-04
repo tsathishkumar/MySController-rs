@@ -32,6 +32,15 @@
         "deb_component": "main",
         "deb_architecture": "amd64"
       }
+    },
+    {
+      "includePattern": "target/armv7-unknown-linux-gnueabihf/debian/(.*\.deb)",
+      "uploadPattern": "$1",
+      "matrixParams": {
+        "deb_distribution": "vivid",
+        "deb_component": "main",
+        "deb_architecture": "armhf"
+      }
     }
   ],
   "publish": true
