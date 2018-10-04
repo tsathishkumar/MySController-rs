@@ -30,9 +30,6 @@ bytes = "0.4"
 log = "0.4"
 webthing = "0.5"
 
-[target.armv7-unknown-linux-gnueabihf]
-linker = "arm-linux-gnueabihf-gcc-4.7"
-
 [package.metadata.deb]
 maintainer = "Sathishkumar <tsatiz@gmail.com>"
 extended-description = """\
