@@ -9,11 +9,11 @@ make >/dev/null
 sudo make install >/dev/null
 sudo ldconfig
 cd ..
-sudo apt-get install gcc-4.7-multilib-arm-linux-gnueabihf
+sudo apt-get install -qq gcc-arm-linux-gnueabihf
 rustup target add armv7-unknown-linux-gnueabihf
 
 cargo test
-cargo build --target x86_64-unknown-linux-gnu
-CC=arm-linux-gnueabihf-gcc cargo build --target armv7-unknown-linux-gnueabihf
+cargo build --release --target x86_64-unknown-linux-gnu
+cargo build --release --target armv7-unknown-linux-gnueabihf
 cargo deb --no-build --variant=x86_64 
-cargo deb --no-build --variant=armv7 
+cargo deb --no-build --variant=armv7
