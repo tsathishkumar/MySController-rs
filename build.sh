@@ -14,6 +14,6 @@ rustup target add armv7-unknown-linux-gnueabihf
 
 cargo test
 cargo build --release --target x86_64-unknown-linux-gnu
-cargo build --release --target armv7-unknown-linux-gnueabihf
+OPENSSL_DIR=../openssl-1.1.0h cargo build --release --target armv7-unknown-linux-gnueabihf
 cargo deb --no-build --variant=x86_64 
 cargo deb --no-build --variant=armv7
