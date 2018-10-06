@@ -21,10 +21,10 @@ cargo build --release --target x86_64-unknown-linux-gnu
 # export ARCH=arm
 # export CC=arm-linux-gnueabihf-gcc
 # cd openssl-1.0.1t && ./config shared && make && cd -
-ls -ltr ./openssl-1.1.0h
-export OPENSSL_DIR=./openssl-1.1.0h
-export OPENSSL_LIB_DIR=./openssl-1.1.0h
-export OPENSSL_INCLUDE_DIR=./openssl-1.1.0h/include
+ls -ltr /home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.0h
+export OPENSSL_DIR=/home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.0h
+export OPENSSL_LIB_DIR=/home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.0h
+export OPENSSL_INCLUDE_DIR=/home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.0h/include
 
 PKG_CONFIG_ALLOW_CROSS=1 cargo build --release --target armv7-unknown-linux-gnueabihf
 cargo deb --no-build --variant=x86_64 
