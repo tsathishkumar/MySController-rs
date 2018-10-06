@@ -1,9 +1,9 @@
 #!/bin/bash -e
 # Manually build OpenSSL. The openssl crate requires 1.0.2+, but Travis CI
 # only includes 1.0.0.
-wget https://www.openssl.org/source/openssl-1.1.0h.tar.gz
-tar xzf openssl-1.1.0h.tar.gz
-cd openssl-1.1.0h
+wget https://www.openssl.org/source/openssl-1.1.1.tar.gz
+tar xzf openssl-1.1.1.tar.gz
+cd openssl-1.1.1
 ./config --prefix=/usr/local shared
 make >/dev/null
 sudo make install >/dev/null
@@ -22,8 +22,8 @@ cargo build --release --target x86_64-unknown-linux-gnu
 # export CC=arm-linux-gnueabihf-gcc
 # cd openssl-1.0.1t && ./config shared && make && cd -
 
-export OPENSSL_LIB_DIR=/home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.0h
-export OPENSSL_INCLUDE_DIR=/home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.0h/include
+export OPENSSL_LIB_DIR=/home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.1
+export OPENSSL_INCLUDE_DIR=/home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.1/include
 
 PKG_CONFIG_ALLOW_CROSS=1 cargo build --release --target armv7-unknown-linux-gnueabihf
 cargo deb --no-build --variant=x86_64
