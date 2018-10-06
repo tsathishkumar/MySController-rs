@@ -21,7 +21,7 @@ cargo build --release --target x86_64-unknown-linux-gnu
 # export ARCH=arm
 # export CC=arm-linux-gnueabihf-gcc
 # cd openssl-1.0.1t && ./config shared && make && cd -
-
+ls -ltr ./openssl-1.1.0h
 export OPENSSL_DIR=./openssl-1.1.0h
 export OPENSSL_INCLUDE_DIR=./openssl-1.1.0h/include
 
