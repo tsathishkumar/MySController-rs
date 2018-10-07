@@ -21,7 +21,6 @@ cargo build --release --target x86_64-unknown-linux-gnu
 # export ARCH=arm
 # export CC=arm-linux-gnueabihf-gcc
 # cd openssl-1.0.1t && ./config shared && make && cd -
-apt-get update &&  apt-get install pkg-config
 apt-get install libudev-dev:armhf
 
 export OPENSSL_LIB_DIR=/home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.1
