@@ -21,6 +21,11 @@ cargo build --release --target x86_64-unknown-linux-gnu
 # export ARCH=arm
 # export CC=arm-linux-gnueabihf-gcc
 # cd openssl-1.0.1t && ./config shared && make && cd -
+sudo dpkg --add-architecture armhf
+
+deb [arch=armel,armhf] http://ports.ubuntu.com/ubuntu-ports trusty-updates main universe
+sudo apt-get update
+
 sudo apt-get install libudev-dev:armhf
 
 export OPENSSL_LIB_DIR=/home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.1
