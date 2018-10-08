@@ -10,7 +10,7 @@ sudo make install >/dev/null
 sudo ldconfig
 cd ..
 sudo apt-get install -qq gcc-arm-linux-gnueabihf
-rustup target add armv7-unknown-linux-gnueabihf
+# rustup target add armv7-unknown-linux-gnueabihf
 
 cargo test
 cargo build --release --target x86_64-unknown-linux-gnu
@@ -21,14 +21,14 @@ cargo build --release --target x86_64-unknown-linux-gnu
 # export ARCH=arm
 # export CC=arm-linux-gnueabihf-gcc
 # cd openssl-1.0.1t && ./config shared && make && cd -
-sudo dpkg --add-architecture armhf
-sudo apt-get update
+# sudo dpkg --add-architecture armhf
+# sudo apt-get update
 
-sudo apt-get install libudev-dev:armhf
+# sudo apt-get install libudev-dev:armhf
 
-export OPENSSL_LIB_DIR=/home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.1
-export OPENSSL_INCLUDE_DIR=/home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.1/include
+# export OPENSSL_LIB_DIR=/home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.1
+# export OPENSSL_INCLUDE_DIR=/home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.1/include
 
-PKG_CONFIG_ALLOW_CROSS=1 cargo build --release --target armv7-unknown-linux-gnueabihf
+# PKG_CONFIG_ALLOW_CROSS=1 cargo build --release --target armv7-unknown-linux-gnueabihf
 cargo deb --no-build --variant=x86_64
-cargo deb --no-build --variant=armv7
+# cargo deb --no-build --variant=armv7
