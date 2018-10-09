@@ -1,7 +1,7 @@
 use actix::*;
 use actix_web::{HttpRequest, Result};
-use channel;
-use model::db::ConnDsl;
+use crate::channel;
+use crate::model::db::ConnDsl;
 
 pub struct AppState {
     pub db: Addr<Syn, ConnDsl>,

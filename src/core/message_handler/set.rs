@@ -1,5 +1,5 @@
-use channel::{Receiver, Sender};
-use core::message::set::*;
+use crate::channel::{Receiver, Sender};
+use crate::core::message::set::*;
 
 pub fn handle_from_controller(
     set_message_receiver: &Receiver<SetMessage>,

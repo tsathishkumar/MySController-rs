@@ -2,8 +2,6 @@ use super::error::ParseError;
 use super::set::SetReqType;
 use num::FromPrimitive;
 use std::fmt;
-use diesel;
-use diesel::prelude::*;
 
 enum_from_primitive! {
     #[derive(DbEnum, Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
@@ -132,7 +130,7 @@ impl PresentationMessage {
 }
 
 impl fmt::Display for PresentationMessage {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let _cmd = 0;
         let _sub_type = (self.sub_type) as u8;
         write!(

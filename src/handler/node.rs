@@ -5,8 +5,8 @@ use diesel;
 use diesel::prelude::*;
 use diesel::result::DatabaseErrorKind;
 use diesel::result::Error::DatabaseError;
-use model::db::ConnDsl;
-use model::node::Node;
+use crate::model::db::ConnDsl;
+use crate::model::node::Node;
 
 #[derive(Serialize, Deserialize)]
 pub struct NewNode {
@@ -49,7 +49,7 @@ impl Handler<ListNodes> for ConnDsl {
     type Result = Result<Vec<Node>, Error>;
 
     fn handle(&mut self, _list_nodes: ListNodes, _: &mut Self::Context) -> Self::Result {
-        use model::node::nodes::dsl::*;
+        use crate::model::node::nodes::dsl::*;
         let conn = &self.0.get().map_err(error::ErrorInternalServerError)?;
         let existing_nodes = nodes
             .load::<Node>(conn)
@@ -76,7 +76,7 @@ impl Handler<NodeUpdate> for ConnDsl {
     type Result = Result<Msgs, diesel::result::Error>;
 
     fn handle(&mut self, node_update: NodeUpdate, _: &mut Self::Context) -> Self::Result {
-        use model::node::nodes::dsl::*;
+        use crate::model::node::nodes::dsl::*;
         match &self.0.get() {
             Ok(conn) => {
                 let updated = diesel::update(nodes)
@@ -113,7 +113,7 @@ impl Handler<DeleteNode> for ConnDsl {
     type Result = Result<Msgs, diesel::result::Error>;
 
     fn handle(&mut self, delete_node: DeleteNode, _: &mut Self::Context) -> Self::Result {
-        use model::node::nodes::dsl::*;
+        use crate::model::node::nodes::dsl::*;
         match &self.0.get() {
             Ok(conn) => {
                 let updated = diesel::delete(nodes)
@@ -143,7 +143,7 @@ impl Handler<NewNode> for ConnDsl {
     type Result = Result<Msgs, diesel::result::Error>;
 
     fn handle(&mut self, new_node: NewNode, _: &mut Self::Context) -> Self::Result {
-        use model::node::nodes::dsl::*;
+        use crate::model::node::nodes::dsl::*;
         match &self.0.get() {
             Ok(conn) => {
                 let new_node = Node {
@@ -183,7 +183,7 @@ impl Handler<GetNode> for ConnDsl {
     type Result = Result<Node, ()>;
 
     fn handle(&mut self, node: GetNode, _: &mut Self::Context) -> Self::Result {
-        use model::node::nodes::dsl::*;
+        use crate::model::node::nodes::dsl::*;
 
         let conn = &self.0.get().map_err(|_| ())?;
 

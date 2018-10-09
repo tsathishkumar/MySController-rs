@@ -1,6 +1,6 @@
 use super::error::ParseError;
 use hex;
-use model::firmware::Firmware;
+use crate::model::firmware::Firmware;
 use num::FromPrimitive;
 use std::fmt;
 use std::mem;
@@ -89,7 +89,7 @@ impl StreamMessage {
 }
 
 impl fmt::Display for StreamMessage {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let _cmd = 4;
         let _sub_type = (self.sub_type) as u8;
         let payload = match self.payload {

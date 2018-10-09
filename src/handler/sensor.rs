@@ -3,8 +3,8 @@ use actix::*;
 use actix_web::*;
 use diesel;
 use diesel::prelude::*;
-use model::db::ConnDsl;
-use model::sensor::Sensor;
+use crate::model::db::ConnDsl;
+use crate::model::sensor::Sensor;
 
 pub struct GetSensor {
     pub node_id: i32,
@@ -35,7 +35,7 @@ impl Handler<ListSensors> for ConnDsl {
     type Result = Result<Vec<Sensor>, Error>;
 
     fn handle(&mut self, _list_sensors: ListSensors, _: &mut Self::Context) -> Self::Result {
-        use model::sensor::sensors::dsl::*;
+        use crate::model::sensor::sensors::dsl::*;
         let conn = &self.0.get().map_err(error::ErrorInternalServerError)?;
         let existing_sensors = sensors
             .load::<Sensor>(conn)
@@ -48,7 +48,7 @@ impl Handler<DeleteSensor> for ConnDsl {
     type Result = Result<Msgs, diesel::result::Error>;
 
     fn handle(&mut self, delete_sensor: DeleteSensor, _: &mut Self::Context) -> Self::Result {
-        use model::sensor::sensors::dsl::*;
+        use crate::model::sensor::sensors::dsl::*;
         match &self.0.get() {
             Ok(conn) => {
                 let updated = diesel::delete(sensors)
@@ -79,7 +79,7 @@ impl Handler<GetSensor> for ConnDsl {
     type Result = Result<Sensor, ()>;
 
     fn handle(&mut self, sensor: GetSensor, _: &mut Self::Context) -> Self::Result {
-        use model::sensor::sensors::dsl::*;
+        use crate::model::sensor::sensors::dsl::*;
 
         let conn = &self.0.get().map_err(|_| ())?;
 

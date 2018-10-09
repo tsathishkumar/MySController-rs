@@ -1,16 +1,16 @@
-extern crate crossbeam_channel as channel;
+use crossbeam_channel as channel;
 #[macro_use]
 extern crate diesel_migrations;
-extern crate num_cpus;
+use num_cpus;
 
-extern crate actix;
-extern crate actix_web;
-extern crate diesel;
+use actix;
+
+
 #[macro_use]
 extern crate log;
-extern crate env_logger;
-extern crate ini;
-extern crate myscontroller_rs;
+use env_logger;
+
+
 
 use actix::*;
 use actix_web::{http::Method, middleware, middleware::cors::Cors, server, App};

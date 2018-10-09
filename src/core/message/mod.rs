@@ -85,7 +85,7 @@ impl CommandMessage {
 }
 
 impl fmt::Display for CommandMessage {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             CommandMessage::Stream(ref message) => write!(f, "{}", message.to_string()),
             CommandMessage::Presentation(ref message) => write!(f, "{}", message.to_string()),
@@ -116,7 +116,7 @@ pub fn command_type(message_string: &String) -> Option<CommandType> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use model::firmware::Firmware;
+    use crate::model::firmware::Firmware;
     use std::path::PathBuf;
 
     #[test]

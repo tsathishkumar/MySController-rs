@@ -1,12 +1,12 @@
 use actix_web::{error, multipart, AsyncResponder, Error, FutureResponse, HttpMessage, HttpRequest,
                 HttpResponse, Query};
-use api::index::AppState;
+use crate::api::index::AppState;
 use futures::future;
 use futures::{Future, Stream};
-use handler::firmware::*;
-use handler::response::Msgs;
+use crate::handler::firmware::*;
+use crate::handler::response::Msgs;
 use http::StatusCode;
-use model::firmware::Firmware;
+use crate::model::firmware::Firmware;
 use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
@@ -196,7 +196,7 @@ fn get_firmware(
 
 fn handle_multipart_item(
     item: multipart::MultipartItem<HttpRequest<AppState>>,
-) -> Box<Stream<Item = String, Error = Error>> {
+) -> Box<dyn Stream<Item = String, Error = Error>> {
     match item {
         multipart::MultipartItem::Field(field) => Box::new(save_file(field).into_stream()),
         multipart::MultipartItem::Nested(mp) => Box::new(
@@ -209,7 +209,7 @@ fn handle_multipart_item(
 
 pub fn save_file(
     field: multipart::Field<HttpRequest<AppState>>,
-) -> Box<Future<Item = String, Error = Error>> {
+) -> Box<dyn Future<Item = String, Error = Error>> {
     //TODO: create unique temp files for each upload to handle concurrent uploads
     let file_path_string = "firmware.hex";
     let file_path: String = file_path_string.to_owned();

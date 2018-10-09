@@ -1,12 +1,12 @@
-use channel::{Receiver, Sender};
-use core::message::stream::*;
+use crate::channel::{Receiver, Sender};
+use crate::core::message::stream::*;
 use diesel;
 use diesel::prelude::*;
 use diesel::r2d2::ConnectionManager;
-use model::firmware::firmwares::dsl::firmwares;
-use model::firmware::Firmware;
-use model::node::nodes::dsl::*;
-use model::node::Node;
+use crate::model::firmware::firmwares::dsl::firmwares;
+use crate::model::firmware::Firmware;
+use crate::model::node::nodes::dsl::*;
+use crate::model::node::Node;
 use r2d2::*;
 
 pub fn handle(

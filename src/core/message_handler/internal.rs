@@ -1,9 +1,9 @@
-use channel::{Receiver, Sender};
+use crate::channel::{Receiver, Sender};
 use diesel;
 use diesel::prelude::*;
 use diesel::r2d2::ConnectionManager;
-use model::node::nodes::dsl;
-use model::node::Node;
+use crate::model::node::nodes::dsl;
+use crate::model::node::Node;
 use r2d2::*;
 
 const MIN_NODE_ID: u8 = 1;

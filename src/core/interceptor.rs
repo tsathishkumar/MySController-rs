@@ -1,5 +1,5 @@
 use super::message::{presentation::*, set::*, stream::*, CommandMessage};
-use channel::{Receiver, Sender};
+use crate::channel::{Receiver, Sender};
 
 pub fn intercept(
     receiver: &Receiver<String>,

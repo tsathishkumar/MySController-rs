@@ -1,5 +1,5 @@
-use channel;
-use channel::{Receiver, Sender};
+use crate::channel;
+use crate::channel::{Receiver, Sender};
 use serialport;
 use serialport::prelude::*;
 use std::io;
@@ -40,7 +40,7 @@ impl ConnectionType {
 pub trait Connection: Send {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize>;
     fn write(&mut self, buf: &[u8]) -> Result<usize>;
-    fn clone(&self) -> Box<Connection>;
+    fn clone(&self) -> Box<dyn Connection>;
     fn port(&self) -> &String;
 
     fn write_loop(
@@ -114,7 +114,7 @@ pub trait Connection: Send {
 
 pub struct SerialConnection {
     pub serial_port: String,
-    pub stream: Box<serialport::SerialPort>,
+    pub stream: Box<dyn serialport::SerialPort>,
 }
 
 pub struct TcpConnection {
@@ -163,7 +163,7 @@ fn consume(
     receiver
 }
 
-pub fn create_connection(connection_type: ConnectionType, port: &String) -> Box<Connection> {
+pub fn create_connection(connection_type: ConnectionType, port: &String) -> Box<dyn Connection> {
     match connection_type {
         ConnectionType::Serial => create_serial_connection(port),
         ConnectionType::TcpClient => {
@@ -188,7 +188,7 @@ pub fn create_connection(connection_type: ConnectionType, port: &String) -> Box<
         ConnectionType::TcpServer => {
             let stream = TcpListener::bind(port).unwrap();
             info!("Server listening on -- {}", port);
-            let (mut stream, _socket) = stream.accept().unwrap();
+            let (stream, _socket) = stream.accept().unwrap();
             info!("Accepted connection from {:?}", _socket);
             Box::new(TcpConnection {
                 tcp_port: port.clone(),
@@ -198,7 +198,7 @@ pub fn create_connection(connection_type: ConnectionType, port: &String) -> Box<
     }
 }
 
-fn create_serial_connection(port: &String) -> Box<Connection> {
+fn create_serial_connection(port: &String) -> Box<dyn Connection> {
     let mut settings: SerialPortSettings = Default::default();
     settings.timeout = Duration::from_millis(10);
     settings.baud_rate = BaudRate::Baud38400;
@@ -230,7 +230,7 @@ impl Connection for SerialConnection {
         self.stream.write(buf)
     }
 
-    fn clone(&self) -> Box<Connection> {
+    fn clone(&self) -> Box<dyn Connection> {
         Box::new(SerialConnection {
             serial_port: self.serial_port.clone(),
             stream: self.stream.try_clone().unwrap(),
@@ -251,7 +251,7 @@ impl Connection for TcpConnection {
         self.tcp_stream.write(buf)
     }
 
-    fn clone(&self) -> Box<Connection> {
+    fn clone(&self) -> Box<dyn Connection> {
         Box::new(TcpConnection {
             tcp_port: self.tcp_port.clone(),
             tcp_stream: self.tcp_stream.try_clone().unwrap(),

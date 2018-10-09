@@ -5,9 +5,9 @@ use diesel;
 use diesel::prelude::*;
 use diesel::result::DatabaseErrorKind;
 use diesel::result::Error::DatabaseError;
-use model;
-use model::db::ConnDsl;
-use model::firmware::Firmware;
+use crate::model;
+use crate::model::db::ConnDsl;
+use crate::model::firmware::Firmware;
 
 #[derive(Serialize, Deserialize)]
 pub struct FirmwareDto {
@@ -31,7 +31,7 @@ impl Handler<CreateOrUpdate> for ConnDsl {
     type Result = Result<Msgs, Msgs>;
 
     fn handle(&mut self, create_or_update: CreateOrUpdate, _: &mut Self::Context) -> Self::Result {
-        use model::firmware::firmwares::dsl::*;
+        use crate::model::firmware::firmwares::dsl::*;
         match create_or_update {
             CreateOrUpdate::Create(new_firmware) => self.0
                 .get()
@@ -142,7 +142,7 @@ impl NewFirmware {
 }
 
 fn auto_update_nodes(connection: &SqliteConnection, new_firmware: Firmware) -> Result<Msgs, Msgs> {
-    use model::node::nodes::dsl::*;
+    use crate::model::node::nodes::dsl::*;
     diesel::update(nodes)
         .filter(auto_update.eq(true))
         .filter(
@@ -190,7 +190,7 @@ impl Handler<ListFirmwares> for ConnDsl {
     type Result = Result<Vec<FirmwareDto>, Error>;
 
     fn handle(&mut self, _list_firmwares: ListFirmwares, _: &mut Self::Context) -> Self::Result {
-        use model::firmware::firmwares::dsl::*;
+        use crate::model::firmware::firmwares::dsl::*;
         let conn = &self.0.get().map_err(error::ErrorInternalServerError)?;
         let existing_firmwares = firmwares
             .load::<Firmware>(conn)
@@ -216,7 +216,7 @@ impl Handler<DeleteFirmware> for ConnDsl {
     type Result = Result<Msgs, diesel::result::Error>;
 
     fn handle(&mut self, delete_firmware: DeleteFirmware, _: &mut Self::Context) -> Self::Result {
-        use model::firmware::firmwares::dsl::*;
+        use crate::model::firmware::firmwares::dsl::*;
         match &self.0.get() {
             Ok(conn) => {
                 let updated = diesel::delete(firmwares)
@@ -256,7 +256,7 @@ impl Handler<GetFirmware> for ConnDsl {
     type Result = Result<Firmware, ()>;
 
     fn handle(&mut self, firmware: GetFirmware, _: &mut Self::Context) -> Self::Result {
-        use model::firmware::firmwares::dsl::*;
+        use crate::model::firmware::firmwares::dsl::*;
 
         let conn = &self.0.get().map_err(|_| ())?;
 

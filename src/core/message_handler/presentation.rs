@@ -1,10 +1,10 @@
-use channel::{Receiver, Sender};
-use core::message::presentation::PresentationMessage;
+use crate::channel::{Receiver, Sender};
+use crate::core::message::presentation::PresentationMessage;
 use diesel;
 use diesel::prelude::*;
 use diesel::r2d2::ConnectionManager;
-use model::sensor::sensors::dsl::*;
-use model::sensor::Sensor;
+use crate::model::sensor::sensors::dsl::*;
+use crate::model::sensor::Sensor;
 use r2d2::*;
 
 pub fn handle(

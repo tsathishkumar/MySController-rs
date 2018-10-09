@@ -1,9 +1,9 @@
-use core::message::presentation::PresentationType;
+use crate::core::message::presentation::PresentationType;
 
 table! {
     use diesel::sql_types::Integer;
     use diesel::sql_types::Text;
-    use core::message::presentation::PresentationTypeMapping;
+    use crate::core::message::presentation::PresentationTypeMapping;
 
     sensors (node_id, child_sensor_id) {
         node_id -> Integer,

@@ -1,5 +1,5 @@
 use super::error::ParseError;
-use model::sensor::Sensor;
+use crate::model::sensor::Sensor;
 use num::FromPrimitive;
 use serde_json;
 use std::fmt;
@@ -13,7 +13,7 @@ pub struct SetMessage {
 }
 
 impl fmt::Display for SetMessage {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let _cmd = 1;
         write!(
             f,
@@ -59,7 +59,7 @@ pub struct Value {
 }
 
 impl fmt::Display for Value {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{};{}", self.set_type as u8, &self.value)
     }
 }

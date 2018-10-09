@@ -1,11 +1,11 @@
 pub mod adapter;
 
-use channel::{Receiver, Sender};
-use core::message::set::SetMessage;
+use crate::channel::{Receiver, Sender};
+use crate::core::message::set::SetMessage;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
-use model::node::Node;
-use model::sensor::Sensor;
+use crate::model::node::Node;
+use crate::model::sensor::Sensor;
 use serde_json;
 use std::sync::{Arc, RwLock, Weak};
 use std::thread;
@@ -18,10 +18,10 @@ struct Generator;
 impl ActionGenerator for Generator {
     fn generate(
         &self,
-        _thing: Weak<RwLock<Box<Thing>>>,
+        _thing: Weak<RwLock<Box<dyn Thing>>>,
         name: String,
         input: Option<&serde_json::Value>,
-    ) -> Option<Box<Action>> {
+    ) -> Option<Box<dyn Action>> {
         let _input = match input {
             Some(v) => match v.as_object() {
                 Some(o) => Some(o.clone()),
@@ -40,16 +40,16 @@ impl ActionGenerator for Generator {
 fn get_things(
     pool: Pool<ConnectionManager<SqliteConnection>>,
     set_message_sender: Sender<SetMessage>,
-) -> Vec<(Sensor, Arc<RwLock<Box<Thing + 'static>>>)> {
+) -> Vec<(Sensor, Arc<RwLock<Box<dyn Thing + 'static>>>)> {
     let mut sensor_list: Vec<Sensor> = vec![];
     let mut node_list: Vec<Node> = vec![];
-    let mut things: Vec<(Sensor, Arc<RwLock<Box<Thing + 'static>>>)> = Vec::new();
+    let mut things: Vec<(Sensor, Arc<RwLock<Box<dyn Thing + 'static>>>)> = Vec::new();
 
     {
         match pool.get() {
             Ok(conn) => {
-                use model::node::nodes::dsl::*;
-                use model::sensor::sensors::dsl::*;
+                use crate::model::node::nodes::dsl::*;
+                use crate::model::sensor::sensors::dsl::*;
 
                 match nodes.load::<Node>(&conn) {
                     Ok(existing_nodes) => node_list = existing_nodes,
@@ -87,7 +87,7 @@ fn get_things(
     things
 }
 
-fn set_property(set_message: SetMessage, thing: &Arc<RwLock<Box<Thing + 'static>>>) {
+fn set_property(set_message: SetMessage, thing: &Arc<RwLock<Box<dyn Thing + 'static>>>) {
     info!("Received {:?}", &set_message);
     match set_message.value.to_json() {
         Some(new_value) => {
@@ -117,7 +117,7 @@ fn set_property(set_message: SetMessage, thing: &Arc<RwLock<Box<Thing + 'static>
 }
 
 fn handle_sensor_outputs(
-    things: &Vec<(Sensor, Arc<RwLock<Box<Thing + 'static>>>)>,
+    things: &Vec<(Sensor, Arc<RwLock<Box<dyn Thing + 'static>>>)>,
     in_set_receiver: Receiver<SetMessage>,
 ) {
     loop {
@@ -145,7 +145,7 @@ pub fn start_server(
     thread::spawn(move || {
         handle_sensor_outputs(&things_clone, in_set_receiver);
     });
-    let things: Vec<Arc<RwLock<Box<Thing + 'static>>>> =
+    let things: Vec<Arc<RwLock<Box<dyn Thing + 'static>>>> =
         things.into_iter().map(|(_, thing)| thing).collect();
     thread::spawn(move || {
         if !things.is_empty() {

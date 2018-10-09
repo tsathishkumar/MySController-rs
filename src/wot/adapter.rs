@@ -1,6 +1,6 @@
-use channel::Sender;
-use core::message::set::{SetMessage, SetReqType, Value};
-use model::sensor::Sensor;
+use crate::channel::Sender;
+use crate::core::message::set::{SetMessage, SetReqType, Value};
+use crate::model::sensor::Sensor;
 use serde_json;
 use std::sync::{Arc, RwLock};
 use webthing::property::EmptyValueForwarder;
@@ -42,7 +42,7 @@ pub fn build_thing(
     name: String,
     sensor: Sensor,
     set_message_sender: Sender<SetMessage>,
-) -> Option<(Sensor, Arc<RwLock<Box<Thing + 'static>>>)> {
+) -> Option<(Sensor, Arc<RwLock<Box<dyn Thing + 'static>>>)> {
     match sensor.sensor_type.is_supported() {
         true => {
             let mut thing = BaseThing::new(
@@ -84,7 +84,7 @@ fn build_property(
         "description": set_type.description(),
         "unit": set_type.unit(),
     });
-    let value_forwarder: Option<Box<ValueForwarder>> = match set_type.is_forwardable() {
+    let value_forwarder: Option<Box<dyn ValueForwarder>> = match set_type.is_forwardable() {
         true => Some(Box::new(PropertyValueForwarder {
             sensor,
             set_type,
