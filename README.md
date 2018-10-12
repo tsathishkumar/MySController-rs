@@ -29,8 +29,14 @@ WoT api's are exposed at `https://{host}:8888`
 ```
 git clone https://github.com/tsathishkumar/MySController-rs.git
 cd MySController-rs
-cargo run
+sudo cargo run
 ```
+
+If you notice any errors, make sure you have the latest rust toolchain:
+```
+rustup default beta
+```
+Beta version of toolchain is necessary for features like cargo `edition` field.
 
 ## To install and run as a service in a debian/ubuntu flavour machine
 - Add the following to your /etc/apt/sources.list system config file:
