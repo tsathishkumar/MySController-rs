@@ -19,9 +19,9 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.5.7",
-    "desc": "Build fix after rust upgrade",
-    "released": "2018-09-26"
+    "name": "0.6.0",
+    "desc": "Added support for network topologies",
+    "released": "2018-10-16"
   },
   "files": [
     {
