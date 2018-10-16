@@ -74,9 +74,23 @@ Beta version of toolchain is necessary for features like cargo `edition` field.
     ```bash
     systemctl restart myscontroller-rs.service
     ```
+    
+Note: If you are using TCP for controller - the port value will be used to create TCP server listening on the specified port. (So it shoud be the address of the machine running MySController, 0.0.0.0 always)
+
+## To add the Things in Mozilla IoT Gateway:    
+    
+1. Add Web Thing add-on as follows
+    ```
+    Settings -> Add-ons -> Add -> Web Thing
+    ```
+2. Click on configure on Web Thing add-on and add the myscontroller-rs server url
+    ```
+    http://localhost:8888
+    ```
+3. Go to `Things` page and click on `+` and you should be able to see all the sensors that are available through my-sensors network.
 
 
-Note: If you are using TCP for controller - the port value will be used to create TCP server listening on the specified port. (So it shoud be the address of the machine running MySController)
+
 
 ## To Contribute
 Check out the [TODO list](https://github.com/tsathishkumar/MySController-rs/wiki/TODO-list), and pick whichever you are interested or raise issues if you have encountered any.
