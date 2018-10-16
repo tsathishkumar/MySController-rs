@@ -155,6 +155,7 @@ impl Handler<NewNode> for ConnDsl {
                     desired_firmware_version: new_node.firmware_version,
                     auto_update: new_node.auto_update,
                     scheduled: new_node.scheduled,
+                    parent_node_id: 0,
                 };
 
                 let result = diesel::insert_into(nodes).values(&new_node).execute(conn);

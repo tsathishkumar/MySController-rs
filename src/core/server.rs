@@ -31,6 +31,7 @@ pub fn start(
     let set_response_sender = gateway_out_sender.clone();
     let presentation_forward_sender = controller_out_sender.clone();
     let set_forward_sender = controller_out_sender.clone();
+    let internal_forward_sender = controller_out_sender.clone();
 
     let message_interceptor = thread::spawn(move || {
         interceptor::intercept(
@@ -60,7 +61,7 @@ pub fn start(
     let connection = pool.get().unwrap();
 
     let internal_message_processor = thread::spawn(move || {
-        internal::handle(&internal_receiver, &internal_response_sender, connection);
+        internal::handle(&internal_receiver, &internal_response_sender, &internal_forward_sender, connection);
     });
 
     let connection = pool.get().unwrap();

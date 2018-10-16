@@ -8,6 +8,7 @@ table! {
         desired_firmware_version -> Integer,
         auto_update -> Bool,
         scheduled -> Bool,
+        parent_node_id -> Integer,
     }
 }
 
@@ -22,6 +23,7 @@ pub struct Node {
     pub desired_firmware_version: i32,
     pub auto_update: bool,
     pub scheduled: bool,
+    pub parent_node_id: i32,
 }
 
 impl Node {

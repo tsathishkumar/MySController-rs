@@ -1,5 +1,6 @@
 pub mod error;
 pub mod presentation;
+pub mod internal;
 pub mod set;
 pub mod stream;
 
@@ -23,7 +24,7 @@ pub enum CommandMessage {
     Presentation(presentation::PresentationMessage),
     Set(set::SetMessage),
     // Req(ReqMessage),
-    // Internal(InternalMessage),
+    Internal(internal::InternalMessage),
     Other(String),
     Stream(stream::StreamMessage),
 }
@@ -63,6 +64,13 @@ impl CommandMessage {
                 ack,
                 payload,
             )?),
+            CommandType::INTERNAL => CommandMessage::Internal(internal::InternalMessage::build(
+                node_id,
+                child_sensor_id,
+                sub_type,
+                ack,
+                payload,
+            )?),
             CommandType::PRESENTATION => {
                 CommandMessage::Presentation(presentation::PresentationMessage::build(
                     node_id,
@@ -87,9 +95,10 @@ impl CommandMessage {
 impl fmt::Display for CommandMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            CommandMessage::Stream(ref message) => write!(f, "{}", message.to_string()),
             CommandMessage::Presentation(ref message) => write!(f, "{}", message.to_string()),
             CommandMessage::Set(ref message) => write!(f, "{}", message.to_string()),
+            CommandMessage::Internal(ref message) => write!(f, "{}", message.to_string()),
+            CommandMessage::Stream(ref message) => write!(f, "{}", message.to_string()),
             CommandMessage::Other(ref message) => write!(f, "{}", message),
         }
     }
