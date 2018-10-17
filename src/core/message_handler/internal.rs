@@ -41,18 +41,19 @@ pub fn handle(
                         Ok(_) => info!("Updated network topology"),
                         Err(e) => error!("Update network topology failed {:?}", e),
                     }
+                    forward_to_controller(controller_forward_sender, internal_message_request)
                 },
-                _ => (),
-            },
-            Ok(internal_message_request) => {
-                match controller_forward_sender.send(internal_message_request.to_string()) {
-                    Ok(_) => (),
-                    Err(error) => error!("Error while forwarding internal message to controller {:?}", error),
-                }
-                ()
+                _ => forward_to_controller(controller_forward_sender, internal_message_request),
             },
             _ => (),
         }
+    }
+}
+
+fn forward_to_controller(controller_sender: &Sender<String>, message: InternalMessage) {
+    match controller_sender.send(message.to_string()) {
+        Ok(_) => (),
+        Err(error) => error!("Error while forwarding internal message to controller {:?}", error),
     }
 }
 
