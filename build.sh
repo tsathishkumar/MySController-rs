@@ -10,9 +10,9 @@ sudo make install >/dev/null
 sudo ldconfig
 cd ..
 sudo apt-get install -qq gcc-arm-linux-gnueabihf
-rustup target add armv7-unknown-linux-gnueabihf
+sudo rustup target add armv7-unknown-linux-gnueabihf
 
-apt-get install libudev-dev
+sudo apt-get install libudev-dev
 
 cross test
 cross build --target armv7-unknown-linux-gnueabihf
