@@ -25,8 +25,8 @@
   },
   "files": [
     {
-      "includePattern": "target/x86_64-unknown-linux-gnu/debian/(.*)\.deb",
-      "uploadPattern": "$1_amd64.deb",
+      "includePattern": "target/x86_64-unknown-linux-gnu/debian/(.*)-amd64(.*)\.deb",
+      "uploadPattern": "$1$2.deb",
       "matrixParams": {
         "deb_distribution": "vivid",
         "deb_component": "main",
@@ -34,8 +34,8 @@
       }
     },
     {
-      "includePattern": "target/armv7-unknown-linux-gnueabihf/debian/(.*\.deb)",
-      "uploadPattern": "$1",
+      "includePattern": "target/armv7-unknown-linux-gnueabihf/debian/(.*)-armhf(.*)\.deb",
+      "uploadPattern": "$1$2.deb",
       "matrixParams": {
         "deb_distribution": "vivid",
         "deb_component": "main",
