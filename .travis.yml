@@ -4,6 +4,7 @@ before_install:
   - sudo apt-get install libudev-dev
 before_script:  
   - cargo install cargo-deb || echo 'cargo-deb already installed, ignoring failure'
+  - cargo install cross || echo 'cross already installed, ignoring failure'
 rust:
   - beta
 cache: cargo
