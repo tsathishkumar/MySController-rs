@@ -30,5 +30,6 @@ cargo test
 # export OPENSSL_INCLUDE_DIR=/home/travis/build/tsathishkumar/MySController-rs/openssl-1.1.1/include
 
 # PKG_CONFIG_ALLOW_CROSS=1 cargo build --release --target armv7-unknown-linux-gnueabihf
-cargo deb --target x86_64-unknown-linux-gnu --variant=x86_64
+cargo deb --target x86_64-unknown-linux-gnu 
+#--variant=x86_64
 # cargo deb --no-build --variant=armv7

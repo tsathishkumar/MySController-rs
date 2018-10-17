@@ -43,17 +43,15 @@ conf-files = [
   "/etc/myscontroller-rs/conf.ini",
   "/etc/systemd/system/myscontroller-rs.service"
 ]
-
-[package.metadata.deb.variants.x86_64]
 assets = [
     ["target/x86_64-unknown-linux-gnu/release/myscontroller-rs", "/usr/local/bin/myscontroller-rs", "755"],
     ["conf.ini", "/etc/myscontroller-rs/conf.ini", "644"],
     ["service/systemd/myscontroller-rs.service", "/etc/systemd/system/myscontroller-rs.service", "644"],
 ]
 
-[package.metadata.deb.variants.armv7]
-assets = [
-    ["target/armv7-unknown-linux-gnueabihf/release/myscontroller-rs", "/usr/local/bin/myscontroller-rs", "755"],
-    ["conf.ini", "/etc/myscontroller-rs/conf.ini", "644"],
-    ["service/systemd/myscontroller-rs.service", "/etc/systemd/system/myscontroller-rs.service", "644"],
-]
+# [package.metadata.deb.variants.armv7]
+# assets = [
+#     ["target/armv7-unknown-linux-gnueabihf/release/myscontroller-rs", "/usr/local/bin/myscontroller-rs", "755"],
+#     ["conf.ini", "/etc/myscontroller-rs/conf.ini", "644"],
+#     ["service/systemd/myscontroller-rs.service", "/etc/systemd/system/myscontroller-rs.service", "644"],
+# ]
