@@ -19,14 +19,14 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.6.0",
-    "desc": "Added support for network topologies",
+    "name": "0.6.1",
+    "desc": "Debian package with architecture support",
     "released": "2018-10-16"
   },
   "files": [
     {
-      "includePattern": "target/x86_64-unknown-linux-gnu/debian/(.*\.deb)",
-      "uploadPattern": "$1",
+      "includePattern": "target/x86_64-unknown-linux-gnu/debian/(.*)\.deb",
+      "uploadPattern": "$1_amd64.deb",
       "matrixParams": {
         "deb_distribution": "vivid",
         "deb_component": "main",
