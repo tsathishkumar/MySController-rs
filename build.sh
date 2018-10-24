@@ -15,6 +15,13 @@ rustup target add armv7-unknown-linux-gnueabihf
 sudo apt-get install libmagickwand-dev
 sudo apt-get install libudev-dev
 
+SYSROOT=/build/root
+
+export PKG_CONFIG_DIR=
+export PKG_CONFIG_LIBDIR=${SYSROOT}/usr/lib/pkgconfig:${SYSROOT}/usr/share/pkgconfig
+export PKG_CONFIG_SYSROOT_DIR=${SYSROOT}
+export PKG_CONFIG_ALLOW_CROSS=1
+
 cross test
 cross build --target armv7-unknown-linux-gnueabihf
 cargo deb --target x86_64-unknown-linux-gnu
