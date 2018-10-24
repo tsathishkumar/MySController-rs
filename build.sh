@@ -12,6 +12,7 @@ cd ..
 sudo apt-get install -qq gcc-arm-linux-gnueabihf
 rustup target add armv7-unknown-linux-gnueabihf
 
+sudo apt-get install libmagickwand-dev
 sudo apt-get install libudev-dev
 
 cross test
