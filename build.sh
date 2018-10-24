@@ -9,6 +9,7 @@ make >/dev/null
 sudo make install >/dev/null
 sudo ldconfig
 cd ..
+sudo apt-get update
 sudo apt-get install -qq gcc-arm-linux-gnueabihf
 rustup target add armv7-unknown-linux-gnueabihf
 
@@ -22,6 +23,7 @@ export PKG_CONFIG_LIBDIR=${SYSROOT}/usr/lib/pkgconfig:${SYSROOT}/usr/share/pkgco
 export PKG_CONFIG_SYSROOT_DIR=${SYSROOT}
 export PKG_CONFIG_ALLOW_CROSS=1
 
+sudo find / -type f -name "libudev.pc"
 cross test
 cross build --target armv7-unknown-linux-gnueabihf
 cargo deb --target x86_64-unknown-linux-gnu
