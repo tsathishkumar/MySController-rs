@@ -9,7 +9,7 @@ Started as a project to support OTA for MySensors and proxy for all other reques
 
 All the APIs are available as postman collection and the docs can be found [here](https://documenter.getpostman.com/view/198173/myscontroller/RWEmHGeT#1d695865-c9c4-6738-e2b5-d75b31a880b7).
 
-There is also a pending task to add Swagger UI as part of the server.
+There is also a pending task to add Swagger UI as part of the server .
 
 
 ## Screenshots
