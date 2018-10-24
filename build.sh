@@ -10,7 +10,7 @@
 # sudo ldconfig
 # cd ..
 export PKG_CONFIG_ALLOW_CROSS=1
-sudo ls -ltra /root
+sudo touch /root/.gitconfig
 cross test --target armv7-unknown-linux-gnueabihf
 cross build --target armv7-unknown-linux-gnueabihf
 cargo deb --target x86_64-unknown-linux-gnu
