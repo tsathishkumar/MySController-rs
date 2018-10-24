@@ -22,7 +22,7 @@ export PKG_CONFIG_ALLOW_CROSS=1
 export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig
 
 sudo find / -type f -name "libudev.pc"
-cross test
-cross build --target armv7-unknown-linux-gnueabihf
+PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig cross test
+PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig cross build --target armv7-unknown-linux-gnueabihf
 cargo deb --target x86_64-unknown-linux-gnu
 # cargo deb --no-build --variant=armv7
