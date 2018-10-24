@@ -9,7 +9,8 @@
 # sudo make install >/dev/null
 # sudo ldconfig
 # cd ..
-PKG_CONFIG_ALLOW_CROSS=1 cross test --target armv7-unknown-linux-gnueabihf
-PKG_CONFIG_ALLOW_CROSS=1 cross build --target armv7-unknown-linux-gnueabihf
+export PKG_CONFIG_ALLOW_CROSS=1
+cross test --target armv7-unknown-linux-gnueabihf
+cross build --target armv7-unknown-linux-gnueabihf
 cargo deb --target x86_64-unknown-linux-gnu
 # cargo deb --no-build --variant=armv7
