@@ -1,13 +1,7 @@
-
-
-
+#![feature(mpsc_select)]
 
 #[macro_use]
 extern crate enum_primitive;
-
-
-
-
 
 #[macro_use]
 extern crate diesel;
@@ -15,7 +9,6 @@ extern crate diesel;
 extern crate diesel_derive_enum;
 #[macro_use]
 extern crate serde_derive;
-
 use crossbeam_channel as channel;
 
 

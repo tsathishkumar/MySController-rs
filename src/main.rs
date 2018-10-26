@@ -1,3 +1,4 @@
+
 use crossbeam_channel as channel;
 #[macro_use]
 extern crate diesel_migrations;
@@ -112,12 +113,40 @@ fn main() {
         );
     });
 
-    wot::start_server(
-        conn_pool_clone,
-        out_set_sender,
-        in_set_receiver,
-        new_sensor_receiver,
-    );
+    
+    thread::spawn(move || {
+        let (restart_sender, restart_receiver) = channel::unbounded();
+        let restart_sender_clone = restart_sender.clone();
+        let conn_pool = conn_pool_clone.clone();
+        let out_set_sender_clone = out_set_sender.clone();
+        let in_set_receiver_clone = in_set_receiver.clone();
+        let new_sensor_receiver_clone = new_sensor_receiver.clone();
+        wot::start_server(
+            conn_pool,
+            out_set_sender,
+            in_set_receiver,
+            new_sensor_receiver,
+            restart_sender,
+        );
+        loop {
+            let conn_pool_clone = conn_pool_clone.clone();
+            let restart_sender_clone = restart_sender_clone.clone();
+            let out_set_sender_clone = out_set_sender_clone.clone();
+            let in_set_receiver_clone = in_set_receiver_clone.clone();
+            let new_sensor_receiver_clone = new_sensor_receiver_clone.clone();
+            match restart_receiver.recv() {
+                Ok(_token) => wot::start_server(
+                    conn_pool_clone,
+                    out_set_sender_clone,
+                    in_set_receiver_clone,
+                    new_sensor_receiver_clone,
+                    restart_sender_clone,
+                ),
+                Err(_e) => (),
+            }
+        }
+    });
+
     sys.run();
 }
 

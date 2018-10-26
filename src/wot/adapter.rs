@@ -3,7 +3,6 @@ use crate::core::message::set::{SetMessage, SetReqType, Value};
 use crate::model::sensor::Sensor;
 use serde_json;
 use std::sync::{Arc, RwLock};
-use webthing::property::EmptyValueForwarder;
 use webthing::property::ValueForwarder;
 use webthing::{BaseProperty, BaseThing, Thing};
 
@@ -47,7 +46,7 @@ pub fn build_thing(
         true => {
             let mut thing = BaseThing::new(
                 name,
-                Some(sensor.sensor_type.thing_type()),
+                Some(vec!(sensor.sensor_type.thing_type())),
                 Some(sensor.sensor_type.thing_description()),
             );
             build_properties(&sensor, set_message_sender)
@@ -90,7 +89,7 @@ fn build_property(
             set_type,
             set_message_sender,
         })),
-        false => Some(Box::new(EmptyValueForwarder)),
+        false => None,
     };
     BaseProperty::new(
         set_type.property_name(),

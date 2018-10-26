@@ -1,14 +1,19 @@
 pub mod adapter;
-
+use actix;
+use actix::actors::signal;
+use actix::prelude::*;
+use actix_web::server::{HttpHandler, HttpServer};
 use crate::channel::{Receiver, Sender};
 use crate::core::message::set::SetMessage;
 use crate::model::node::Node;
 use crate::model::sensor::Sensor;
+use crossbeam_channel as channel;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use serde_json;
 use std::sync::{Arc, RwLock, Weak};
 use std::thread;
+use std::time::Duration;
 
 use webthing::server::ActionGenerator;
 use webthing::{Action, Thing, ThingsType, WebThingServer};
@@ -119,9 +124,10 @@ fn set_property(set_message: SetMessage, thing: &Arc<RwLock<Box<dyn Thing + 'sta
 fn handle_sensor_outputs(
     things: &Vec<(Sensor, Arc<RwLock<Box<dyn Thing + 'static>>>)>,
     in_set_receiver: Receiver<SetMessage>,
+    shutdown_receiver: Receiver<String>,
 ) {
     loop {
-        match in_set_receiver.recv() {
+        match in_set_receiver.recv_timeout(Duration::from_millis(10)) {
             Ok(set_message) => match things
                 .into_iter()
                 .find(|(sensor, _)| set_message.for_sensor(sensor))
@@ -132,6 +138,11 @@ fn handle_sensor_outputs(
             },
             _ => (),
         }
+
+        match shutdown_receiver.recv_timeout(Duration::from_millis(10)) {
+            Ok(_) => break,
+            _ => continue,
+        }
     }
 }
 
@@ -139,22 +150,21 @@ fn handle_sensor_additions(
     things: &mut Vec<Arc<RwLock<Box<dyn Thing + 'static>>>>,
     new_sensor_receiver: Receiver<(String, Sensor)>,
     set_message_sender: Sender<SetMessage>,
+    addr: actix::Addr<Syn, HttpServer<Box<HttpHandler>>>,
 ) {
-    loop {
-        match new_sensor_receiver.recv() {
-            Ok((node_name, sensor)) => {
-                if let Some((_sensor, thing)) = adapter::build_thing(
-                    format!("{} - {}", node_name, sensor.sensor_type.thing_description())
-                        .to_owned(),
-                    sensor,
-                    set_message_sender.clone(),
-                ) {
-                    things.push(thing);
-                    info!("Added new thing to things");
-                }
+    match new_sensor_receiver.recv() {
+        Ok((node_name, sensor)) => {
+            if let Some((_sensor, thing)) = adapter::build_thing(
+                format!("{} - {}", node_name, sensor.sensor_type.thing_description()).to_owned(),
+                sensor,
+                set_message_sender.clone(),
+            ) {
+                things.push(thing);
+                info!("Added new thing to things");
+                addr.do_send(signal::Signal(signal::SignalType::Term));
             }
-            _ => (),
         }
+        _ => (),
     }
 }
 
@@ -163,46 +173,45 @@ pub fn start_server(
     set_message_sender: Sender<SetMessage>,
     in_set_receiver: Receiver<SetMessage>,
     new_sensor_receiver: Receiver<(String, Sensor)>,
+    restart_sender: Sender<String>,
 ) {
     let set_message_sender_clone = set_message_sender.clone();
     let things = get_things(pool, set_message_sender);
     let things_clone = things.clone();
+    let (thread_kill_sender, thread_kill_receiver) = channel::unbounded();
     thread::spawn(move || {
-        handle_sensor_outputs(&things_clone, in_set_receiver);
+        handle_sensor_outputs(&things_clone, in_set_receiver, thread_kill_receiver);
     });
 
     let things: Vec<Arc<RwLock<Box<dyn Thing + 'static>>>> =
         things.into_iter().map(|(_, thing)| thing).collect();
 
-    let mut things_clone = things.clone();
     thread::spawn(move || {
-        handle_sensor_additions(
-            &mut things_clone,
-            new_sensor_receiver,
-            set_message_sender_clone,
+        let mut things_clone = things.clone();
+        let mut server = WebThingServer::new(
+            ThingsType::Multiple(things, "MySensors".to_owned()),
+            Some(8888),
+            None,
+            None,
+            Box::new(Generator),
         );
-    });
-    let things_count = things.len();
 
-    thread::spawn(move || loop {
-        let things_clone1 = things.clone();
-        let things_clone2 = things.clone();
-        let th = thread::spawn(move || {
-            let server = WebThingServer::new(
-                ThingsType::Multiple(things_clone1, "MySensors".to_owned()),
-                Some(8888),
-                None,
-                Box::new(Generator),
+        let addr = server.start();
+        thread::spawn(move || {
+            handle_sensor_additions(
+                &mut things_clone,
+                new_sensor_receiver,
+                set_message_sender_clone,
+                addr,
             );
-            server.start();
-            loop {
-                info!("Things count - {}", things_clone2.len());
-                if things_count != things_clone2.len() {
-                    return;
-                }
-                thread::sleep(std::time::Duration::from_secs(10));
-            }
         });
-        th.join().unwrap();
+
+        server.run();
+
+        info!("WoT Server stopped");
+        thread_kill_sender.send(String::from("stop")).unwrap();
+        restart_sender
+            .send(String::from("restart wot server"))
+            .unwrap();
     });
 }

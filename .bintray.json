@@ -3,7 +3,7 @@
     "name": "myscontroller-rs",
     "repo": "myscontroller-rs",
     "subject": "tsathishkumar",
-    "desc": "MySensors controller proxy server",
+    "desc": "MySensors controller with Web of Things API for sensors and API support for firmware management",
     "vcs_url": "https://github.com/tsathishkumar/MySController-rs.git",
     "github_use_tag_release_notes": true,
     "github_release_notes_file": "RELEASE.txt",
@@ -19,9 +19,9 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.6.1",
-    "desc": "Debian package with architecture support",
-    "released": "2018-10-16"
+    "name": "0.6.2",
+    "desc": "Restart webthing server upon addition of new sensors to mysensors network.",
+    "released": "2018-10-26"
   },
   "files": [
     {
