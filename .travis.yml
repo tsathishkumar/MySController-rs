@@ -6,6 +6,7 @@ before_script:
   - cargo install cargo-deb || echo 'cargo-deb already installed, ignoring failure'
   - cargo install cross || echo 'cross already installed, ignoring failure'
 rust:
+  - nightly  
   - beta
 cache: cargo
 script: ./build.sh
