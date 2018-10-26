@@ -7,6 +7,7 @@ use crate::channel::{Receiver, Sender};
 use diesel::prelude::SqliteConnection;
 use diesel::r2d2::{ConnectionManager, Pool};
 use std::thread;
+use crate::model::sensor::Sensor;
 
 pub fn start(
     gateway_info: StreamInfo,
@@ -17,6 +18,7 @@ pub fn start(
     gateway_out_receiver: Receiver<String>,
     in_set_sender: Sender<SetMessage>,
     set_message_receiver: Receiver<SetMessage>,
+    new_sensor_sender: Sender<(String, Sensor)>,
 ) {
     let (gateway_sender, gateway_receiver) = channel::unbounded();
     let (stream_sender, stream_receiver) = channel::unbounded();
@@ -61,7 +63,12 @@ pub fn start(
     let connection = pool.get().unwrap();
 
     let internal_message_processor = thread::spawn(move || {
-        internal::handle(&internal_receiver, &internal_response_sender, &internal_forward_sender, connection);
+        internal::handle(
+            &internal_receiver,
+            &internal_response_sender,
+            &internal_forward_sender,
+            connection,
+        );
     });
 
     let connection = pool.get().unwrap();
@@ -71,6 +78,7 @@ pub fn start(
             &presentation_receiver,
             &presentation_forward_sender,
             connection,
+            new_sensor_sender,
         );
     });
 

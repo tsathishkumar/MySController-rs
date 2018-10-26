@@ -5,12 +5,9 @@ use num_cpus;
 
 use actix;
 
-
 #[macro_use]
 extern crate log;
 use env_logger;
-
-
 
 use actix::*;
 use actix_web::{http::Method, middleware, middleware::cors::Cors, server, App};
@@ -52,54 +49,46 @@ fn main() {
     let (controller_in_sender, controller_in_receiver) = channel::unbounded();
     let (out_set_sender, out_set_receiver) = channel::unbounded();
     let (in_set_sender, in_set_receiver) = channel::unbounded();
+    let (new_sensor_sender, new_sensor_receiver) = channel::unbounded();
     let reset_signal_sender = controller_in_sender.clone();
     server::new(move || {
         App::with_state(AppState {
             db: database_addr.clone(),
             reset_sender: reset_signal_sender.clone(),
         }).middleware(middleware::Logger::default())
-            .configure(|app| {
-                Cors::for_app(app)
-                    .allowed_methods(vec!["GET", "PUT", "POST", "DELETE"])
-                    .resource("/", |r| {
-                        r.method(Method::GET).h(index::home);
-                    })
-                    .resource("/nodes", |r| {
-                        r.method(Method::GET).h(node::list);
-                        r.method(Method::POST).with2(node::create);
-                        r.method(Method::PUT).with2(node::update);
-                        r.method(Method::DELETE).with2(node::delete);
-                    })
-                    .resource("/nodes/{node_id}", |r| {
-                        r.method(Method::GET).h(node::get_node);
-                    })
-                    .resource("/nodes/{node_id}/reboot", |r| {
-                        r.method(Method::POST).h(node::reboot_node);
-                    })
-                    .resource("/sensors", |r| {
-                        r.method(Method::GET).h(sensor::list);
-                        r.method(Method::DELETE).with2(node::delete);
-                    })
-                    .resource("/sensors/{node_id}/{child_sensor_id}", |r| {
-                        r.method(Method::GET).h(sensor::get_sensor);
-                    })
-                    .resource("/firmwares", |r| {
-                        r.method(Method::GET).h(firmware::list);
-                    })
-                    .resource("/firmwares/{firmware_type}/{firmware_version}", |r| {
-                        r.method(Method::POST).with2(firmware::create);
-                        r.method(Method::PUT).with2(firmware::update);
-                        r.method(Method::DELETE).with(firmware::delete);
-                    })
-                    .resource("/firmwares/upload", |r| {
-                        r.method(Method::GET).with(firmware::upload_form);
-                    })
-                    .register()
-            })
+        .configure(|app| {
+            Cors::for_app(app)
+                .allowed_methods(vec!["GET", "PUT", "POST", "DELETE"])
+                .resource("/", |r| {
+                    r.method(Method::GET).h(index::home);
+                }).resource("/nodes", |r| {
+                    r.method(Method::GET).h(node::list);
+                    r.method(Method::POST).with2(node::create);
+                    r.method(Method::PUT).with2(node::update);
+                    r.method(Method::DELETE).with2(node::delete);
+                }).resource("/nodes/{node_id}", |r| {
+                    r.method(Method::GET).h(node::get_node);
+                }).resource("/nodes/{node_id}/reboot", |r| {
+                    r.method(Method::POST).h(node::reboot_node);
+                }).resource("/sensors", |r| {
+                    r.method(Method::GET).h(sensor::list);
+                    r.method(Method::DELETE).with2(node::delete);
+                }).resource("/sensors/{node_id}/{child_sensor_id}", |r| {
+                    r.method(Method::GET).h(sensor::get_sensor);
+                }).resource("/firmwares", |r| {
+                    r.method(Method::GET).h(firmware::list);
+                }).resource("/firmwares/{firmware_type}/{firmware_version}", |r| {
+                    r.method(Method::POST).with2(firmware::create);
+                    r.method(Method::PUT).with2(firmware::update);
+                    r.method(Method::DELETE).with(firmware::delete);
+                }).resource("/firmwares/upload", |r| {
+                    r.method(Method::GET).with(firmware::upload_form);
+                }).register()
+        })
     }).bind("0.0.0.0:8000")
-        .unwrap()
-        .shutdown_timeout(3)
-        .start();
+    .unwrap()
+    .shutdown_timeout(3)
+    .start();
 
     match conn_clone.get() {
         Ok(conn) => embedded_migrations::run_with_output(&conn, &mut std::io::stdout()).unwrap(),
@@ -119,10 +108,16 @@ fn main() {
             controller_in_receiver,
             in_set_sender,
             out_set_receiver,
+            new_sensor_sender,
         );
     });
 
-    wot::start_server(conn_pool_clone, out_set_sender, in_set_receiver);
+    wot::start_server(
+        conn_pool_clone,
+        out_set_sender,
+        in_set_receiver,
+        new_sensor_receiver,
+    );
     sys.run();
 }
 

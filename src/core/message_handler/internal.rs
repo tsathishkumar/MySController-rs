@@ -35,7 +35,7 @@ pub fn handle(
                     },
                     None => error!("There is no free node id! All 254 id's are already reserved!"),
                 },
-                InternalMessage {node_id, child_sensor_id: 255, ack, sub_type: InternalType::DiscoverResponse, ref payload } => {
+                InternalMessage {node_id, child_sensor_id: 255, ack: _, sub_type: InternalType::DiscoverResponse, ref payload } => {
                     let parent_node_id = payload.parse::<u8>().unwrap();
                     match update_network_topology(&db_connection, node_id as i32, parent_node_id as i32) {
                         Ok(_) => info!("Updated network topology"),
@@ -79,7 +79,7 @@ pub fn update_network_topology(conn: &SqliteConnection, _node_id: i32, _parent_n
     use crate::model::node::nodes::dsl::*;
     diesel::update(nodes)
         .filter(node_id.eq(_node_id))
-        .set((parent_node_id.eq(_parent_node_id)))
+        .set(parent_node_id.eq(_parent_node_id))
         .execute(conn) 
 }
 

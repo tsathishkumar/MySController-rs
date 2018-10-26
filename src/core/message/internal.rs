@@ -1,10 +1,8 @@
 use super::error::ParseError;
-use hex;
 use num::FromPrimitive;
 use std::fmt;
-use std::mem;
 
-const MAX_MESSAGE_LENGTH: usize = 32;
+// const MAX_MESSAGE_LENGTH: usize = 32;
 
 enum_from_primitive! {
     #[derive(Debug, PartialEq, Clone, Copy)]

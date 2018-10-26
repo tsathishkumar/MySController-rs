@@ -2,10 +2,10 @@ pub mod adapter;
 
 use crate::channel::{Receiver, Sender};
 use crate::core::message::set::SetMessage;
-use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager, Pool};
 use crate::model::node::Node;
 use crate::model::sensor::Sensor;
+use diesel::prelude::*;
+use diesel::r2d2::{ConnectionManager, Pool};
 use serde_json;
 use std::sync::{Arc, RwLock, Weak};
 use std::thread;
@@ -135,27 +135,74 @@ fn handle_sensor_outputs(
     }
 }
 
+fn handle_sensor_additions(
+    things: &mut Vec<Arc<RwLock<Box<dyn Thing + 'static>>>>,
+    new_sensor_receiver: Receiver<(String, Sensor)>,
+    set_message_sender: Sender<SetMessage>,
+) {
+    loop {
+        match new_sensor_receiver.recv() {
+            Ok((node_name, sensor)) => {
+                if let Some((_sensor, thing)) = adapter::build_thing(
+                    format!("{} - {}", node_name, sensor.sensor_type.thing_description())
+                        .to_owned(),
+                    sensor,
+                    set_message_sender.clone(),
+                ) {
+                    things.push(thing);
+                    info!("Added new thing to things");
+                }
+            }
+            _ => (),
+        }
+    }
+}
+
 pub fn start_server(
     pool: Pool<ConnectionManager<SqliteConnection>>,
     set_message_sender: Sender<SetMessage>,
     in_set_receiver: Receiver<SetMessage>,
+    new_sensor_receiver: Receiver<(String, Sensor)>,
 ) {
+    let set_message_sender_clone = set_message_sender.clone();
     let things = get_things(pool, set_message_sender);
     let things_clone = things.clone();
     thread::spawn(move || {
         handle_sensor_outputs(&things_clone, in_set_receiver);
     });
+
     let things: Vec<Arc<RwLock<Box<dyn Thing + 'static>>>> =
         things.into_iter().map(|(_, thing)| thing).collect();
+
+    let mut things_clone = things.clone();
     thread::spawn(move || {
-        if !things.is_empty() {
+        handle_sensor_additions(
+            &mut things_clone,
+            new_sensor_receiver,
+            set_message_sender_clone,
+        );
+    });
+    let things_count = things.len();
+
+    thread::spawn(move || loop {
+        let things_clone1 = things.clone();
+        let things_clone2 = things.clone();
+        let th = thread::spawn(move || {
             let server = WebThingServer::new(
-                ThingsType::Multiple(things, "MySensors".to_owned()),
+                ThingsType::Multiple(things_clone1, "MySensors".to_owned()),
                 Some(8888),
                 None,
                 Box::new(Generator),
             );
             server.start();
-        }
+            loop {
+                info!("Things count - {}", things_clone2.len());
+                if things_count != things_clone2.len() {
+                    return;
+                }
+                thread::sleep(std::time::Duration::from_secs(10));
+            }
+        });
+        th.join().unwrap();
     });
 }
