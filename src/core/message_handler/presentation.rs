@@ -13,7 +13,7 @@ pub fn handle(
     receiver: &Receiver<PresentationMessage>,
     sender: &Sender<String>,
     db_connection: PooledConnection<ConnectionManager<SqliteConnection>>,
-    new_sensor_sender: Sender<(String, Sensor)>
+    new_sensor_sender: Sender<(String, Sensor)>,
 ) {
     loop {
         match receiver.recv() {
@@ -32,7 +32,7 @@ pub fn handle(
 pub fn create_or_update_sensor(
     conn: &SqliteConnection,
     presentation_message: &PresentationMessage,
-    new_sensor_sender: &Sender<(String, Sensor)>
+    new_sensor_sender: &Sender<(String, Sensor)>,
 ) {
     let sensor_message = Sensor {
         node_id: presentation_message.node_id as i32,
@@ -41,7 +41,10 @@ pub fn create_or_update_sensor(
         description: presentation_message.payload.clone(),
     };
 
-    match nodes::dsl::nodes.find(sensor_message.node_id).first::<Node>(conn) {
+    match nodes::dsl::nodes
+        .find(sensor_message.node_id)
+        .first::<Node>(conn)
+    {
         Ok(node) => match sensors
             .find((sensor_message.node_id, sensor_message.child_sensor_id))
             .first::<Sensor>(conn)
@@ -65,17 +68,19 @@ pub fn create_or_update_sensor(
             {
                 Ok(_) => {
                     info!("Created {:?}", &sensor_message);
-                    new_sensor_sender.send((node.node_name, sensor_message)).unwrap();
+                    new_sensor_sender
+                        .send((node.node_name, sensor_message))
+                        .unwrap();
                 }
                 Err(e) => error!("Create sensor failed {:?}", e),
             },
             Err(e) => error!(
-                "Error while checking for existing sensor{:?} {:?}",
+                "Error while checking for existing {:?} {:?}",
                 &sensor_message, e
             ),
         },
         Err(e) => error!(
-            "Error while checking for existing node of sensor{:?} {:?} ",
+            "Error while checking for existing node of {:?} {:?} ",
             &sensor_message, e
         ),
     }
