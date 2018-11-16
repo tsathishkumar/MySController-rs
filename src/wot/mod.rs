@@ -152,19 +152,21 @@ fn handle_sensor_additions(
     set_message_sender: Sender<SetMessage>,
     addr: actix::Addr<Syn, HttpServer<Box<HttpHandler>>>,
 ) {
-    match new_sensor_receiver.recv() {
-        Ok((node_name, sensor)) => {
-            if let Some((_sensor, thing)) = adapter::build_thing(
-                format!("{} - {}", node_name, sensor.sensor_type.thing_description()).to_owned(),
-                sensor,
-                set_message_sender.clone(),
-            ) {
-                things.push(thing);
-                info!("Added new thing to things");
-                addr.do_send(signal::Signal(signal::SignalType::Term));
+    loop {
+        match new_sensor_receiver.recv_timeout(Duration::from_secs(30)) {
+            Ok((node_name, sensor)) => {
+                if let Some((_sensor, thing)) = adapter::build_thing(
+                    format!("{} - {}", node_name, sensor.sensor_type.thing_description()).to_owned(),
+                    sensor,
+                    set_message_sender.clone(),
+                ) {
+                    things.push(thing);
+                    info!("Added new thing to things");
+                    addr.do_send(signal::Signal(signal::SignalType::Term));
+                }
             }
+            Err(_) => (),
         }
-        _ => (),
     }
 }
 

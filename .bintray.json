@@ -19,9 +19,9 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.6.2",
-    "desc": "Restart webthing server upon addition of new sensors to mysensors network.",
-    "released": "2018-10-26"
+    "name": "0.6.3",
+    "desc": "Fix for restart webthing server upon addition of new sensors to mysensors network.",
+    "released": "2018-11-16"
   },
   "files": [
     {
@@ -31,15 +31,6 @@
         "deb_distribution": "vivid",
         "deb_component": "main",
         "deb_architecture": "amd64"
-      }
-    },
-    {
-      "includePattern": "target/armv7-unknown-linux-gnueabihf/debian/(.*\.deb)",
-      "uploadPattern": "$1",
-      "matrixParams": {
-        "deb_distribution": "vivid",
-        "deb_component": "main",
-        "deb_architecture": "armhf"
       }
     }
   ],

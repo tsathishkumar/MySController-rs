@@ -1,6 +1,6 @@
 [package]
 name = "myscontroller-rs"
-version = "0.6.2"
+version = "0.6.3"
 authors = ["tsathish <tsatiz@gmail.com>"]
 edition = "2018"
 
@@ -48,10 +48,3 @@ assets = [
     ["conf.ini", "/etc/myscontroller-rs/conf.ini", "644"],
     ["service/systemd/myscontroller-rs.service", "/etc/systemd/system/myscontroller-rs.service", "644"],
 ]
-
-# [package.metadata.deb.variants.armv7]
-# assets = [
-#     ["target/armv7-unknown-linux-gnueabihf/release/myscontroller-rs", "/usr/local/bin/myscontroller-rs", "755"],
-#     ["conf.ini", "/etc/myscontroller-rs/conf.ini", "644"],
-#     ["service/systemd/myscontroller-rs.service", "/etc/systemd/system/myscontroller-rs.service", "644"],
-# ]
