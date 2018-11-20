@@ -1,4 +1,3 @@
-
 use crossbeam_channel as channel;
 #[macro_use]
 extern crate diesel_migrations;
@@ -56,37 +55,48 @@ fn main() {
         App::with_state(AppState {
             db: database_addr.clone(),
             reset_sender: reset_signal_sender.clone(),
-        }).middleware(middleware::Logger::default())
+        })
+        .middleware(middleware::Logger::default())
         .configure(|app| {
             Cors::for_app(app)
                 .allowed_methods(vec!["GET", "PUT", "POST", "DELETE"])
                 .resource("/", |r| {
                     r.method(Method::GET).h(index::home);
-                }).resource("/nodes", |r| {
+                })
+                .resource("/nodes", |r| {
                     r.method(Method::GET).h(node::list);
                     r.method(Method::POST).with2(node::create);
                     r.method(Method::PUT).with2(node::update);
                     r.method(Method::DELETE).with2(node::delete);
-                }).resource("/nodes/{node_id}", |r| {
+                })
+                .resource("/nodes/{node_id}", |r| {
                     r.method(Method::GET).h(node::get_node);
-                }).resource("/nodes/{node_id}/reboot", |r| {
+                })
+                .resource("/nodes/{node_id}/reboot", |r| {
                     r.method(Method::POST).h(node::reboot_node);
-                }).resource("/sensors", |r| {
+                })
+                .resource("/sensors", |r| {
                     r.method(Method::GET).h(sensor::list);
                     r.method(Method::DELETE).with2(node::delete);
-                }).resource("/sensors/{node_id}/{child_sensor_id}", |r| {
+                })
+                .resource("/sensors/{node_id}/{child_sensor_id}", |r| {
                     r.method(Method::GET).h(sensor::get_sensor);
-                }).resource("/firmwares", |r| {
+                })
+                .resource("/firmwares", |r| {
                     r.method(Method::GET).h(firmware::list);
-                }).resource("/firmwares/{firmware_type}/{firmware_version}", |r| {
+                })
+                .resource("/firmwares/{firmware_type}/{firmware_version}", |r| {
                     r.method(Method::POST).with2(firmware::create);
                     r.method(Method::PUT).with2(firmware::update);
                     r.method(Method::DELETE).with(firmware::delete);
-                }).resource("/firmwares/upload", |r| {
+                })
+                .resource("/firmwares/upload", |r| {
                     r.method(Method::GET).with(firmware::upload_form);
-                }).register()
+                })
+                .register()
         })
-    }).bind("0.0.0.0:8000")
+    })
+    .bind("0.0.0.0:8000")
     .unwrap()
     .shutdown_timeout(3)
     .start();
@@ -113,7 +123,6 @@ fn main() {
         );
     });
 
-    
     thread::spawn(move || {
         let (restart_sender, restart_receiver) = channel::unbounded();
         let restart_sender_clone = restart_sender.clone();
@@ -169,8 +178,8 @@ pub fn log_level(config: &Ini) -> String {
         .to_owned()
 }
 
-fn get_mys_controller<'s>(config: &'s Ini) -> connection::StreamInfo {
-    let controller_conf = config.section(Some("Controller".to_owned())).unwrap();
+fn get_mys_controller<'s>(config: &'s Ini) -> Option<connection::StreamInfo> {
+    config.section(Some("Controller".to_owned())).map(|controller_conf| {
     let controller_type = controller_conf.get("type").expect("Controller port is not specified. Ex:\n\
      [Controller]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Controller]\n type=SERIAL\n port=port=0.0.0.0:5003");
     let controller_type = match connection::ConnectionType::from_str(controller_type.as_str(), true)
@@ -183,7 +192,7 @@ fn get_mys_controller<'s>(config: &'s Ini) -> connection::StreamInfo {
     connection::StreamInfo {
         port: controller_port.to_owned(),
         connection_type: controller_type,
-    }
+    }})
 }
 
 fn get_mys_gateway<'s>(config: &'s Ini) -> connection::StreamInfo {

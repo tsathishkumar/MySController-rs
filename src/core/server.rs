@@ -4,16 +4,15 @@ use super::message::set::SetMessage;
 use super::message_handler::{internal, presentation, set, stream};
 use crate::channel;
 use crate::channel::{Receiver, Sender};
+use crate::model::sensor::Sensor;
 use diesel::prelude::SqliteConnection;
 use diesel::r2d2::{ConnectionManager, Pool};
 use std::thread;
-use crate::model::sensor::Sensor;
 
 pub fn start(
     gateway_info: StreamInfo,
-    controller_info: StreamInfo,
+    controller_info: Option<StreamInfo>,
     pool: Pool<ConnectionManager<SqliteConnection>>,
-
     gateway_out_sender: Sender<String>,
     gateway_out_receiver: Receiver<String>,
     in_set_sender: Sender<SetMessage>,
@@ -87,7 +86,13 @@ pub fn start(
     });
 
     let controller_read_write = thread::spawn(move || {
-        stream_read_write(controller_info, gateway_out_sender, controller_out_receiver);
+        if controller_info.is_some() {
+            stream_read_write(
+                controller_info.unwrap(),
+                gateway_out_sender,
+                controller_out_receiver,
+            );
+        }
     });
 
     gateway_read_write.join().unwrap();
