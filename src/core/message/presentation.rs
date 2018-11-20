@@ -70,6 +70,7 @@ impl PresentationType {
             PresentationType::Lock => "onOffSwitch".to_owned(),
             PresentationType::AirQuality => "multiLevelSensor".to_owned(),
             PresentationType::Moisture => "multiLevelSensor".to_owned(),
+            PresentationType::Baro => "multiLevelSensor".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -86,6 +87,7 @@ impl PresentationType {
             PresentationType::Lock => "Lock device".to_owned(),
             PresentationType::AirQuality => "Air Quality sensor".to_owned(),
             PresentationType::Moisture => "Moisture sensor".to_owned(),
+            PresentationType::Baro => "Barometer sensor".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -101,7 +103,8 @@ impl PresentationType {
             PresentationType::Hum => vec![SetReqType::Hum],
             PresentationType::Lock => vec![SetReqType::LockStatus],
             PresentationType::AirQuality => vec![SetReqType::Level, SetReqType::UnitPrefix],
-            PresentationType::Moisture => vec![SetReqType::Level, SetReqType::Percentage], // Can I mix them like this?
+            PresentationType::Moisture => vec![SetReqType::Level],
+            PresentationType::Baro => vec![SetReqType::Pressure, SetReqType::Forecast],
             _ => Vec::new(),
         }
     }
@@ -163,5 +166,6 @@ mod test {
         assert!(PresentationType::Lock.is_supported());
         assert!(PresentationType::AirQuality.is_supported());
         assert!(PresentationType::Moisture.is_supported());
+        assert!(PresentationType::Baro.is_supported());
     }
 }

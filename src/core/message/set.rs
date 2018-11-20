@@ -185,6 +185,8 @@ impl SetReqType {
             SetReqType::Armed => "on",
             SetReqType::Level => "level",
             SetReqType::UnitPrefix => "unit",
+            SetReqType::Pressure => "level",
+            SetReqType::Forecast => "forecase",
             _ => "",
         }.to_string()
     }
@@ -199,7 +201,9 @@ impl SetReqType {
             SetReqType::Hum => "number",
             SetReqType::Percentage => "number",
             SetReqType::Level => "number",
+            SetReqType::Pressure => "number",
             SetReqType::UnitPrefix => "string",
+            SetReqType::Forecast => "string",
             _ => "",
         }
     }
@@ -222,7 +226,9 @@ impl SetReqType {
             SetReqType::Armed => "Whether the thing armed/normal state".to_owned(),
             SetReqType::LockStatus => "Whether lock is on or not".to_owned(),
             SetReqType::Level => "Level output of the sensor".to_owned(),
+            SetReqType::Pressure => "Pressure measured by sensor".to_owned(),
             SetReqType::UnitPrefix => "Unit of the sensor output".to_owned(),
+            SetReqType::Forecast => "Forecast predicted by sensor".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -246,6 +252,8 @@ mod test {
         assert!(SetReqType::Armed.is_supported());
         assert!(SetReqType::UnitPrefix.is_supported());
         assert!(SetReqType::Level.is_supported());
+        assert!(SetReqType::Forecast.is_supported());
+        assert!(SetReqType::Pressure.is_supported());
     }
 
     #[test]
