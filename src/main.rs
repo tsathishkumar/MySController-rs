@@ -192,6 +192,7 @@ fn get_mys_controller<'s>(config: &'s Ini) -> Option<connection::StreamInfo> {
     connection::StreamInfo {
         port: controller_port.to_owned(),
         connection_type: controller_type,
+        baud_rate: controller_conf.get("baud_rate").map(|baud_rate_str|baud_rate_str.parse::<u32>().unwrap())
     }})
 }
 
@@ -208,5 +209,6 @@ fn get_mys_gateway<'s>(config: &'s Ini) -> connection::StreamInfo {
     connection::StreamInfo {
         port: gateway_port.to_owned(),
         connection_type: gateway_type,
+        baud_rate: gateway_conf.get("baud_rate").map(|baud_rate_str|baud_rate_str.parse::<u32>().unwrap())
     }
 }

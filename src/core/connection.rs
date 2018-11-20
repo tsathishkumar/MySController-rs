@@ -13,6 +13,7 @@ use std::time::Duration;
 
 pub struct StreamInfo {
     pub port: String,
+    pub baud_rate: Option<u32>,
     pub connection_type: ConnectionType,
 }
 
@@ -130,7 +131,7 @@ pub fn stream_read_write(
     loop {
         let (cancel_token_sender, cancel_token_receiver) = channel::unbounded();
         let simple_consumer = thread::spawn(move || consume(receiver, cancel_token_receiver));
-        let mut read_connection = create_connection(stream_info.connection_type, &stream_info.port);
+        let mut read_connection = create_connection(stream_info.connection_type, &stream_info.port, stream_info.baud_rate);
         cancel_token_sender.send(String::from("stop")).unwrap();
         receiver = simple_consumer.join().unwrap();
 
@@ -163,9 +164,9 @@ fn consume(
     receiver
 }
 
-pub fn create_connection(connection_type: ConnectionType, port: &String) -> Box<dyn Connection> {
+pub fn create_connection(connection_type: ConnectionType, port: &String, baud_rate: Option<u32>) -> Box<dyn Connection> {
     match connection_type {
-        ConnectionType::Serial => create_serial_connection(port),
+        ConnectionType::Serial => create_serial_connection(port, baud_rate),
         ConnectionType::TcpClient => {
             let stream: TcpStream;
             info!("Waiting for server connection -- {} ...", port);
@@ -198,10 +199,13 @@ pub fn create_connection(connection_type: ConnectionType, port: &String) -> Box<
     }
 }
 
-fn create_serial_connection(port: &String) -> Box<dyn Connection> {
+fn create_serial_connection(port: &String, baud_rate: Option<u32>) -> Box<dyn Connection> {
     let mut settings: SerialPortSettings = Default::default();
     settings.timeout = Duration::from_millis(10);
-    settings.baud_rate = BaudRate::Baud38400;
+    settings.baud_rate = match baud_rate {
+        Some(value) => BaudRate::from(value),
+        None => BaudRate::Baud9600,
+    };
     let stream;
     info!("Waiting for serial connection in -- {} ...", port);
     loop {
