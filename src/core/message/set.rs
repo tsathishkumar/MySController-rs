@@ -186,7 +186,7 @@ impl SetReqType {
             SetReqType::Level => "level",
             SetReqType::UnitPrefix => "unit",
             SetReqType::Pressure => "level",
-            SetReqType::Forecast => "forecase",
+            SetReqType::Forecast => "forecast",
             _ => "",
         }.to_string()
     }
