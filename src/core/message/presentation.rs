@@ -68,6 +68,7 @@ impl PresentationType {
             PresentationType::Temp => "multiLevelSensor".to_owned(),
             PresentationType::Hum => "multiLevelSensor".to_owned(),
             PresentationType::Lock => "onOffSwitch".to_owned(),
+            PresentationType::AirQuality => "multiLevelSensor".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -82,6 +83,7 @@ impl PresentationType {
             PresentationType::Temp => "Temperature sensor".to_owned(),
             PresentationType::Hum => "Humidity sensor".to_owned(),
             PresentationType::Lock => "Lock device".to_owned(),
+            PresentationType::AirQuality => "Air Quality sensor".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -96,6 +98,7 @@ impl PresentationType {
             PresentationType::Temp => vec![SetReqType::Temp, SetReqType::Status],
             PresentationType::Hum => vec![SetReqType::Hum],
             PresentationType::Lock => vec![SetReqType::LockStatus],
+            PresentationType::AirQuality => vec![SetReqType::Level, SetReqType::UnitPrefix],
             _ => Vec::new(),
         }
     }
@@ -155,5 +158,6 @@ mod test {
         assert!(PresentationType::Temp.is_supported());
         assert!(PresentationType::Hum.is_supported());
         assert!(PresentationType::Lock.is_supported());
+        assert!(PresentationType::AirQuality.is_supported());
     }
 }

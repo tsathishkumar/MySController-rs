@@ -183,6 +183,8 @@ impl SetReqType {
             SetReqType::Percentage => "level",
             SetReqType::Tripped => "on",
             SetReqType::Armed => "on",
+            SetReqType::Level => "level",
+            SetReqType::UnitPrefix => "unit",
             _ => "",
         }.to_string()
     }
@@ -196,6 +198,8 @@ impl SetReqType {
             SetReqType::Temp => "number",
             SetReqType::Hum => "number",
             SetReqType::Percentage => "number",
+            SetReqType::Level => "number",
+            SetReqType::UnitPrefix => "string",
             _ => "",
         }
     }
@@ -217,6 +221,8 @@ impl SetReqType {
             SetReqType::Tripped => "Whether the thing triggered or not".to_owned(),
             SetReqType::Armed => "Whether the thing armed/normal state".to_owned(),
             SetReqType::LockStatus => "Whether lock is on or not".to_owned(),
+            SetReqType::Level => "Level output of the sensor".to_owned(),
+            SetReqType::UnitPrefix => "Unit of the sensor output".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -238,6 +244,8 @@ mod test {
         assert!(SetReqType::Percentage.is_supported());
         assert!(SetReqType::Tripped.is_supported());
         assert!(SetReqType::Armed.is_supported());
+        assert!(SetReqType::UnitPrefix.is_supported());
+        assert!(SetReqType::Level.is_supported());
     }
 
     #[test]
