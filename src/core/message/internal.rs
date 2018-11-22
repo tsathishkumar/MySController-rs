@@ -65,6 +65,16 @@ impl InternalMessage {
             payload: String::from(payload),
         })
     }
+
+    pub fn as_response(&mut self, response: String) -> String {
+        self.sub_type = match self.sub_type {
+            InternalType::IdRequest => InternalType::IdResponse,
+            _other_type => _other_type,
+        };
+
+        self.payload = response;
+        self.to_string()
+    }
 }
 
 impl fmt::Display for InternalMessage {

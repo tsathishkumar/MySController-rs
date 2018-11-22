@@ -92,6 +92,12 @@ pub fn start(
                 gateway_out_sender,
                 controller_out_receiver,
             );
+        } else {
+            loop {
+                match controller_out_receiver.recv() {
+                    _ => debug!("Ignoring messages to controller, as no controller is configured"),
+                }
+            }
         }
     });
 
