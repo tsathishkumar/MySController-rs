@@ -1,8 +1,7 @@
 pub mod adapter;
 use actix;
 use actix::actors::signal;
-use actix::prelude::*;
-use actix_web::server::{HttpHandler, HttpServer};
+use actix_net::server::Server;
 use crate::channel::{Receiver, Sender};
 use crate::core::message::set::SetMessage;
 use crate::model::node::Node;
@@ -150,7 +149,7 @@ fn handle_sensor_additions(
     things: &mut Vec<Arc<RwLock<Box<dyn Thing + 'static>>>>,
     new_sensor_receiver: Receiver<(String, Sensor)>,
     set_message_sender: Sender<SetMessage>,
-    addr: actix::Addr<Syn, HttpServer<Box<HttpHandler>>>,
+    addr: actix::Addr<Server>,
 ) {
     loop {
         match new_sensor_receiver.recv_timeout(Duration::from_secs(30)) {
@@ -198,7 +197,7 @@ pub fn start_server(
             Box::new(Generator),
         );
 
-        let addr = server.start();
+        let addr = server.create();
         thread::spawn(move || {
             handle_sensor_additions(
                 &mut things_clone,
@@ -208,7 +207,9 @@ pub fn start_server(
             );
         });
 
-        server.run();
+        info!("Starting WoT server");
+
+        server.start();
 
         info!("WoT Server stopped");
         thread_kill_sender.send(String::from("stop")).unwrap();

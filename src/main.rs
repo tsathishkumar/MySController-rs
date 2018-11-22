@@ -65,9 +65,9 @@ fn main() {
                 })
                 .resource("/nodes", |r| {
                     r.method(Method::GET).h(node::list);
-                    r.method(Method::POST).with2(node::create);
-                    r.method(Method::PUT).with2(node::update);
-                    r.method(Method::DELETE).with2(node::delete);
+                    r.method(Method::POST).with(node::create);
+                    r.method(Method::PUT).with(node::update);
+                    r.method(Method::DELETE).with(node::delete);
                 })
                 .resource("/nodes/{node_id}", |r| {
                     r.method(Method::GET).h(node::get_node);
@@ -77,7 +77,7 @@ fn main() {
                 })
                 .resource("/sensors", |r| {
                     r.method(Method::GET).h(sensor::list);
-                    r.method(Method::DELETE).with2(node::delete);
+                    r.method(Method::DELETE).with(node::delete);
                 })
                 .resource("/sensors/{node_id}/{child_sensor_id}", |r| {
                     r.method(Method::GET).h(sensor::get_sensor);
@@ -86,12 +86,12 @@ fn main() {
                     r.method(Method::GET).h(firmware::list);
                 })
                 .resource("/firmwares/{firmware_type}/{firmware_version}", |r| {
-                    r.method(Method::POST).with2(firmware::create);
-                    r.method(Method::PUT).with2(firmware::update);
-                    r.method(Method::DELETE).with(firmware::delete);
+                    r.method(Method::POST).with(firmware::create);
+                    r.method(Method::PUT).with(firmware::update);
+                    r.method(Method::DELETE).f(firmware::delete);
                 })
                 .resource("/firmwares/upload", |r| {
-                    r.method(Method::GET).with(firmware::upload_form);
+                    r.method(Method::GET).f(firmware::upload_form);
                 })
                 .register()
         })
@@ -122,6 +122,8 @@ fn main() {
             new_sensor_sender,
         );
     });
+
+    info!("Started proxy server");
 
     thread::spawn(move || {
         let (restart_sender, restart_receiver) = channel::unbounded();
@@ -155,6 +157,8 @@ fn main() {
             }
         }
     });
+
+    info!("Started WoT server");
 
     sys.run();
 }

@@ -1,10 +1,10 @@
 use actix_web::{AsyncResponder, FutureResponse, HttpRequest, HttpResponse, Json};
 use crate::api::index::AppState;
-use futures::future::Future;
 use crate::handler::node::*;
+use futures::future::Future;
 use http::StatusCode;
 
-pub fn list(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
+pub fn list(req: &HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
     req.state()
         .db
         .send(ListNodes)
@@ -20,8 +20,7 @@ pub fn list(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
 }
 
 pub fn create(
-    node_update: Json<NewNode>,
-    req: HttpRequest<AppState>,
+    (req, node_update): (HttpRequest<AppState>, Json<NewNode>),
 ) -> FutureResponse<HttpResponse> {
     req.state()
         .db
@@ -45,8 +44,7 @@ pub fn create(
 }
 
 pub fn update(
-    node_update: Json<NodeUpdate>,
-    req: HttpRequest<AppState>,
+    (req, node_update): (HttpRequest<AppState>, Json<NodeUpdate>),
 ) -> FutureResponse<HttpResponse> {
     req.state()
         .db
@@ -70,8 +68,7 @@ pub fn update(
 }
 
 pub fn delete(
-    node_delete: Json<DeleteNode>,
-    req: HttpRequest<AppState>,
+    (req, node_delete): (HttpRequest<AppState>, Json<DeleteNode>),
 ) -> FutureResponse<HttpResponse> {
     req.state()
         .db
@@ -89,7 +86,7 @@ pub fn delete(
         .responder()
 }
 
-pub fn get_node(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
+pub fn get_node(req: &HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
     let node_id_path_param = req.match_info().get("node_id").unwrap();
     let node_id = node_id_path_param.to_string().parse::<i32>().unwrap();
     req.state()
@@ -109,7 +106,7 @@ pub fn get_node(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
         .responder()
 }
 
-pub fn reboot_node(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
+pub fn reboot_node(req: &HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
     let node_id_path_param = req.match_info().get("node_id").unwrap();
     let reset_sender = req.state().reset_sender.clone();
     let node_id = node_id_path_param.to_string().parse::<i32>().unwrap();

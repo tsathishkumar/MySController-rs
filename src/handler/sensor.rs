@@ -1,5 +1,5 @@
 use super::response::Msgs;
-use actix::*;
+use ::actix::*;
 use actix_web::*;
 use diesel;
 use diesel::prelude::*;

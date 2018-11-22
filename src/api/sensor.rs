@@ -1,10 +1,10 @@
 use actix_web::{AsyncResponder, FutureResponse, HttpRequest, HttpResponse, Json};
 use crate::api::index::AppState;
-use futures::future::Future;
 use crate::handler::sensor::*;
+use futures::future::Future;
 use http::StatusCode;
 
-pub fn list(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
+pub fn list(req: &HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
     req.state()
         .db
         .send(ListSensors)
@@ -17,8 +17,7 @@ pub fn list(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
 }
 
 pub fn delete(
-    sensor_delete: Json<DeleteSensor>,
-    req: HttpRequest<AppState>,
+    (req, sensor_delete): (HttpRequest<AppState>, Json<DeleteSensor>),
 ) -> FutureResponse<HttpResponse> {
     req.state()
         .db
@@ -34,7 +33,7 @@ pub fn delete(
         .responder()
 }
 
-pub fn get_sensor(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
+pub fn get_sensor(req: &HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
     let node_id_path_param = req.match_info().get("node_id").unwrap();
     let child_sensor_id_path_param = req.match_info().get("child_sensor_id").unwrap();
     let node_id = node_id_path_param.to_string().parse::<i32>().unwrap();
@@ -51,7 +50,10 @@ pub fn get_sensor(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
         .from_err()
         .and_then(|res| match res {
             Ok(msg) => Ok(HttpResponse::Ok().json(msg)),
-            Err(()) => Ok(HttpResponse::build(StatusCode::from_u16(400).unwrap()).body("Sensor not present")),
+            Err(()) => {
+                Ok(HttpResponse::build(StatusCode::from_u16(400).unwrap())
+                    .body("Sensor not present"))
+            }
         })
         .responder()
 }

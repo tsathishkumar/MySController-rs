@@ -1,17 +1,19 @@
-use actix_web::{error, multipart, AsyncResponder, Error, FutureResponse, HttpMessage, HttpRequest,
-                HttpResponse, Query};
+use actix_web::{
+    dev, error, multipart, AsyncResponder, Error, FutureResponse, HttpMessage, HttpRequest,
+    HttpResponse, Query,
+};
 use crate::api::index::AppState;
-use futures::future;
-use futures::{Future, Stream};
 use crate::handler::firmware::*;
 use crate::handler::response::Msgs;
-use http::StatusCode;
 use crate::model::firmware::Firmware;
+use futures::future;
+use futures::{Future, Stream};
+use http::StatusCode;
 use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
-pub fn upload_form(_req: HttpRequest<AppState>) -> Result<HttpResponse, error::Error> {
+pub fn upload_form(_req: &HttpRequest<AppState>) -> Result<HttpResponse, error::Error> {
     let html = r#"<html>
         <head><title>Upload Test</title></head>
         <body>
@@ -28,7 +30,7 @@ pub fn upload_form(_req: HttpRequest<AppState>) -> Result<HttpResponse, error::E
     Ok(HttpResponse::Ok().body(html))
 }
 
-pub fn list(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
+pub fn list(req: &HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
     req.state()
         .db
         .send(ListFirmwares)
@@ -40,7 +42,7 @@ pub fn list(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
         .responder()
 }
 
-pub fn delete(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
+pub fn delete(req: &HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
     let firmware_type = match req.match_info().get("firmware_type") {
         Some(firmware_type) => match firmware_type.parse::<i32>() {
             Ok(value) => value,
@@ -115,58 +117,64 @@ pub fn create_or_update(
         None => return invalid_request("firmware_version path param is missing"),
     };
     let req_clone = req.clone();
-    req_clone
-        .multipart()
-        .map_err(error::ErrorInternalServerError)
-        .map(handle_multipart_item)
-        .flatten()
-        .collect()
-        .and_then(move |file_paths| match file_paths.get(0) {
-            Some(file_path) => {
-                let firmware = get_firmware(
-                    file_path.to_owned(),
-                    firmware_type,
-                    firmware_version,
-                    firmware_name,
-                );
-                match fs::remove_file(file_path) {
-                    Ok(_) => info!("Cleared temp firmware file"),
-                    Err(e) => info!("Error in clearing temp firmware file {:?}", e),
-                };
-                match firmware {
-                    Ok(firmware) => req.state()
-                        .db
-                        .send(match update {
-                            true => CreateOrUpdate::Update(firmware),
-                            false => CreateOrUpdate::Create(firmware),
-                        })
-                        .from_err()
-                        .and_then(|res| match res {
-                            Ok(msg) => Ok(HttpResponse::build(
-                                StatusCode::from_u16(msg.status).unwrap(),
-                            ).json(msg)),
-                            Err(e) => Ok(HttpResponse::build(
-                                StatusCode::from_u16(e.status).unwrap(),
-                            ).json(e)),
-                        })
-                        .responder(),
+    Box::new(
+        req_clone
+            .multipart()
+            .map_err(error::ErrorInternalServerError)
+            .map(handle_multipart_item)
+            .flatten()
+            .collect()
+            .and_then(move |file_paths| match file_paths.get(0) {
+                Some(file_path) => {
+                    let firmware = get_firmware(
+                        file_path.to_owned(),
+                        firmware_type,
+                        firmware_version,
+                        firmware_name,
+                    );
+                    match fs::remove_file(file_path) {
+                        Ok(_) => info!("Cleared temp firmware file"),
+                        Err(e) => info!("Error in clearing temp firmware file {:?}", e),
+                    };
+                    match firmware {
+                        Ok(firmware) => req
+                            .state()
+                            .db
+                            .send(match update {
+                                true => CreateOrUpdate::Update(firmware),
+                                false => CreateOrUpdate::Create(firmware),
+                            })
+                            .from_err()
+                            .and_then(|res| match res {
+                                Ok(msg) => Ok(HttpResponse::build(
+                                    StatusCode::from_u16(msg.status).unwrap(),
+                                )
+                                .json(msg)),
+                                Err(e) => {
+                                    Ok(HttpResponse::build(StatusCode::from_u16(e.status).unwrap())
+                                        .json(e))
+                                }
+                            })
+                            .responder(),
 
-                    Err(msg) => Box::new(future::result(Ok(HttpResponse::build(
-                        StatusCode::from_u16(msg.status).unwrap(),
-                    ).json(msg)))),
+                        Err(msg) => Box::new(future::result(Ok(HttpResponse::build(
+                            StatusCode::from_u16(msg.status).unwrap(),
+                        )
+                        .json(msg)))),
+                    }
                 }
-            }
-            None => Box::new(future::result(
-                Ok(HttpResponse::InternalServerError().into()),
-            )),
-        })
-        .responder()
+                None => Box::new(future::result(Ok(
+                    HttpResponse::InternalServerError().into()
+                ))),
+            }),
+    )
 }
 
 fn invalid_request(msg: &str) -> FutureResponse<HttpResponse> {
     Box::new(future::result(Ok(HttpResponse::build(
         StatusCode::from_u16(400).unwrap(),
-    ).json(msg))))
+    )
+    .json(msg))))
 }
 
 fn get_firmware(
@@ -195,7 +203,7 @@ fn get_firmware(
 }
 
 fn handle_multipart_item(
-    item: multipart::MultipartItem<HttpRequest<AppState>>,
+    item: actix_web::multipart::MultipartItem<dev::Payload>,
 ) -> Box<dyn Stream<Item = String, Error = Error>> {
     match item {
         multipart::MultipartItem::Field(field) => Box::new(save_file(field).into_stream()),
@@ -208,7 +216,7 @@ fn handle_multipart_item(
 }
 
 pub fn save_file(
-    field: multipart::Field<HttpRequest<AppState>>,
+    field: actix_web::multipart::Field<dev::Payload>,
 ) -> Box<dyn Future<Item = String, Error = Error>> {
     //TODO: create unique temp files for each upload to handle concurrent uploads
     let file_path_string = "firmware.hex";
@@ -220,7 +228,8 @@ pub fn save_file(
     Box::new(
         field
             .fold(0i64, move |acc, bytes| {
-                let rt = file.write_all(bytes.as_ref())
+                let rt = file
+                    .write_all(bytes.as_ref())
                     .map(|_| acc + bytes.len() as i64)
                     .map_err(|e| {
                         error!("file.write_all failed: {:?}", e);
