@@ -28,17 +28,20 @@ impl ConnectionType {
     pub fn from_str(s: &str, server: bool) -> Option<ConnectionType> {
         match s {
             "SERIAL" => Some(ConnectionType::Serial),
-            "TCP" => if server {
-                Some(ConnectionType::TcpServer)
-            } else {
-                Some(ConnectionType::TcpClient)
-            },
+            "TCP" => {
+                if server {
+                    Some(ConnectionType::TcpServer)
+                } else {
+                    Some(ConnectionType::TcpClient)
+                }
+            }
             _ => None,
         }
     }
 }
 
 pub trait Connection: Send {
+    fn timeout(&mut self, duration: Duration);
     fn read(&mut self, buf: &mut [u8]) -> Result<usize>;
     fn write(&mut self, buf: &[u8]) -> Result<usize>;
     fn clone(&self) -> Box<dyn Connection>;
@@ -69,7 +72,9 @@ pub trait Connection: Send {
         (receiver)
     }
 
-    fn read_loop(&mut self, sender: Sender<String>) -> Sender<String> {
+    fn read_loop(&mut self, message_sender: Sender<String>) -> Sender<String> {
+        self.timeout(Duration::from_secs(30));
+
         loop {
             let mut broken_connection = false;
             let mut line = String::new();
@@ -104,12 +109,29 @@ pub trait Connection: Send {
                 break;
             }
             info!("{} >> {:?}", self.port(), line);
-            match sender.send(line) {
+            match message_sender.send(line) {
                 Ok(_) => (),
                 Err(_) => break,
             }
         }
-        (sender)
+        (message_sender)
+    }
+
+    fn health_check(&mut self, stop_check_receiver: Receiver<String>) {
+        loop {
+            match self.write("0;255;3;0;2;".as_bytes()) {
+                Ok(_) => info!("{} << 0;255;3;0;2;", self.port()),
+                Err(e) => {
+                    error!("Error while writing -- {:?}", e);
+                    break;
+                }
+            }
+            match stop_check_receiver.recv_timeout(Duration::from_secs(10)) {
+                Ok(_) => break,
+                Err(_) => (),
+            }
+            thread::sleep(Duration::from_secs(30))
+        }
     }
 }
 
@@ -130,20 +152,28 @@ pub fn stream_read_write(
 ) {
     loop {
         let (cancel_token_sender, cancel_token_receiver) = channel::unbounded();
+        let (stop_check_sender, stop_check_receiver) = channel::unbounded();
         let simple_consumer = thread::spawn(move || consume(receiver, cancel_token_receiver));
-        let mut read_connection = create_connection(stream_info.connection_type, &stream_info.port, stream_info.baud_rate);
+        let mut read_connection = create_connection(
+            stream_info.connection_type,
+            &stream_info.port,
+            stream_info.baud_rate,
+        );
+        read_connection.timeout(Duration::from_secs(40));
         cancel_token_sender.send(String::from("stop")).unwrap();
         receiver = simple_consumer.join().unwrap();
 
         let (cancel_token_sender, cancel_token_receiver) = channel::unbounded();
         let mut write_connection = read_connection.clone();
+        let mut health_check_connection = read_connection.clone();
+        thread::spawn(move || health_check_connection.health_check(stop_check_receiver));
         let reader = thread::spawn(move || read_connection.read_loop(sender));
         let writer =
             thread::spawn(move || write_connection.write_loop(receiver, cancel_token_receiver));
         sender = reader.join().unwrap();
-        cancel_token_sender
-            .send(String::from("reader stopped"))
-            .unwrap();
+        let stop_token = String::from("reader stopped");
+        stop_check_sender.send(stop_token).unwrap();
+        cancel_token_sender.send(stop_token).unwrap();
         receiver = writer.join().unwrap();
     }
 }
@@ -164,7 +194,11 @@ fn consume(
     receiver
 }
 
-pub fn create_connection(connection_type: ConnectionType, port: &String, baud_rate: Option<u32>) -> Box<dyn Connection> {
+pub fn create_connection(
+    connection_type: ConnectionType,
+    port: &String,
+    baud_rate: Option<u32>,
+) -> Box<dyn Connection> {
     match connection_type {
         ConnectionType::Serial => create_serial_connection(port, baud_rate),
         ConnectionType::TcpClient => {
@@ -226,6 +260,10 @@ fn create_serial_connection(port: &String, baud_rate: Option<u32>) -> Box<dyn Co
 }
 
 impl Connection for SerialConnection {
+    fn timeout(&mut self, duration: Duration) {
+        self.stream.set_timeout(duration);
+    }
+
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         self.stream.read(buf)
     }
@@ -247,6 +285,10 @@ impl Connection for SerialConnection {
 }
 
 impl Connection for TcpConnection {
+    fn timeout(&mut self, duration: Duration) {
+        self.tcp_stream.set_read_timeout(Some(duration));
+    }
+
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         self.tcp_stream.read(buf)
     }
