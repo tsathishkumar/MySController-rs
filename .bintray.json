@@ -19,9 +19,9 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.6.3",
-    "desc": "Fix for restart webthing server upon addition of new sensors to mysensors network.",
-    "released": "2018-11-16"
+    "name": "0.6.4",
+    "desc": "Added healthcheck by sending periodic version request to Gateway",
+    "released": "2018-11-23"
   },
   "files": [
     {
