@@ -172,7 +172,7 @@ pub fn stream_read_write(
             thread::spawn(move || write_connection.write_loop(receiver, cancel_token_receiver));
         sender = reader.join().unwrap();
         let stop_token = String::from("reader stopped");
-        stop_check_sender.send(stop_token).unwrap();
+        stop_check_sender.send(stop_token.clone()).unwrap();
         cancel_token_sender.send(stop_token).unwrap();
         receiver = writer.join().unwrap();
     }
