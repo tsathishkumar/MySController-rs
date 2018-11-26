@@ -45,42 +45,69 @@ pub fn create_or_update_sensor(
         .find(sensor_message.node_id)
         .first::<Node>(conn)
     {
-        Ok(node) => match sensors
-            .find((sensor_message.node_id, sensor_message.child_sensor_id))
-            .first::<Sensor>(conn)
-        {
-            Ok(existing_sensor) => if existing_sensor != sensor_message {
+        Ok(node) => create_or_update_child_sensor(&conn, node, sensor_message, new_sensor_sender),
+        Err(diesel::result::Error::NotFound) => {
+            info!(
+                "Node doesn't exist for {:?}, Creating new node",
+                &sensor_message
+            );
+            match super::internal::create_node(&conn, sensor_message.node_id) {
+                Ok(node) => {
+                    create_or_update_child_sensor(&conn, node, sensor_message, new_sensor_sender)
+                }
+                Err(e) => error!(
+                    "Error while creating new node for {}, {:?}",
+                    sensor_message.node_id, e
+                ),
+            }
+        }
+        Err(_e) => error!(
+            "Error while checking for existing node for {}, {:?}",
+            sensor_message.node_id, _e
+        ),
+    }
+}
+
+pub fn create_or_update_child_sensor(
+    conn: &SqliteConnection,
+    node: Node,
+    sensor_message: Sensor,
+    new_sensor_sender: &Sender<(String, Sensor)>,
+) {
+    match sensors
+        .find((sensor_message.node_id, sensor_message.child_sensor_id))
+        .first::<Sensor>(conn)
+    {
+        Ok(existing_sensor) => {
+            if existing_sensor != sensor_message {
                 match diesel::update(sensors)
                     .filter(node_id.eq(sensor_message.node_id))
                     .filter(child_sensor_id.eq(sensor_message.child_sensor_id))
                     .set((
                         sensor_type.eq(sensor_message.sensor_type),
                         description.eq(&sensor_message.description),
-                    )).execute(conn)
+                    ))
+                    .execute(conn)
                 {
                     Ok(_) => info!("Updated sensor {:?}", &sensor_message),
                     Err(e) => error!("Update sensor failed {:?}", e),
                 }
-            },
-            Err(diesel::result::Error::NotFound) => match diesel::insert_into(sensors)
-                .values(&sensor_message)
-                .execute(conn)
-            {
-                Ok(_) => {
-                    info!("Created {:?}", &sensor_message);
-                    new_sensor_sender
-                        .send((node.node_name, sensor_message))
-                        .unwrap();
-                }
-                Err(e) => error!("Create sensor failed {:?}", e),
-            },
-            Err(e) => error!(
-                "Error while checking for existing {:?} {:?}",
-                &sensor_message, e
-            ),
+            }
+        }
+        Err(diesel::result::Error::NotFound) => match diesel::insert_into(sensors)
+            .values(&sensor_message)
+            .execute(conn)
+        {
+            Ok(_) => {
+                info!("Created {:?}", &sensor_message);
+                new_sensor_sender
+                    .send((node.node_name, sensor_message))
+                    .unwrap();
+            }
+            Err(e) => error!("Create sensor failed {:?}", e),
         },
-        Err(e) => error!(
-            "Error while checking for existing node of {:?} {:?} ",
+        Err(e) => info!(
+            "Error while checking for existing {:?} {:?}",
             &sensor_message, e
         ),
     }

@@ -261,7 +261,13 @@ fn create_serial_connection(port: &String, baud_rate: Option<u32>) -> Box<dyn Co
 
 impl Connection for SerialConnection {
     fn timeout(&mut self, duration: Duration) {
-        self.stream.set_timeout(duration);
+        match self.stream.set_timeout(duration) {
+            Ok(_) => (),
+            Err(_) => error!(
+                "Error while setting timeout for Serial connection {:?}",
+                &self.serial_port
+            ),
+        }
     }
 
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
@@ -286,7 +292,13 @@ impl Connection for SerialConnection {
 
 impl Connection for TcpConnection {
     fn timeout(&mut self, duration: Duration) {
-        self.tcp_stream.set_read_timeout(Some(duration));
+        match self.tcp_stream.set_read_timeout(Some(duration)) {
+            Ok(_) => (),
+            Err(_) => error!(
+                "Error while setting timeout for TCP connection {:?}",
+                &self.tcp_port
+            ),
+        }
     }
 
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {

@@ -91,7 +91,7 @@ fn forward_to_controller(controller_sender: &Sender<String>, message: InternalMe
     }
 }
 
-pub fn create_node(conn: &SqliteConnection, id: i32) -> Result<usize, diesel::result::Error> {
+pub fn create_node(conn: &SqliteConnection, id: i32) -> Result<Node, diesel::result::Error> {
     let new_node = Node {
         node_id: id,
         node_name: "New Node".to_owned(),
@@ -107,6 +107,7 @@ pub fn create_node(conn: &SqliteConnection, id: i32) -> Result<usize, diesel::re
     diesel::insert_into(dsl::nodes)
         .values(&new_node)
         .execute(conn)
+        .map(|_| new_node)
 }
 
 pub fn update_network_topology(
