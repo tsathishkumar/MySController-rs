@@ -15,6 +15,7 @@ pub struct StreamInfo {
     pub port: String,
     pub baud_rate: Option<u32>,
     pub connection_type: ConnectionType,
+    pub timeout_enabled: bool,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -136,13 +137,13 @@ pub trait Connection: Send {
 }
 
 pub struct SerialConnection {
-    pub serial_port: String,
-    pub stream: Box<dyn serialport::SerialPort>,
+    serial_port: String,
+    stream: Box<dyn serialport::SerialPort>,
 }
 
 pub struct TcpConnection {
-    pub tcp_port: String,
-    pub tcp_stream: TcpStream,
+    tcp_port: String,
+    tcp_stream: TcpStream,
 }
 
 pub fn stream_read_write(
@@ -159,7 +160,9 @@ pub fn stream_read_write(
             &stream_info.port,
             stream_info.baud_rate,
         );
-        read_connection.timeout(Duration::from_secs(40));
+        if stream_info.timeout_enabled {
+            read_connection.timeout(Duration::from_secs(40));
+        }
         cancel_token_sender.send(String::from("stop")).unwrap();
         receiver = simple_consumer.join().unwrap();
 
