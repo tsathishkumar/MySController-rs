@@ -71,6 +71,7 @@ impl PresentationType {
             PresentationType::AirQuality => "multiLevelSensor".to_owned(),
             PresentationType::Moisture => "multiLevelSensor".to_owned(),
             PresentationType::Baro => "multiLevelSensor".to_owned(),
+            PresentationType::Dust => "multiLevelSensor".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -88,6 +89,7 @@ impl PresentationType {
             PresentationType::AirQuality => "Air Quality sensor".to_owned(),
             PresentationType::Moisture => "Moisture sensor".to_owned(),
             PresentationType::Baro => "Barometer sensor".to_owned(),
+            PresentationType::Dust => "Dust sensor".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -105,6 +107,7 @@ impl PresentationType {
             PresentationType::AirQuality => vec![SetReqType::Level, SetReqType::UnitPrefix],
             PresentationType::Moisture => vec![SetReqType::Level],
             PresentationType::Baro => vec![SetReqType::Pressure, SetReqType::Forecast],
+            PresentationType::Dust => vec![SetReqType::Dust],
             _ => Vec::new(),
         }
     }
@@ -167,5 +170,6 @@ mod test {
         assert!(PresentationType::AirQuality.is_supported());
         assert!(PresentationType::Moisture.is_supported());
         assert!(PresentationType::Baro.is_supported());
+        assert!(PresentationType::Dust.is_supported());
     }
 }
