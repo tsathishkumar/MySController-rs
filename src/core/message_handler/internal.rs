@@ -21,6 +21,7 @@ pub fn handle(
         match receiver.recv() {
             Ok(message) => match message.sub_type {
                 InternalType::IdRequest => send_node_id(&db_connection, response_sender, message),
+                InternalType::SketchName => update_node_name(&db_connection, message),
                 InternalType::Time => send_current_time(response_sender, message),
                 InternalType::DiscoverResponse => {
                     send_discover_response(&db_connection, &message);
@@ -47,6 +48,25 @@ fn send_node_id(
             Err(_) => error!("Error while creating node with new id"),
         },
         None => error!("There is no free node id! All 254 id's are already reserved!"),
+    }
+}
+
+fn update_node_name(
+    db_connection: &PooledConnection<ConnectionManager<SqliteConnection>>,
+    message: InternalMessage,
+) {
+    use crate::model::node::nodes::dsl::*;
+    match diesel::update(nodes)
+        .filter(node_id.eq(message.node_id as i32))
+        .filter(node_name.eq("New Node".to_owned()))
+        .set(node_name.eq(message.payload.clone()))
+        .execute(db_connection)
+    {
+        Ok(_) => (),
+        Err(e) => error!(
+            "Error while trying to update node name for {:?} : {:?}",
+            message, e
+        ),
     }
 }
 
