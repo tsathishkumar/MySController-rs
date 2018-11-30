@@ -107,7 +107,7 @@ impl PresentationType {
             PresentationType::AirQuality => vec![SetReqType::Level, SetReqType::UnitPrefix],
             PresentationType::Moisture => vec![SetReqType::Level],
             PresentationType::Baro => vec![SetReqType::Pressure, SetReqType::Forecast],
-            PresentationType::Dust => vec![SetReqType::Dust],
+            PresentationType::Dust => vec![SetReqType::Level,SetReqType::UnitPrefix],
             _ => Vec::new(),
         }
     }
