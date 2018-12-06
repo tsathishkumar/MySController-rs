@@ -75,7 +75,7 @@ fn get_things(
         {
             Some(node_name) => {
                 let thing = adapter::build_thing(
-                    format!("{} - {}", node_name, sensor.sensor_type.thing_description())
+                    format!("{} - {} - {}", node_name, sensor.sensor_type.thing_description(), sensor.description)
                         .to_owned(),
                     sensor,
                     set_message_sender.clone(),
