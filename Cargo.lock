@@ -1023,7 +1023,7 @@ dependencies = [
 
 [[package]]
 name = "myscontroller-rs"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "actix 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-net 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",

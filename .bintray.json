@@ -19,9 +19,9 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.6.5",
-    "desc": "Added healthcheck by sending periodic version request to Gateway",
-    "released": "2018-11-26"
+    "name": "0.6.6",
+    "desc": "Fixed some issues and added few more sensor support in WoT api",
+    "released": "2018-12-07"
   },
   "files": [
     {
