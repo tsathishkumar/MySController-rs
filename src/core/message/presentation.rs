@@ -72,6 +72,7 @@ impl PresentationType {
             PresentationType::Moisture => "multiLevelSensor".to_owned(),
             PresentationType::Baro => "multiLevelSensor".to_owned(),
             PresentationType::Dust => "multiLevelSensor".to_owned(),
+            PresentationType::Info => "string".to_owned(); // IS THIS CORRECT?
             _ => "".to_owned(),
         }
     }
@@ -82,7 +83,7 @@ impl PresentationType {
             PresentationType::Motion => "Motion sensor".to_owned(),
             PresentationType::Smoke => "Smoke sensor".to_owned(),
             PresentationType::Binary => "Binary switch".to_owned(),
-            PresentationType::Dimmer => "Dimmable lamp".to_owned(),
+            PresentationType::Dimmer => "Dimmable device".to_owned(),
             PresentationType::Temp => "Temperature sensor".to_owned(),
             PresentationType::Hum => "Humidity sensor".to_owned(),
             PresentationType::Lock => "Lock device".to_owned(),
@@ -90,6 +91,7 @@ impl PresentationType {
             PresentationType::Moisture => "Moisture sensor".to_owned(),
             PresentationType::Baro => "Barometer sensor".to_owned(),
             PresentationType::Dust => "Dust sensor".to_owned(),
+            PresentationType::Info => "Text".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -108,6 +110,7 @@ impl PresentationType {
             PresentationType::Moisture => vec![SetReqType::Level],
             PresentationType::Baro => vec![SetReqType::Pressure, SetReqType::Forecast],
             PresentationType::Dust => vec![SetReqType::Level,SetReqType::UnitPrefix],
+            PresentationType::Info => vec![SetReqType::String],
             _ => Vec::new(),
         }
     }
@@ -171,5 +174,6 @@ mod test {
         assert!(PresentationType::Moisture.is_supported());
         assert!(PresentationType::Baro.is_supported());
         assert!(PresentationType::Dust.is_supported());
+        assert!(PresentationType::Info.is_supported());
     }
 }
