@@ -187,6 +187,7 @@ impl SetReqType {
             SetReqType::UnitPrefix => "unit",
             SetReqType::Pressure => "level",
             SetReqType::Forecast => "forecast",
+            SetReqType::Info => "text", // is this ok?
             _ => "",
         }.to_string()
     }
@@ -204,6 +205,7 @@ impl SetReqType {
             SetReqType::Pressure => "number",
             SetReqType::UnitPrefix => "string",
             SetReqType::Forecast => "string",
+            SetReqType::Info => "string",
             _ => "",
         }
     }
@@ -229,6 +231,7 @@ impl SetReqType {
             SetReqType::Pressure => "Pressure measured by sensor".to_owned(),
             SetReqType::UnitPrefix => "Unit of the sensor output".to_owned(),
             SetReqType::Forecast => "Forecast predicted by sensor".to_owned(),
+            SetReqType::info => "Text".to_owned(),
             _ => "".to_owned(),
         }
     }
@@ -254,6 +257,7 @@ mod test {
         assert!(SetReqType::Level.is_supported());
         assert!(SetReqType::Forecast.is_supported());
         assert!(SetReqType::Pressure.is_supported());
+        assert!(SetReqType::Info.is_supported());
     }
 
     #[test]
