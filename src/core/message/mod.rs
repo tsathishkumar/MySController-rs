@@ -250,7 +250,7 @@ mod test {
         if let Ok(CommandMessage::Stream(mut message)) =
             CommandMessage::new(&String::from(message_string))
         {
-            message.to_response(&Firmware {
+            message.response(&Firmware {
                 firmware_type: 10,
                 firmware_version: 2,
                 blocks: 79,
@@ -273,7 +273,7 @@ mod test {
         if let Ok(CommandMessage::Stream(mut message)) =
             CommandMessage::new(&String::from(message_string))
         {
-            message.to_response(&Firmware::prepare_fw(
+            message.response(&Firmware::prepare_fw(
                 10,
                 2,
                 String::from("Blink"),
