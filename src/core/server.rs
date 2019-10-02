@@ -1,13 +1,16 @@
+use std::thread;
+
+use diesel::prelude::SqliteConnection;
+use diesel::r2d2::{ConnectionManager, Pool};
+
+use crate::channel;
+use crate::channel::{Receiver, Sender};
+use crate::model::sensor::Sensor;
+
 use super::connection::*;
 use super::interceptor;
 use super::message::set::SetMessage;
 use super::message_handler::{internal, presentation, set, stream};
-use crate::channel;
-use crate::channel::{Receiver, Sender};
-use crate::model::sensor::Sensor;
-use diesel::prelude::SqliteConnection;
-use diesel::r2d2::{ConnectionManager, Pool};
-use std::thread;
 
 pub fn start(
     gateway_info: StreamInfo,
@@ -45,13 +48,10 @@ pub fn start(
         );
     });
 
-    let set_message_writer = thread::spawn(move || {
-        set::handle_from_controller(&set_message_receiver, &set_response_sender);
-    });
+    let set_message_writer = set::handle_from_controller(set_message_receiver, set_response_sender);
 
-    let set_message_reader = thread::spawn(move || {
-        set::handle_from_gateway(&set_receiver, &in_set_sender, &set_forward_sender);
-    });
+    let set_message_reader = set::handle_from_gateway(set_receiver, in_set_sender, set_forward_sender);
+
 
     let connection = pool.get().unwrap();
 

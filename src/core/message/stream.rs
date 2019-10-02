@@ -53,15 +53,15 @@ impl StreamMessage {
             }
         };
         Ok(StreamMessage {
-            node_id: node_id,
-            child_sensor_id: child_sensor_id,
-            ack: ack,
-            sub_type: sub_type,
-            payload: payload,
+            node_id,
+            child_sensor_id,
+            ack,
+            sub_type,
+            payload,
         })
     }
 
-    pub fn to_response(&mut self, firmware: &Firmware) {
+    pub fn response(&mut self, firmware: &Firmware) {
         self.sub_type = match self.sub_type {
             StreamType::StFirmwareConfigRequest => StreamType::StFirmwareConfigResponse,
             StreamType::StFirmwareRequest => StreamType::StFirmwareResponse,
@@ -106,9 +106,9 @@ impl fmt::Display for StreamMessage {
                 hex::encode_upper(&unsafe { mem::transmute::<_, [u8; 6]>(stream_payload) })
             }
         };
-        write!(
+        writeln!(
             f,
-            "{:?};{};{:?};{};{:?};{}\n",
+            "{:?};{};{:?};{};{:?};{}",
             self.node_id, self.child_sensor_id, _cmd, self.ack, _sub_type, &payload
         )
     }
@@ -132,7 +132,7 @@ pub union FirmwarePayload {
 
 impl FirmwarePayload {
     pub fn new(data: [u8; MAX_MESSAGE_LENGTH]) -> FirmwarePayload {
-        FirmwarePayload { data: data }
+        FirmwarePayload { data }
     }
 }
 

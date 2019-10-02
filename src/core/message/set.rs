@@ -15,13 +15,12 @@ pub struct SetMessage {
 impl fmt::Display for SetMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let _cmd = 1;
-        write!(
+        writeln!(
             f,
-            "{};{};{};{};{}\n",
+            "{};{};{};0;{}",
             self.node_id,
             self.child_sensor_id,
             _cmd,
-            0,
             self.value.to_string()
         )
     }
@@ -161,21 +160,21 @@ enum_from_primitive! {
 }
 
 impl SetReqType {
-    pub fn is_supported(&self) -> bool {
+    pub fn is_supported(self) -> bool {
         !(self.property_name().is_empty()
             || self.data_type().is_empty()
             || self.description().is_empty())
     }
 
-    pub fn is_forwardable(&self) -> bool {
-        match *self {
+    pub fn is_forwardable(self) -> bool {
+        match self {
             SetReqType::Percentage | SetReqType::Status | SetReqType::Armed => true,
             _ => false,
         }
     }
 
-    pub fn property_name(&self) -> String {
-        match *self {
+    pub fn property_name(self) -> String {
+        match self {
             SetReqType::Temp => "level",
             SetReqType::Hum => "level",
             SetReqType::Status => "on",
@@ -191,8 +190,8 @@ impl SetReqType {
         }.to_string()
     }
 
-    pub fn data_type(&self) -> &'static str {
-        match *self {
+    pub fn data_type(self) -> &'static str {
+        match self {
             SetReqType::Status
             | SetReqType::LockStatus
             | SetReqType::Tripped
@@ -208,16 +207,16 @@ impl SetReqType {
         }
     }
 
-    pub fn unit(&self) -> &'static str {
-        match *self {
+    pub fn unit(self) -> &'static str {
+        match self {
             SetReqType::Temp => "celsius",
             SetReqType::Percentage => "%",
             _ => "",
         }
     }
 
-    pub fn description(&self) -> String {
-        match *self {
+    pub fn description(self) -> String {
+        match self {
             SetReqType::Temp => "Temperature".to_owned(),
             SetReqType::Hum => "Humidity".to_owned(),
             SetReqType::Status => "Whether the thing is on".to_owned(),

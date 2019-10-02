@@ -1,11 +1,12 @@
-use crc16::*;
-use ihex::record::Record;
 use std::fmt;
 use std::fs::File;
-use std::io::prelude::*;
 use std::io::BufReader;
+use std::io::prelude::*;
 use std::iter::FromIterator;
 use std::path::Path;
+
+use crc16::*;
+use ihex::record::Record;
 
 pub const FIRMWARE_BLOCK_SIZE: i32 = 16;
 
@@ -60,7 +61,7 @@ impl Firmware {
             firmware_version,
             name,
             blocks,
-            crc: Firmware::compute_crc(&data) as i32,
+            crc: i32::from(Firmware::compute_crc(&data)),
             data,
         }
     }
@@ -84,10 +85,10 @@ impl Firmware {
     }
 
     pub fn ihex_to_bin(record: &Record) -> Vec<u8> {
-        match record {
-            &Record::Data {
-                offset: _,
+        match *record {
+            Record::Data {
                 value: ref _value,
+                ..
             } => _value.clone(),
             _ => Vec::new(),
         }
@@ -125,9 +126,11 @@ impl Firmware {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use hex;
     use std::path::PathBuf;
+
+    use hex;
+
+    use super::*;
 
     #[test]
     fn reader_respects_all_newline_formats() {
@@ -162,7 +165,7 @@ mod test {
         ).unwrap();
         assert_eq!(
             fw_binary.get_block(1),
-            [12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0,]
+            [12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0, 12, 148, 110, 0, ]
         );
     }
 

@@ -58,10 +58,10 @@ impl InternalMessage {
     ) -> Result<InternalMessage, ParseError> {
         let sub_type = InternalType::from_u8(sub_type).ok_or(ParseError::InvalidSubType)?;
         Ok(InternalMessage {
-            node_id: node_id,
-            child_sensor_id: child_sensor_id,
-            ack: ack,
-            sub_type: sub_type,
+            node_id,
+            child_sensor_id,
+            ack,
+            sub_type,
             payload: String::from(payload),
         })
     }
@@ -82,9 +82,9 @@ impl fmt::Display for InternalMessage {
         let _cmd = 3;
         let _sub_type = (self.sub_type) as u8;
 
-        write!(
+        writeln!(
             f,
-            "{:?};{};{:?};{};{:?};{}\n",
+            "{:?};{};{:?};{};{:?};{}",
             self.node_id, self.child_sensor_id, _cmd, self.ack, _sub_type, &self.payload
         )
     }

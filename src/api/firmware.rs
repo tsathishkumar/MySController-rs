@@ -1,18 +1,21 @@
-use actix_web::{
-    dev, error, multipart, AsyncResponder, Error, FutureResponse, HttpMessage, HttpRequest,
-    HttpResponse, Query,
-};
-use crate::api::index::AppState;
-use crate::handler::firmware::*;
-use crate::handler::response::Msgs;
-use crate::model::firmware::Firmware;
-use futures::future;
-use futures::{Future, Stream};
-use http::StatusCode;
 use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
+
+use actix_web::{
+    AsyncResponder, dev, error, Error, FutureResponse, HttpMessage, HttpRequest, HttpResponse,
+    multipart, Query,
+};
+use futures::{Future, Stream};
+use futures::future;
+use http::StatusCode;
+
+use crate::api::index::AppState;
+use crate::handler::firmware::*;
+use crate::handler::response::Msgs;
+use crate::model::firmware::Firmware;
+
 pub fn upload_form(_req: &HttpRequest<AppState>) -> Result<HttpResponse, error::Error> {
     let html = r#"<html>
         <head><title>Upload Test</title></head>
@@ -47,7 +50,7 @@ pub fn delete(req: &HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
         Some(firmware_type) => match firmware_type.parse::<i32>() {
             Ok(value) => value,
             Err(_) => {
-                return invalid_request("firmware_type should be a number with max value of 255")
+                return invalid_request("firmware_type should be a number with max value of 255");
             }
         },
         None => return invalid_request("firmware_type path param is missing"),
@@ -56,7 +59,7 @@ pub fn delete(req: &HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
         Some(firmware_type) => match firmware_type.parse::<i32>() {
             Ok(value) => value,
             Err(_) => {
-                return invalid_request("firmware_version should be a number with max value of 255")
+                return invalid_request("firmware_version should be a number with max value of 255");
             }
         },
         None => return invalid_request("firmware_version path param is missing"),
@@ -102,7 +105,7 @@ pub fn create_or_update(
         Some(firmware_type) => match firmware_type.parse::<u8>() {
             Ok(value) => value,
             Err(_) => {
-                return invalid_request("firmware_type should be a number with max value of 255")
+                return invalid_request("firmware_type should be a number with max value of 255");
             }
         },
         None => return invalid_request("firmware_type path param is missing"),
@@ -111,7 +114,7 @@ pub fn create_or_update(
         Some(firmware_type) => match firmware_type.parse::<u8>() {
             Ok(value) => value,
             Err(_) => {
-                return invalid_request("firmware_version should be a number with max value of 255")
+                return invalid_request("firmware_version should be a number with max value of 255");
             }
         },
         None => return invalid_request("firmware_version path param is missing"),
@@ -140,16 +143,17 @@ pub fn create_or_update(
                         Ok(firmware) => req
                             .state()
                             .db
-                            .send(match update {
-                                true => CreateOrUpdate::Update(firmware),
-                                false => CreateOrUpdate::Create(firmware),
+                            .send(if update {
+                                CreateOrUpdate::Update(firmware)
+                            } else {
+                                CreateOrUpdate::Create(firmware)
                             })
                             .from_err()
                             .and_then(|res| match res {
                                 Ok(msg) => Ok(HttpResponse::build(
                                     StatusCode::from_u16(msg.status).unwrap(),
                                 )
-                                .json(msg)),
+                                    .json(msg)),
                                 Err(e) => {
                                     Ok(HttpResponse::build(StatusCode::from_u16(e.status).unwrap())
                                         .json(e))
@@ -160,7 +164,7 @@ pub fn create_or_update(
                         Err(msg) => Box::new(future::result(Ok(HttpResponse::build(
                             StatusCode::from_u16(msg.status).unwrap(),
                         )
-                        .json(msg)))),
+                            .json(msg)))),
                     }
                 }
                 None => Box::new(future::result(Ok(
@@ -174,7 +178,7 @@ fn invalid_request(msg: &str) -> FutureResponse<HttpResponse> {
     Box::new(future::result(Ok(HttpResponse::build(
         StatusCode::from_u16(400).unwrap(),
     )
-    .json(msg))))
+        .json(msg))))
 }
 
 fn get_firmware(
@@ -184,8 +188,8 @@ fn get_firmware(
     firmware_name: String,
 ) -> Result<NewFirmware, Msgs> {
     match Firmware::prepare_fw(
-        firmware_type as i32,
-        firmware_version as i32,
+        i32::from(firmware_type),
+        i32::from(firmware_version),
         firmware_name,
         &PathBuf::from(file_name),
     ) {
@@ -197,14 +201,14 @@ fn get_firmware(
         )),
         _ => Err(Msgs {
             status: 400,
-            message: String::from(format!("Error uploading firmware, Missing file")),
+            message: "Error uploading firmware, Missing file".to_string(),
         }),
     }
 }
 
 fn handle_multipart_item(
     item: actix_web::multipart::MultipartItem<dev::Payload>,
-) -> Box<dyn Stream<Item = String, Error = Error>> {
+) -> Box<dyn Stream<Item=String, Error=Error>> {
     match item {
         multipart::MultipartItem::Field(field) => Box::new(save_file(field).into_stream()),
         multipart::MultipartItem::Nested(mp) => Box::new(
@@ -217,7 +221,7 @@ fn handle_multipart_item(
 
 pub fn save_file(
     field: actix_web::multipart::Field<dev::Payload>,
-) -> Box<dyn Future<Item = String, Error = Error>> {
+) -> Box<dyn Future<Item=String, Error=Error>> {
     //TODO: create unique temp files for each upload to handle concurrent uploads
     let file_path_string = "firmware.hex";
     let file_path: String = file_path_string.to_owned();

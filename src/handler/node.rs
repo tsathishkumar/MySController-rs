@@ -1,12 +1,14 @@
-use super::response::Msgs;
 use ::actix::*;
 use actix_web::*;
 use diesel;
 use diesel::prelude::*;
 use diesel::result::DatabaseErrorKind;
 use diesel::result::Error::DatabaseError;
+
 use crate::model::db::ConnDsl;
 use crate::model::node::Node;
+
+use super::response::Msgs;
 
 #[derive(Serialize, Deserialize)]
 pub struct NewNode {
@@ -190,7 +192,7 @@ impl Handler<GetNode> for ConnDsl {
 
         match nodes.find(node.node_id).first::<Node>(conn) {
             Ok(v) => Ok(v),
-            _ => return Err(()),
+            _ => Err(()),
         }
     }
 }

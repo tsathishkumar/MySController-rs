@@ -1,10 +1,13 @@
+use std::sync::{Arc, RwLock};
+
+use serde_json;
+use webthing::{BaseProperty, BaseThing, Thing};
+use webthing::property::ValueForwarder;
+
 use crate::channel::Sender;
 use crate::core::message::set::{SetMessage, SetReqType, Value};
 use crate::model::sensor::Sensor;
-use serde_json;
-use std::sync::{Arc, RwLock};
-use webthing::property::ValueForwarder;
-use webthing::{BaseProperty, BaseThing, Thing};
+use crate::wot::RwLockSensor;
 
 pub struct PropertyValueForwarder {
     sensor: Sensor,
@@ -18,7 +21,7 @@ impl PropertyValueForwarder {
             node_id: self.sensor.node_id as u8,
             child_sensor_id: self.sensor.child_sensor_id as u8,
             ack: 0,
-            value: value,
+            value,
         })
     }
 }
@@ -41,26 +44,23 @@ pub fn build_thing(
     name: String,
     sensor: Sensor,
     set_message_sender: Sender<SetMessage>,
-) -> Option<(Sensor, Arc<RwLock<Box<dyn Thing + 'static>>>)> {
-    match sensor.sensor_type.is_supported() {
-        true => {
-            let mut thing = BaseThing::new(
-                name,
-                Some(vec!(sensor.sensor_type.thing_type())),
-                Some(sensor.sensor_type.thing_description()),
-            );
-            build_properties(&sensor, set_message_sender)
-                .into_iter()
-                .for_each(|property| thing.add_property(Box::new(property)));
-            Some((sensor, Arc::new(RwLock::new(Box::new(thing)))))
-        }
-        false => {
-            warn!(
-                "PresentationType {:?} is not handled yet!",
-                sensor.sensor_type
-            );
-            None
-        }
+) -> Option<RwLockSensor> {
+    if sensor.sensor_type.is_supported() {
+        let mut thing = BaseThing::new(
+            name,
+            Some(vec!(sensor.sensor_type.thing_type())),
+            Some(sensor.sensor_type.thing_description()),
+        );
+        build_properties(&sensor, set_message_sender)
+            .into_iter()
+            .for_each(|property| thing.add_property(Box::new(property)));
+        Some((sensor, Arc::new(RwLock::new(Box::new(thing)))))
+    } else {
+        warn!(
+            "PresentationType {:?} is not handled yet!",
+            sensor.sensor_type
+        );
+        None
     }
 }
 
@@ -79,17 +79,18 @@ fn build_property(
     set_message_sender: Sender<SetMessage>,
 ) -> BaseProperty {
     let description = json!({
-        "type": set_type.data_type(),
-        "description": set_type.description(),
-        "unit": set_type.unit(),
-    });
-    let value_forwarder: Option<Box<dyn ValueForwarder>> = match set_type.is_forwardable() {
-        true => Some(Box::new(PropertyValueForwarder {
+"type": set_type.data_type(),
+"description": set_type.description(),
+"unit": set_type.unit(),
+});
+    let value_forwarder: Option<Box<dyn ValueForwarder>> = if set_type.is_forwardable() {
+        Some(Box::new(PropertyValueForwarder {
             sensor,
             set_type,
             set_message_sender,
-        })),
-        false => None,
+        }))
+    } else {
+        None
     };
     BaseProperty::new(
         set_type.property_name(),

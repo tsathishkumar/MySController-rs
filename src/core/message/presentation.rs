@@ -50,7 +50,7 @@ enum_from_primitive! {
 }
 
 impl PresentationType {
-    pub fn is_supported(&self) -> bool {
+    pub fn is_supported(self) -> bool {
         !(self.thing_type().is_empty() || self.thing_description().is_empty()
             || !(self.property_types()
                 .into_iter()
@@ -58,8 +58,8 @@ impl PresentationType {
                 .fold(true, |f, s| s && f)))
     }
 
-    pub fn thing_type(&self) -> String {
-        match *self {
+    pub fn thing_type(self) -> String {
+        match self {
             PresentationType::Door => "onOffSwitch".to_owned(),
             PresentationType::Motion => "binarySensor".to_owned(),
             PresentationType::Smoke => "binarySensor".to_owned(),
@@ -76,8 +76,8 @@ impl PresentationType {
         }
     }
 
-    pub fn thing_description(&self) -> String {
-        match *self {
+    pub fn thing_description(self) -> String {
+        match self {
             PresentationType::Door => "Door lock".to_owned(),
             PresentationType::Motion => "Motion sensor".to_owned(),
             PresentationType::Smoke => "Smoke sensor".to_owned(),
@@ -94,8 +94,8 @@ impl PresentationType {
         }
     }
 
-    pub fn property_types(&self) -> Vec<SetReqType> {
-        match *self {
+    pub fn property_types(self) -> Vec<SetReqType> {
+        match self {
             PresentationType::Door => vec![SetReqType::Armed],
             PresentationType::Motion => vec![SetReqType::Tripped],
             PresentationType::Smoke => vec![SetReqType::Tripped],
@@ -145,9 +145,9 @@ impl fmt::Display for PresentationMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let _cmd = 0;
         let _sub_type = (self.sub_type) as u8;
-        write!(
+        writeln!(
             f,
-            "{:?};{};{:?};{};{:?};{}\n",
+            "{:?};{};{:?};{};{:?};{}",
             self.node_id, self.child_sensor_id, _cmd, self.ack, _sub_type, &self.payload
         )
     }

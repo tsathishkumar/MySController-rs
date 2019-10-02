@@ -31,8 +31,8 @@ pub enum CommandMessage {
 
 //"node-id ; child-sensor-id ; command ; ack ; type ; payload \n"
 impl CommandMessage {
-    pub fn new(command_message: &String) -> Result<CommandMessage, ParseError> {
-        let message_parts = command_message.trim().split(";").collect::<Vec<&str>>();
+    pub fn new(command_message: &str) -> Result<CommandMessage, ParseError> {
+        let message_parts = command_message.trim().split(';').collect::<Vec<&str>>();
 
         if message_parts.len() != 6 {
             return Err(ParseError::InvalidCommandMessage);
@@ -104,8 +104,8 @@ impl fmt::Display for CommandMessage {
     }
 }
 
-pub fn command_type(message_string: &String) -> Option<CommandType> {
-    let message_parts = message_string.split(";").collect::<Vec<&str>>();
+pub fn command_type(message_string: &str) -> Option<CommandType> {
+    let message_parts = message_string.split(';').collect::<Vec<&str>>();
     if message_parts.len() == 6 {
         //"node-id ; child-sensor-id ; command ; ack ; type ; payload \n"
         let command_type = message_parts[2].parse::<u8>().unwrap();

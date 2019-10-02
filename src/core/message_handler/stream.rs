@@ -1,13 +1,14 @@
-use crate::channel::{Receiver, Sender};
-use crate::core::message::stream::*;
 use diesel;
 use diesel::prelude::*;
 use diesel::r2d2::ConnectionManager;
-use crate::model::firmware::firmwares::dsl::firmwares;
-use crate::model::firmware::Firmware;
-use crate::model::node::nodes::dsl::*;
-use crate::model::node::Node;
 use r2d2::*;
+
+use crate::channel::{Receiver, Sender};
+use crate::core::message::stream::*;
+use crate::model::firmware::Firmware;
+use crate::model::firmware::firmwares::dsl::firmwares;
+use crate::model::node::Node;
+use crate::model::node::nodes::dsl::*;
 
 pub fn handle(
     ota_receiver: &Receiver<StreamMessage>,
@@ -15,9 +16,8 @@ pub fn handle(
     db_connection: PooledConnection<ConnectionManager<SqliteConnection>>,
 ) {
     loop {
-        match ota_receiver.recv() {
-            Ok(stream_request) => send_response(sender, stream_request.clone(), &db_connection),
-            _ => (),
+        if let Ok(stream_request) = ota_receiver.recv() {
+            send_response(sender, stream_request, &db_connection)
         }
     }
 }
@@ -28,18 +28,17 @@ fn send_response(
     db_connection: &SqliteConnection,
 ) {
     if let Ok(node) = nodes
-        .find(stream.node_id as i32)
+        .find(i32::from(stream.node_id))
         .first::<Node>(db_connection)
         .optional()
     {
-        match response_fw_type_version(stream, node, db_connection) {
-            Some((_type, version)) => match firmwares
-                .find((_type as i32, version as i32))
-                .first::<Firmware>(&*db_connection)
-            {
+        if let Some((_type, version)) = response_fw_type_version(stream, node, db_connection) {
+            match firmwares
+                .find((i32::from(_type), i32::from(version)))
+                .first::<Firmware>(&*db_connection) {
                 Ok(firmware) => {
                     debug!("Request {:?}", stream);
-                    stream.to_response(&firmware);
+                    stream.response(&firmware);
                     debug!("Response {:?}", stream);
                     let response = stream.to_string();
                     match stream_response_sender.send(response) {
@@ -53,8 +52,7 @@ fn send_response(
                         _type, version
                     );
                 }
-            },
-            None => (),
+            }
         }
     }
 }
@@ -75,14 +73,14 @@ fn response_fw_type_version(
                 Some(_node) => {
                     match diesel::update(nodes.filter(node_id.eq(_node.node_id)))
                         .set((
-                            firmware_type.eq(request.firmware_type as i32),
-                            firmware_version.eq(request.firmware_version as i32),
+                            firmware_type.eq(i32::from(request.firmware_type)),
+                            firmware_version.eq(i32::from(request.firmware_version)),
                         ))
                         .execute(connection)
-                    {
-                        Ok(_) => (),
-                        Err(_) => error!("Error while updating node with advertised firmware"),
-                    }
+                        {
+                            Ok(_) => (),
+                            Err(_) => error!("Error while updating node with advertised firmware"),
+                        }
                     Some((
                         _node.desired_firmware_type as u16,
                         _node.desired_firmware_version as u16,

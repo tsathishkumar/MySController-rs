@@ -1,13 +1,15 @@
-use super::response::Msgs;
 use ::actix::*;
 use actix_web::*;
 use diesel;
 use diesel::prelude::*;
 use diesel::result::DatabaseErrorKind;
 use diesel::result::Error::DatabaseError;
+
 use crate::model;
 use crate::model::db::ConnDsl;
 use crate::model::firmware::Firmware;
+
+use super::response::Msgs;
 
 #[derive(Serialize, Deserialize)]
 pub struct FirmwareDto {
@@ -119,24 +121,24 @@ pub struct NewFirmware {
 
 impl NewFirmware {
     pub fn build(
-        fimware_type: i32,
-        version: i32,
+        firmware_type: i32,
+        firmware_version: i32,
         name: String,
-        mut binary_data: Vec<u8>,
+        mut data: Vec<u8>,
     ) -> NewFirmware {
-        let pads: usize = binary_data.len() % 128; // 128 bytes per page for atmega328
+        let pads: usize = data.len() % 128; // 128 bytes per page for atmega328
         for _ in 0..(128 - pads) {
-            binary_data.push(255);
+            data.push(255);
         }
-        let blocks: i32 = binary_data.len() as i32 / model::firmware::FIRMWARE_BLOCK_SIZE;
-        let crc = Firmware::compute_crc(&binary_data) as i32;
+        let blocks: i32 = data.len() as i32 / model::firmware::FIRMWARE_BLOCK_SIZE;
+        let crc = i32::from(Firmware::compute_crc(&data));
         NewFirmware {
-            firmware_type: fimware_type,
-            firmware_version: version,
-            blocks: blocks,
-            data: binary_data,
-            name: name,
-            crc: crc,
+            firmware_type,
+            firmware_version,
+            blocks,
+            data,
+            name,
+            crc,
         }
     }
 }
@@ -263,9 +265,9 @@ impl Handler<GetFirmware> for ConnDsl {
         match firmwares
             .find((firmware.firmware_type, firmware.firmware_version))
             .first::<Firmware>(conn)
-        {
-            Ok(v) => Ok(v),
-            Err(_) => return Err(()),
-        }
+            {
+                Ok(v) => Ok(v),
+                Err(_) => Err(()),
+            }
     }
 }

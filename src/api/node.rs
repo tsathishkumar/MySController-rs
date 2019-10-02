@@ -91,7 +91,7 @@ pub fn get_node(req: &HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
     let node_id = node_id_path_param.to_string().parse::<i32>().unwrap();
     req.state()
         .db
-        .send(GetNode { node_id: node_id })
+        .send(GetNode { node_id })
         .from_err()
         .and_then(|res| match res {
             Ok(msg) => Ok(HttpResponse::Ok().json(msg)),
@@ -112,7 +112,7 @@ pub fn reboot_node(req: &HttpRequest<AppState>) -> FutureResponse<HttpResponse> 
     let node_id = node_id_path_param.to_string().parse::<i32>().unwrap();
     req.state()
         .db
-        .send(GetNode { node_id: node_id })
+        .send(GetNode { node_id })
         .from_err()
         .and_then(move |res| match res {
             Ok(_node) => {

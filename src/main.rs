@@ -182,7 +182,7 @@ pub fn log_level(config: &Ini) -> String {
         .to_owned()
 }
 
-fn get_mys_controller<'s>(config: &'s Ini) -> Option<connection::StreamInfo> {
+fn get_mys_controller(config: &Ini) -> Option<connection::StreamInfo> {
     config.section(Some("Controller".to_owned())).map(|controller_conf| {
     let controller_type = controller_conf.get("type").expect("Controller port is not specified. Ex:\n\
      [Controller]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Controller]\n type=SERIAL\n port=port=0.0.0.0:5003");
@@ -204,7 +204,7 @@ fn get_mys_controller<'s>(config: &'s Ini) -> Option<connection::StreamInfo> {
     }})
 }
 
-fn get_mys_gateway<'s>(config: &'s Ini) -> connection::StreamInfo {
+fn get_mys_gateway(config: &Ini) -> connection::StreamInfo {
     let gateway_conf = config.section(Some("Gateway".to_owned())).unwrap();
     let gateway_type = gateway_conf.get("type").expect("Gateway port is not specified. Ex:\n\
      [Gateway]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Gateway]\n type=SERIAL\n port=port=10.137.120.250:5003");

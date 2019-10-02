@@ -1,7 +1,3 @@
-use crate::channel;
-use crate::channel::{Receiver, Sender};
-use serialport;
-use serialport::prelude::*;
 use std::io;
 use std::io::Read;
 use std::io::Result;
@@ -10,6 +6,12 @@ use std::net::{TcpListener, TcpStream};
 use std::str;
 use std::thread;
 use std::time::Duration;
+
+use serialport;
+use serialport::prelude::*;
+
+use crate::channel;
+use crate::channel::{Receiver, Sender};
 
 pub struct StreamInfo {
     pub port: String,
@@ -54,9 +56,8 @@ pub trait Connection: Send {
         stop_receiver: Receiver<String>,
     ) -> Receiver<String> {
         loop {
-            match stop_receiver.recv_timeout(Duration::from_millis(10)) {
-                Ok(_) => break,
-                Err(_) => (),
+            if stop_receiver.recv_timeout(Duration::from_millis(10)).is_ok() {
+                break;
             }
             match receiver.recv_timeout(Duration::from_secs(5)) {
                 Ok(received_value) => match self.write(&received_value.as_bytes()) {
@@ -94,7 +95,7 @@ pub trait Connection: Send {
                             break;
                         }
                         line.push_str(&s);
-                        if s.contains("\n") {
+                        if s.contains('\n') {
                             break;
                         }
                     }
@@ -120,16 +121,15 @@ pub trait Connection: Send {
 
     fn health_check(&mut self, stop_check_receiver: Receiver<String>) {
         loop {
-            match self.write("0;255;3;0;2;".as_bytes()) {
+            match self.write(b"0;255;3;0;2;") {
                 Ok(_) => info!("{} << 0;255;3;0;2;", self.port()),
                 Err(e) => {
                     error!("Error while writing -- {:?}", e);
                     break;
                 }
             }
-            match stop_check_receiver.recv_timeout(Duration::from_secs(10)) {
-                Ok(_) => break,
-                Err(_) => (),
+            if stop_check_receiver.recv_timeout(Duration::from_secs(10)).is_ok() {
+                break;
             }
             thread::sleep(Duration::from_secs(30))
         }
@@ -186,9 +186,8 @@ fn consume(
     cancel_token_receiver: Receiver<String>,
 ) -> Receiver<String> {
     loop {
-        match cancel_token_receiver.recv_timeout(Duration::from_millis(500)) {
-            Ok(_) => break,
-            Err(_) => (),
+        if cancel_token_receiver.recv_timeout(Duration::from_millis(500)).is_ok() {
+            break;
         }
         match receiver.recv_timeout(Duration::from_millis(500)) {
             _ => continue,
@@ -199,7 +198,7 @@ fn consume(
 
 pub fn create_connection(
     connection_type: ConnectionType,
-    port: &String,
+    port: &str,
     baud_rate: Option<u32>,
 ) -> Box<dyn Connection> {
     match connection_type {
@@ -219,7 +218,7 @@ pub fn create_connection(
                 break;
             }
             Box::new(TcpConnection {
-                tcp_port: port.clone(),
+                tcp_port: port.to_string(),
                 tcp_stream: stream,
             })
         }
@@ -229,14 +228,14 @@ pub fn create_connection(
             let (stream, _socket) = stream.accept().unwrap();
             info!("Accepted connection from {:?}", _socket);
             Box::new(TcpConnection {
-                tcp_port: port.clone(),
+                tcp_port: port.to_string(),
                 tcp_stream: stream,
             })
         }
     }
 }
 
-fn create_serial_connection(port: &String, baud_rate: Option<u32>) -> Box<dyn Connection> {
+fn create_serial_connection(port: &str, baud_rate: Option<u32>) -> Box<dyn Connection> {
     let mut settings: SerialPortSettings = Default::default();
     settings.timeout = Duration::from_millis(10);
     settings.baud_rate = match baud_rate {
@@ -257,7 +256,7 @@ fn create_serial_connection(port: &String, baud_rate: Option<u32>) -> Box<dyn Co
         break;
     }
     Box::new(SerialConnection {
-        serial_port: port.clone(),
+        serial_port: port.to_string(),
         stream,
     })
 }

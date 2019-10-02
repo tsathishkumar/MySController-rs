@@ -1,10 +1,12 @@
-use super::response::Msgs;
 use ::actix::*;
 use actix_web::*;
 use diesel;
 use diesel::prelude::*;
+
 use crate::model::db::ConnDsl;
 use crate::model::sensor::Sensor;
+
+use super::response::Msgs;
 
 pub struct GetSensor {
     pub node_id: i32,
@@ -86,9 +88,9 @@ impl Handler<GetSensor> for ConnDsl {
         match sensors
             .find((sensor.node_id, sensor.child_sensor_id))
             .first::<Sensor>(conn)
-        {
-            Ok(v) => Ok(v),
-            _ => return Err(()),
-        }
+            {
+                Ok(v) => Ok(v),
+                _ => Err(()),
+            }
     }
 }

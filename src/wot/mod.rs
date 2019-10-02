@@ -1,23 +1,27 @@
-pub mod adapter;
-use actix;
-use actix::actors::signal;
-use actix_net::server::Server;
-use crate::channel::{Receiver, Sender};
-use crate::core::message::set::SetMessage;
-use crate::model::node::Node;
-use crate::model::sensor::Sensor;
-use crossbeam_channel as channel;
-use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager, Pool};
-use serde_json;
 use std::sync::{Arc, RwLock, Weak};
 use std::thread;
 use std::time::Duration;
 
-use webthing::server::ActionGenerator;
+use actix;
+use actix::actors::signal;
+use actix_net::server::Server;
+use crossbeam_channel as channel;
+use diesel::prelude::*;
+use diesel::r2d2::{ConnectionManager, Pool};
+use serde_json;
 use webthing::{Action, Thing, ThingsType, WebThingServer};
+use webthing::server::ActionGenerator;
+
+use crate::channel::{Receiver, Sender};
+use crate::core::message::set::SetMessage;
+use crate::model::node::Node;
+use crate::model::sensor::Sensor;
+
+pub mod adapter;
 
 struct Generator;
+
+type RwLockSensor = (Sensor, Arc<RwLock<Box<dyn Thing + 'static>>>);
 
 impl ActionGenerator for Generator {
     fn generate(
@@ -44,10 +48,10 @@ impl ActionGenerator for Generator {
 fn get_things(
     pool: Pool<ConnectionManager<SqliteConnection>>,
     set_message_sender: Sender<SetMessage>,
-) -> Vec<(Sensor, Arc<RwLock<Box<dyn Thing + 'static>>>)> {
+) -> Vec<RwLockSensor> {
     let mut sensor_list: Vec<Sensor> = vec![];
     let mut node_list: Vec<Node> = vec![];
-    let mut things: Vec<(Sensor, Arc<RwLock<Box<dyn Thing + 'static>>>)> = Vec::new();
+    let mut things: Vec<RwLockSensor> = Vec::new();
 
     {
         match pool.get() {
@@ -68,24 +72,17 @@ fn get_things(
         }
     }
     for sensor in sensor_list {
-        match (&node_list)
-            .into_iter()
+        if let Some(node_name) = (&node_list)
+            .iter()
             .find(|node| node.node_id == sensor.node_id)
-            .map(|node| node.node_name.clone())
-        {
-            Some(node_name) => {
-                let thing = adapter::build_thing(
-                    format!("{} - {} - {}", node_name, sensor.sensor_type.thing_description(), sensor.description)
-                        .to_owned(),
-                    sensor,
-                    set_message_sender.clone(),
-                );
-                match thing {
-                    Some(thing) => things.push(thing),
-                    None => (),
-                }
-            }
-            None => (),
+            .map(|node| node.node_name.clone()) {
+            let thing = adapter::build_thing(
+                format!("{} - {} - {}", node_name, sensor.sensor_type.thing_description(), sensor.description)
+                    .to_owned(),
+                sensor,
+                set_message_sender.clone(),
+            );
+            if let Some(thing) = thing { things.push(thing) }
         }
     }
     things
@@ -121,21 +118,20 @@ fn set_property(set_message: SetMessage, thing: &Arc<RwLock<Box<dyn Thing + 'sta
 }
 
 fn handle_sensor_outputs(
-    things: &Vec<(Sensor, Arc<RwLock<Box<dyn Thing + 'static>>>)>,
+    things: &[RwLockSensor],
     in_set_receiver: Receiver<SetMessage>,
     shutdown_receiver: Receiver<String>,
 ) {
     loop {
-        match in_set_receiver.recv_timeout(Duration::from_millis(10)) {
-            Ok(set_message) => match things
-                .into_iter()
+        if let Ok(set_message) = in_set_receiver.recv_timeout(Duration::from_millis(10)) {
+            match things
+                .iter()
                 .find(|(sensor, _)| set_message.for_sensor(sensor))
                 .map(|(_, thing)| thing)
-            {
-                Some(thing) => set_property(set_message, thing),
-                None => warn!("No thing found matching {:?}", &set_message),
-            },
-            _ => (),
+                {
+                    Some(thing) => set_property(set_message, thing),
+                    None => warn!("No thing found matching {:?}", &set_message),
+                }
         }
 
         match shutdown_receiver.recv_timeout(Duration::from_millis(10)) {
@@ -152,19 +148,16 @@ fn handle_sensor_additions(
     addr: actix::Addr<Server>,
 ) {
     loop {
-        match new_sensor_receiver.recv_timeout(Duration::from_secs(30)) {
-            Ok((node_name, sensor)) => {
-                if let Some((_sensor, thing)) = adapter::build_thing(
-                    format!("{} - {}", node_name, sensor.sensor_type.thing_description()).to_owned(),
-                    sensor,
-                    set_message_sender.clone(),
-                ) {
-                    things.push(thing);
-                    info!("Added new thing to things");
-                    addr.do_send(signal::Signal(signal::SignalType::Term));
-                }
+        if let Ok((node_name, sensor)) = new_sensor_receiver.recv_timeout(Duration::from_secs(30)) {
+            if let Some((_sensor, thing)) = adapter::build_thing(
+                format!("{} - {}", node_name, sensor.sensor_type.thing_description()).to_owned(),
+                sensor,
+                set_message_sender.clone(),
+            ) {
+                things.push(thing);
+                info!("Added new thing to things");
+                addr.do_send(signal::Signal(signal::SignalType::Term));
             }
-            Err(_) => (),
         }
     }
 }

@@ -1,12 +1,14 @@
-use crate::channel::{Receiver, Sender};
-use crate::core::message::internal::*;
-use crate::model::node::nodes::dsl;
-use crate::model::node::Node;
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use diesel;
 use diesel::prelude::*;
 use diesel::r2d2::ConnectionManager;
 use r2d2::*;
-use std::time::{SystemTime, UNIX_EPOCH};
+
+use crate::channel::{Receiver, Sender};
+use crate::core::message::internal::*;
+use crate::model::node::Node;
+use crate::model::node::nodes::dsl;
 
 const MIN_NODE_ID: u8 = 1;
 const MAX_NODE_ID: u8 = 254;
@@ -18,8 +20,8 @@ pub fn handle(
     db_connection: PooledConnection<ConnectionManager<SqliteConnection>>,
 ) {
     loop {
-        match receiver.recv() {
-            Ok(message) => match message.sub_type {
+        if let Ok(message) = receiver.recv() {
+            match message.sub_type {
                 InternalType::IdRequest => send_node_id(&db_connection, response_sender, message),
                 InternalType::SketchName => update_node_name(&db_connection, message),
                 InternalType::Time => send_current_time(response_sender, message),
@@ -28,8 +30,7 @@ pub fn handle(
                     forward_to_controller(controller_forward_sender, message)
                 }
                 _ => forward_to_controller(controller_forward_sender, message),
-            },
-            _ => (),
+            }
         }
     }
 }
@@ -38,9 +39,9 @@ fn send_node_id(
     db_connection: &PooledConnection<ConnectionManager<SqliteConnection>>,
     response_sender: &Sender<String>,
     mut message: InternalMessage,
-) -> () {
+) {
     match get_next_node_id(db_connection) {
-        Some(new_node_id) => match create_node(db_connection, new_node_id as i32) {
+        Some(new_node_id) => match create_node(db_connection, i32::from(new_node_id)) {
             Ok(_) => match response_sender.send(message.as_response(new_node_id.to_string())) {
                 Ok(_) => (),
                 Err(_) => error!("Error while sending to node_handler"),
@@ -57,17 +58,17 @@ fn update_node_name(
 ) {
     use crate::model::node::nodes::dsl::*;
     match diesel::update(nodes)
-        .filter(node_id.eq(message.node_id as i32))
+        .filter(node_id.eq(i32::from(message.node_id)))
         .filter(node_name.eq("New Node".to_owned()))
         .set(node_name.eq(message.payload.clone()))
         .execute(db_connection)
-    {
-        Ok(_) => (),
-        Err(e) => error!(
-            "Error while trying to update node name for {:?} : {:?}",
-            message, e
-        ),
-    }
+        {
+            Ok(_) => (),
+            Err(e) => error!(
+                "Error while trying to update node name for {:?} : {:?}",
+                message, e
+            ),
+        }
 }
 
 fn send_current_time(response_sender: &Sender<String>, mut message: InternalMessage) {
@@ -88,8 +89,8 @@ fn send_discover_response(
     match message.payload.parse::<u8>() {
         Ok(parent_node_id) => match update_network_topology(
             &db_connection,
-            message.node_id as i32,
-            parent_node_id as i32,
+            i32::from(message.node_id),
+            i32::from(parent_node_id),
         ) {
             Ok(_) => info!("Updated network topology"),
             Err(e) => error!("Update network topology failed {:?}", e),
