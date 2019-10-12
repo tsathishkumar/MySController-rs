@@ -1,28 +1,28 @@
-use crossbeam_channel as channel;
 #[macro_use]
 extern crate diesel_migrations;
-use num_cpus;
-
-use actix;
-
 #[macro_use]
 extern crate log;
-use env_logger;
 
-use actix::*;
-use actix_web::{http::Method, middleware, middleware::cors::Cors, server, App};
-use diesel::prelude::SqliteConnection;
-use diesel::r2d2::{ConnectionManager, Pool};
-
-use ini::Ini;
-use myscontroller_rs::api::index::AppState;
-use myscontroller_rs::api::{firmware, index, node, sensor};
-use myscontroller_rs::core::{connection, server as mys_controller};
-use myscontroller_rs::model::db;
-use myscontroller_rs::wot;
 use std::fs::create_dir_all;
 use std::path::Path;
 use std::thread;
+
+use actix;
+use actix::*;
+use actix_web::{App, http::Method, middleware, middleware::cors::Cors, server};
+use crossbeam_channel as channel;
+use diesel::prelude::SqliteConnection;
+use diesel::r2d2::{ConnectionManager, Pool};
+use env_logger;
+use ini::Ini;
+use num_cpus;
+
+use myscontroller_rs::api::{firmware, index, node, sensor};
+use myscontroller_rs::api::index::AppState;
+use myscontroller_rs::core::{connection, server as mys_controller};
+use myscontroller_rs::core::connection::ConnectionType;
+use myscontroller_rs::model::db;
+use myscontroller_rs::wot;
 
 fn main() {
     embed_migrations!("migrations");
@@ -56,50 +56,50 @@ fn main() {
             db: database_addr.clone(),
             reset_sender: reset_signal_sender.clone(),
         })
-        .middleware(middleware::Logger::default())
-        .configure(|app| {
-            Cors::for_app(app)
-                .allowed_methods(vec!["GET", "PUT", "POST", "DELETE"])
-                .resource("/", |r| {
-                    r.method(Method::GET).h(index::home);
-                })
-                .resource("/nodes", |r| {
-                    r.method(Method::GET).h(node::list);
-                    r.method(Method::POST).with(node::create);
-                    r.method(Method::PUT).with(node::update);
-                    r.method(Method::DELETE).with(node::delete);
-                })
-                .resource("/nodes/{node_id}", |r| {
-                    r.method(Method::GET).h(node::get_node);
-                })
-                .resource("/nodes/{node_id}/reboot", |r| {
-                    r.method(Method::POST).h(node::reboot_node);
-                })
-                .resource("/sensors", |r| {
-                    r.method(Method::GET).h(sensor::list);
-                    r.method(Method::DELETE).with(node::delete);
-                })
-                .resource("/sensors/{node_id}/{child_sensor_id}", |r| {
-                    r.method(Method::GET).h(sensor::get_sensor);
-                })
-                .resource("/firmwares", |r| {
-                    r.method(Method::GET).h(firmware::list);
-                })
-                .resource("/firmwares/{firmware_type}/{firmware_version}", |r| {
-                    r.method(Method::POST).with(firmware::create);
-                    r.method(Method::PUT).with(firmware::update);
-                    r.method(Method::DELETE).f(firmware::delete);
-                })
-                .resource("/firmwares/upload", |r| {
-                    r.method(Method::GET).f(firmware::upload_form);
-                })
-                .register()
-        })
+            .middleware(middleware::Logger::default())
+            .configure(|app| {
+                Cors::for_app(app)
+                    .allowed_methods(vec!["GET", "PUT", "POST", "DELETE"])
+                    .resource("/", |r| {
+                        r.method(Method::GET).h(index::home);
+                    })
+                    .resource("/nodes", |r| {
+                        r.method(Method::GET).h(node::list);
+                        r.method(Method::POST).with(node::create);
+                        r.method(Method::PUT).with(node::update);
+                        r.method(Method::DELETE).with(node::delete);
+                    })
+                    .resource("/nodes/{node_id}", |r| {
+                        r.method(Method::GET).h(node::get_node);
+                    })
+                    .resource("/nodes/{node_id}/reboot", |r| {
+                        r.method(Method::POST).h(node::reboot_node);
+                    })
+                    .resource("/sensors", |r| {
+                        r.method(Method::GET).h(sensor::list);
+                        r.method(Method::DELETE).with(node::delete);
+                    })
+                    .resource("/sensors/{node_id}/{child_sensor_id}", |r| {
+                        r.method(Method::GET).h(sensor::get_sensor);
+                    })
+                    .resource("/firmwares", |r| {
+                        r.method(Method::GET).h(firmware::list);
+                    })
+                    .resource("/firmwares/{firmware_type}/{firmware_version}", |r| {
+                        r.method(Method::POST).with(firmware::create);
+                        r.method(Method::PUT).with(firmware::update);
+                        r.method(Method::DELETE).f(firmware::delete);
+                    })
+                    .resource("/firmwares/upload", |r| {
+                        r.method(Method::GET).f(firmware::upload_form);
+                    })
+                    .register()
+            })
     })
-    .bind("0.0.0.0:8000")
-    .unwrap()
-    .shutdown_timeout(3)
-    .start();
+        .bind("0.0.0.0:8000")
+        .unwrap()
+        .shutdown_timeout(3)
+        .start();
 
     match conn_clone.get() {
         Ok(conn) => embedded_migrations::run_with_output(&conn, &mut std::io::stdout()).unwrap(),
@@ -182,47 +182,52 @@ pub fn log_level(config: &Ini) -> String {
         .to_owned()
 }
 
-fn get_mys_controller(config: &Ini) -> Option<connection::StreamInfo> {
+fn get_mys_controller(config: &Ini) -> Option<connection::ConnectionType> {
     config.section(Some("Controller".to_owned())).map(|controller_conf| {
-    let controller_type = controller_conf.get("type").expect("Controller port is not specified. Ex:\n\
+        let controller_type = controller_conf.get("type").expect("Controller port is not specified. Ex:\n\
      [Controller]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Controller]\n type=SERIAL\n port=port=0.0.0.0:5003");
-    let controller_type = match connection::ConnectionType::from_str(controller_type.as_str(), true)
-    {
-        Some(value) => value,
-        None => panic!("Possible values for type is TCP or SERIAL"),
-    };
-    let controller_port = controller_conf.get("port").expect("Controller port is not specified. Ex:\n\
+        let port = controller_conf.get("port").expect("Controller port is not specified. Ex:\n\
      [Controller]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Controller]\n type=SERIAL\n port=port=0.0.0.0:5003");
-    connection::StreamInfo {
-        port: controller_port.to_owned(),
-        connection_type: controller_type,
-        baud_rate: controller_conf.get("baud_rate")
-            .map(|baud_rate_str|baud_rate_str.parse::<u32>().unwrap()),
-        timeout_enabled: controller_conf.get("timeout_enabled")
-            .map(|baud_rate_str|baud_rate_str.parse::<bool>().unwrap())
-            .unwrap_or(false)
-    }})
+
+        if controller_type == "Serial"
+        {
+            let baud_rate = controller_conf.get("baud_rate")
+                .map(|baud_rate_str| baud_rate_str.parse::<u32>().unwrap_or(9600)).unwrap();
+            return ConnectionType::Serial { port: port.to_owned(), baud_rate };
+        }
+        // if controller_type == "TCP" {
+            let timeout_enabled = controller_conf.get("timeout_enabled")
+                .map(|baud_rate_str| baud_rate_str.parse::<bool>().unwrap())
+                .unwrap_or(false);
+            return ConnectionType::TcpServer { port: port.to_owned(), timeout_enabled };
+        // }
+        // if controller_type == "MQTT" {
+        //     let host = controller_conf.get("host").unwrap();
+        //     let publish_topic_prefix = controller_conf.get("publish_topic_prefix").unwrap();
+        //     return Some(ConnectionType::MQTT { host: host.to_owned(), port: port.to_owned(), publish_topic_prefix: publish_topic_prefix.to_owned() });
+        // }
+    })
 }
 
-fn get_mys_gateway(config: &Ini) -> connection::StreamInfo {
-    let gateway_conf = config.section(Some("Gateway".to_owned())).unwrap();
-    let gateway_type = gateway_conf.get("type").expect("Gateway port is not specified. Ex:\n\
-     [Gateway]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Gateway]\n type=SERIAL\n port=port=10.137.120.250:5003");
-    let gateway_type = match connection::ConnectionType::from_str(gateway_type.as_str(), false) {
-        Some(value) => value,
-        None => panic!("Possible values for type is TCP or SERIAL"),
-    };
-    let gateway_port = gateway_conf.get("port").expect("Gateway port is not specified. Ex:\n\
-     [Gateway]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Gateway]\n type=SERIAL\n port=port=10.137.120.250:5003");
-    connection::StreamInfo {
-        port: gateway_port.to_owned(),
-        connection_type: gateway_type,
-        baud_rate: gateway_conf
-            .get("baud_rate")
-            .map(|baud_rate_str| baud_rate_str.parse::<u32>().unwrap()),
-        timeout_enabled: gateway_conf
-            .get("timeout_enabled")
-            .map(|baud_rate_str| baud_rate_str.parse::<bool>().unwrap())
-            .unwrap_or(false),
+    fn get_mys_gateway(config: &Ini) -> connection::ConnectionType {
+        config.section(Some("Controller".to_owned())).map(|controller_conf| {
+            let controller_type = controller_conf.get("type").unwrap();
+            let port = controller_conf.get("port").unwrap();
+
+            if controller_type == "Serial"
+            {
+                let baud_rate = controller_conf.get("baud_rate")
+                    .map(|baud_rate_str| baud_rate_str.parse::<u32>().unwrap()).unwrap();
+                return ConnectionType::Serial { port: port.to_owned(), baud_rate };
+            }
+            // if controller_type == "TCP" {
+                let timeout_enabled = controller_conf.get("timeout_enabled")
+                    .map(|baud_rate_str| baud_rate_str.parse::<bool>().unwrap())
+                    .unwrap_or(false);
+                return ConnectionType::TcpClient { port: port.to_owned(), timeout_enabled };
+            // }
+            // let host = controller_conf.get("host").unwrap();
+            // let publish_topic_prefix = controller_conf.get("publish_topic_prefix").unwrap();
+            // return ConnectionType::MQTT { host: host.to_owned(), port: port.to_owned(), publish_topic_prefix: publish_topic_prefix.to_owned() };
+        }).unwrap()
     }
-}
