@@ -195,22 +195,21 @@ fn get_mys_controller(config: &Ini) -> Option<connection::ConnectionType> {
                 .map(|baud_rate_str| baud_rate_str.parse::<u32>().unwrap_or(9600)).unwrap();
             return ConnectionType::Serial { port: port.to_owned(), baud_rate };
         }
-        // if controller_type == "TCP" {
+        if controller_type == "TCP" {
             let timeout_enabled = controller_conf.get("timeout_enabled")
                 .map(|baud_rate_str| baud_rate_str.parse::<bool>().unwrap())
                 .unwrap_or(false);
             return ConnectionType::TcpServer { port: port.to_owned(), timeout_enabled };
-        // }
-        // if controller_type == "MQTT" {
-        //     let host = controller_conf.get("host").unwrap();
-        //     let publish_topic_prefix = controller_conf.get("publish_topic_prefix").unwrap();
-        //     return Some(ConnectionType::MQTT { host: host.to_owned(), port: port.to_owned(), publish_topic_prefix: publish_topic_prefix.to_owned() });
-        // }
+        }
+        let broker = controller_conf.get("broker").unwrap();
+        let port_number = port.parse::<u16>().unwrap();
+        let publish_topic_prefix = controller_conf.get("publish_topic_prefix").unwrap();
+        return ConnectionType::MQTT { broker: broker.to_owned(), port: port_number, publish_topic_prefix: publish_topic_prefix.to_owned() };
     })
 }
 
     fn get_mys_gateway(config: &Ini) -> connection::ConnectionType {
-        config.section(Some("Controller".to_owned())).map(|controller_conf| {
+        config.section(Some("Gateway".to_owned())).map(|controller_conf| {
             let controller_type = controller_conf.get("type").unwrap();
             let port = controller_conf.get("port").unwrap();
 
@@ -220,14 +219,15 @@ fn get_mys_controller(config: &Ini) -> Option<connection::ConnectionType> {
                     .map(|baud_rate_str| baud_rate_str.parse::<u32>().unwrap()).unwrap();
                 return ConnectionType::Serial { port: port.to_owned(), baud_rate };
             }
-            // if controller_type == "TCP" {
+            if controller_type == "TCP" {
                 let timeout_enabled = controller_conf.get("timeout_enabled")
                     .map(|baud_rate_str| baud_rate_str.parse::<bool>().unwrap())
                     .unwrap_or(false);
                 return ConnectionType::TcpClient { port: port.to_owned(), timeout_enabled };
-            // }
-            // let host = controller_conf.get("host").unwrap();
-            // let publish_topic_prefix = controller_conf.get("publish_topic_prefix").unwrap();
-            // return ConnectionType::MQTT { host: host.to_owned(), port: port.to_owned(), publish_topic_prefix: publish_topic_prefix.to_owned() };
+            }
+            let broker = controller_conf.get("broker").unwrap();
+            let port_number = port.parse::<u16>().unwrap();
+            let publish_topic_prefix = controller_conf.get("publish_topic_prefix").unwrap();
+            return ConnectionType::MQTT { broker: broker.to_owned(), port: port_number, publish_topic_prefix: publish_topic_prefix.to_owned() };
         }).unwrap()
     }

@@ -17,7 +17,7 @@ pub enum ConnectionType {
     Serial{ port: String, baud_rate: u32},
     TcpServer{port: String, timeout_enabled: bool},
     TcpClient{port: String, timeout_enabled: bool},
-    // MQTT{host: String, port: String, publish_topic_prefix: String},
+    MQTT{broker: String, port: u16, publish_topic_prefix: String},
 }
 
 impl ConnectionType {
@@ -203,6 +203,7 @@ pub fn create_connection(
             let connection = tcp::TcpConnection::new_server(port, timeout_enabled);
             Box::new(connection)
         }
+        ConnectionType::MQTT{broker, port, publish_topic_prefix} => Box::new(mqtt::MqttConnection::new(broker, port, publish_topic_prefix, "myscontroller-read"))
     }
 }
 

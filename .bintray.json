@@ -19,9 +19,9 @@
     "public_stats": false
   },
   "version": {
-    "name": "0.6.6",
-    "desc": "Fixed some issues and added few more sensor support in WoT api",
-    "released": "2018-12-07"
+    "name": "0.7.0",
+    "desc": "Added support for MQTT Gateways and controllers",
+    "released": "2019-10-13"
   },
   "files": [
     {
