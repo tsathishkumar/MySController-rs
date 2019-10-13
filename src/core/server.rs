@@ -13,8 +13,8 @@ use super::message::set::SetMessage;
 use super::message_handler::{internal, presentation, set, stream};
 
 pub fn start(
-    gateway_info: StreamInfo,
-    controller_info: Option<StreamInfo>,
+    gateway_info: ConnectionType,
+    controller_info: Option<ConnectionType>,
     pool: Pool<ConnectionManager<SqliteConnection>>,
     gateway_out_sender: Sender<String>,
     gateway_out_receiver: Receiver<String>,
