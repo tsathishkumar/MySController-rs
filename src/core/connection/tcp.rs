@@ -43,7 +43,7 @@ impl StreamConnection for TcpConnection {
 }
 
 impl TcpConnection {
-    pub fn new_client(port: String, timeout_enabled: bool) -> TcpConnection {
+    pub fn new(port: String, timeout_enabled: bool) -> TcpConnection {
         let stream: TcpStream;
         info!("Waiting for server connection -- {} ...", port);
         loop {

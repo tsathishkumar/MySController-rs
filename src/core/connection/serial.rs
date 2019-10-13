@@ -42,7 +42,7 @@ impl StreamConnection for SerialConnection {
 }
 
 impl SerialConnection {
-    pub fn new(port: &str, baud_rate: u32) -> Box<dyn super::Connection> {
+    pub fn new(port: &str, baud_rate: u32) -> SerialConnection {
         let mut settings: SerialPortSettings = Default::default();
         settings.timeout = Duration::from_millis(10);
         settings.baud_rate =BaudRate::from(baud_rate);
@@ -59,9 +59,9 @@ impl SerialConnection {
             info!("Connected to -- {}", port);
             break;
         }
-        Box::new(SerialConnection {
+        SerialConnection {
             serial_port: port.to_string(),
             stream,
-        })
+        }
     }
 }

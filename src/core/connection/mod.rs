@@ -58,12 +58,7 @@ pub trait Connection: Send {
     fn read_loop(&mut self, message_sender: Sender<String>) -> Sender<String> {
         self.timeout(Duration::from_secs(30));
 
-        loop {
-            let line = match self.read_line() {
-                Ok(result) => result,
-                Err(_) => break,
-            };
-
+        while let Ok(line) = self.read_line() {
             info!("{} >> {:?}", self.host(), line);
             match message_sender.send(line) {
                 Ok(_) => (),
@@ -194,15 +189,11 @@ fn consume(
 pub fn create_connection(
     connection_type: ConnectionType) -> Box<dyn Connection> {
     match connection_type {
-        ConnectionType::Serial{port, baud_rate} => serial::SerialConnection::new(port.as_str(), baud_rate),
-        ConnectionType::TcpClient{port, timeout_enabled} => {
-            let connection = tcp::TcpConnection::new_client(port, timeout_enabled);
-            Box::new(connection)
-        }
-        ConnectionType::TcpServer{port, timeout_enabled} => {
-            let connection = tcp::TcpConnection::new_server(port, timeout_enabled);
-            Box::new(connection)
-        }
+        ConnectionType::Serial{port, baud_rate} => Box::new(serial::SerialConnection::new(port.as_str(), baud_rate)),
+        ConnectionType::TcpClient{port, timeout_enabled} => 
+            Box::new(tcp::TcpConnection::new(port, timeout_enabled)),
+        ConnectionType::TcpServer{port, timeout_enabled} => 
+            Box::new(tcp::TcpConnection::new_server(port, timeout_enabled)),
         ConnectionType::MQTT{broker, port, publish_topic_prefix} => Box::new(mqtt::MqttConnection::new(broker, port, publish_topic_prefix, "myscontroller-read"))
     }
 }

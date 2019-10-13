@@ -204,7 +204,7 @@ fn get_mys_controller(config: &Ini) -> Option<connection::ConnectionType> {
         let broker = controller_conf.get("broker").unwrap();
         let port_number = port.parse::<u16>().unwrap();
         let publish_topic_prefix = controller_conf.get("publish_topic_prefix").unwrap();
-        return ConnectionType::MQTT { broker: broker.to_owned(), port: port_number, publish_topic_prefix: publish_topic_prefix.to_owned() };
+        ConnectionType::MQTT { broker: broker.to_owned(), port: port_number, publish_topic_prefix: publish_topic_prefix.to_owned() }
     })
 }
 
@@ -228,6 +228,6 @@ fn get_mys_controller(config: &Ini) -> Option<connection::ConnectionType> {
             let broker = controller_conf.get("broker").unwrap();
             let port_number = port.parse::<u16>().unwrap();
             let publish_topic_prefix = controller_conf.get("publish_topic_prefix").unwrap();
-            return ConnectionType::MQTT { broker: broker.to_owned(), port: port_number, publish_topic_prefix: publish_topic_prefix.to_owned() };
+            ConnectionType::MQTT { broker: broker.to_owned(), port: port_number, publish_topic_prefix: publish_topic_prefix.to_owned() }
         }).unwrap()
     }
