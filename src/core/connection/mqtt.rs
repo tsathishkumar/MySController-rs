@@ -5,6 +5,36 @@ use super::Connection;
 use std::io::{Result, Error, ErrorKind};
 use crossbeam_channel::Receiver;
 
+struct MySMessage;
+
+impl MySMessage {
+    fn messge(notification: Notification) -> String {
+        if let Notification::Publish(message) = notification {
+            let topic = message.topic_name;
+            let payload = std::str::from_utf8(message.payload.as_slice()).unwrap();
+
+            let mut message_parts = topic.trim().split('/').collect::<Vec<&str>>();
+            message_parts.remove(0);
+            message_parts.push(payload);
+            message_parts.join(";")
+        } else {
+            String::new()
+        }
+    }
+
+    fn topic_and_payload(publish_topic_prefix: String, line: String) -> (String, String) {
+        let mut message_parts = line.trim().split(';').collect::<Vec<&str>>();
+
+        if message_parts.len() != 6 {
+            return (String::new(), String::new());
+        }
+        let payload = message_parts.pop().unwrap().to_owned();
+        let topic = [publish_topic_prefix.as_str(),"-in"].join("");
+        message_parts.insert(0, topic.as_str());
+        (message_parts.join("/"), payload)
+    }
+}
+
 pub struct MqttConnection {
     broker: String,
     port: u16,
@@ -34,31 +64,19 @@ impl MqttConnection {
     }
 }
 
-fn mqtt_message_to_mys_message(message: Notification) -> String {
-    if let Notification::Publish(message) = message {
-        let topic = message.topic_name;
-        let payload = message.payload.as_slice();
-
-        let mut mys_message = String::from(topic);
-        mys_message.push_str(String::from_utf8(payload.to_owned()).unwrap().as_str());
-        mys_message
-    } else {
-        String::new()
-    }
-}
-
 impl Connection for MqttConnection {
 
     fn read_line(&mut self) -> Result<String> {
         let message = self.notifications.recv();
         if let Ok(msg) = message {
-            return Result::Ok(mqtt_message_to_mys_message(msg));
+            return Result::Ok(MySMessage::messge(msg));
         }
         Result::Err(Error::new(ErrorKind::Other, "Not able to read from MQTT Client"))
     }
 
     fn write_line(&mut self, line: &str) -> Result<usize> {
-        self.mqtt_client.publish("hello/world", QoS::AtLeastOnce, false, line).unwrap();
+        let (topic, message) = MySMessage::topic_and_payload(self.publish_topic_prefix.clone(), line.to_owned());
+        self.mqtt_client.publish(topic, QoS::AtLeastOnce, false, message).unwrap();
         Result::Ok(line.len())
     }
 
@@ -72,5 +90,32 @@ impl Connection for MqttConnection {
 
     fn timeout(&mut self, _: Duration) {
         //TODO: Handle timeout
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::sync::Arc;
+
+    #[test]
+    fn should_get_topic_and_payload_in_mqtt_format() {
+        let message_string = "1;255;4;0;0;0A0001005000D4460102\n".to_owned();
+        let (topic, payload) = MySMessage::topic_and_payload("prefix".to_owned(), message_string);
+        assert_eq!(topic, "prefix-in/1/255/4/0/0");
+        assert_eq!(payload, "0A0001005000D4460102");
+    }
+
+    #[test]
+    fn should_get_mysensors_message_from_mqtt_notification() {
+        let notification = Notification::Publish(rumqtt::Publish{dup: true,
+            qos: QoS::AtLeastOnce,
+            retain: false,
+            topic_name: "prefix-out/1/255/4/0/0".to_owned(),
+            pkid: None,
+            payload: Arc::new(b"0A0001005000D4460102".to_vec())}
+        );
+        let message = MySMessage::messge(notification);
+        assert_eq!(message, "1;255;4;0;0;0A0001005000D4460102");
     }
 }
