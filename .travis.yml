@@ -1,4 +1,6 @@
 language: rust
+services:
+  - docker
 sudo: required
 before_install: 
   - sudo apt-get install libudev-dev
@@ -11,9 +13,13 @@ rust:
 cache: cargo
 script: ./build.sh
 deploy:
-  provider: bintray
-  file: .bintray.json
-  user: tsathishkumar
-  key:
-    secure: Ef94iJNcmzXq/PrCj3jnIp/+TpvkAiuklYEY9cuQZSLRRE3JBH0+0bRfQleJ4o7LWguRL7Vis8mTGTaBAfcERmZwsa6D/bSUYfKUkAbg3PewY9eMkDFvxeNm8gHZVyx/8IUA7vQGeSqjOUlNDoojkdlj1d9x9pR9cOnaRHZu1Rs5gX+X7e9HutfPhPJ8iLfWMQbT6Rk1OXRa/UaLOkifpNHAD1jmP4Z8LOwNd/gAf8sTTPsZgNTikYOQZ0XWg0P5l9TYzROOiwqGOKzB8oMZf46FO268QvoLFxsdUUFNPfsmyp3CT++jCE2/CuVC5PY+0H37cEh16if1+C0/6oiT9GLEneazfxuulILdfPEZ6j8Ln2kHaydyXnIeeAfO6Zx+G485qHBzd+lDFseyq7+7yfC88l1pyHygDPbdTcb4AUDK7yLNt63SC+OpiMJbEyEHvR+UmjfVes/RQ+wd9iOvbcxNXHOpd6eT+6ly9PMBxt6LsPrrmQ4A6LO0gKjYYnB0rSWCYwvoA3BmTo3240vOVs19ArZji7eirFuybOKjmS9Sovx6sOveqdW0aQNHtWf1ylZ6b1F8sS7LCCsb9BZA7I+OaAKOeNFLAzZWlU6s5gbqzuoP22AgihV0bjh0xzelShnPUPo5ZEYQtZY5PoxGKZOZdLrkpE8U4A3H8sEGhC0=
-  skip_cleanup: true
+  - provider: bintray
+    file: .bintray.json
+    user: tsathishkumar
+    key:
+      secure: Ef94iJNcmzXq/PrCj3jnIp/+TpvkAiuklYEY9cuQZSLRRE3JBH0+0bRfQleJ4o7LWguRL7Vis8mTGTaBAfcERmZwsa6D/bSUYfKUkAbg3PewY9eMkDFvxeNm8gHZVyx/8IUA7vQGeSqjOUlNDoojkdlj1d9x9pR9cOnaRHZu1Rs5gX+X7e9HutfPhPJ8iLfWMQbT6Rk1OXRa/UaLOkifpNHAD1jmP4Z8LOwNd/gAf8sTTPsZgNTikYOQZ0XWg0P5l9TYzROOiwqGOKzB8oMZf46FO268QvoLFxsdUUFNPfsmyp3CT++jCE2/CuVC5PY+0H37cEh16if1+C0/6oiT9GLEneazfxuulILdfPEZ6j8Ln2kHaydyXnIeeAfO6Zx+G485qHBzd+lDFseyq7+7yfC88l1pyHygDPbdTcb4AUDK7yLNt63SC+OpiMJbEyEHvR+UmjfVes/RQ+wd9iOvbcxNXHOpd6eT+6ly9PMBxt6LsPrrmQ4A6LO0gKjYYnB0rSWCYwvoA3BmTo3240vOVs19ArZji7eirFuybOKjmS9Sovx6sOveqdW0aQNHtWf1ylZ6b1F8sS7LCCsb9BZA7I+OaAKOeNFLAzZWlU6s5gbqzuoP22AgihV0bjh0xzelShnPUPo5ZEYQtZY5PoxGKZOZdLrkpE8U4A3H8sEGhC0=
+    skip_cleanup: true
+  - provider: script
+    script: bash docker_push.sh
+    on:
+      branch: master
