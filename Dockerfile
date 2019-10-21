@@ -6,8 +6,11 @@ RUN apt-get update && \
 
 WORKDIR /src
 
-COPY . .
+COPY ./Cargo.lock ./Cargo.lock
+COPY ./Cargo.toml ./Cargo.toml
+RUN cargo build --release
 
+COPY . .
 RUN cargo build --release
 
 FROM ubuntu:latest
