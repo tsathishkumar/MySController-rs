@@ -4,11 +4,16 @@ RUN apt-get update && \
     apt-get -y install ca-certificates libudev-dev libssl-dev libsqlite3-dev && \
     rm -rf /var/lib/apt/lists/*
 
-WORKDIR /src
+RUN USER=root cargo new --bin myscontroller-rs
+WORKDIR /myscontroller-rs
+
 
 COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml
+
 RUN cargo build --release
+
+RUN rm src/*.rs
 
 COPY . .
 RUN cargo build --release
@@ -19,6 +24,6 @@ RUN apt-get update && \
     apt-get -y install ca-certificates libudev-dev libssl-dev libsqlite3-dev && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=0 /src/target/release/myscontroller-rs /usr/bin/
+COPY --from=0 /myscontroller-rs/target/release/myscontroller-rs /usr/bin/
 
 CMD ["/usr/bin/myscontroller-rs"]
