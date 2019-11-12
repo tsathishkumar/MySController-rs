@@ -32,6 +32,7 @@ bytes = "0.4"
 log = "0.4"
 webthing = "0.9"
 rumqtt = "0.30"
+toml = "0.5"
 
 [package.metadata.deb]
 maintainer = "Sathishkumar <tsatiz@gmail.com>"
