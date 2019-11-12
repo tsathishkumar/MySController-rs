@@ -23,7 +23,7 @@ Integration with [Things Gateway](https://iot.mozilla.org/)
 
 This server also acts as a proxy between Gateway and the Controller. Both might be either connected through a serial port or a TCP connection.
 
-Before running the server, set the correct connection type and connection port for Gateway and Controller in conf.ini file.
+Before running the server, set the correct connection type and connection port for Gateway and Controller in conf.toml file.
 
 WoT api's are exposed at `https://{host}:8888`
 
@@ -55,7 +55,7 @@ Beta version of toolchain is necessary for features like cargo `edition` field.
     ```
 - The configuration of the server can be found at the below location. 
     ```bash
-    /etc/myscontroller-rs/conf.ini
+    /etc/myscontroller-rs/conf.toml
     ```
     Example settings:
     ```bash
@@ -63,14 +63,14 @@ Beta version of toolchain is necessary for features like cargo `edition` field.
 
     [Gateway]
     type=TCP
-    port=10.11.12.13:5003
+    port="10.11.12.13:5003"
 
     [Controller]
     type=TCP
-    port=0.0.0.0:5003
+    port="0.0.0.0:5003"
 
     [Server]
-    database_url=/var/lib/myscontroller-rs/sqlite.db
+    database_url="/var/lib/myscontroller-rs/sqlite.db"
     ```
 - Set up the right Gateway IP and Controller IP and restart the service.
     ```bash

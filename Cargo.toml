@@ -32,6 +32,7 @@ bytes = "0.4"
 log = "0.4"
 webthing = "0.9"
 rumqtt = "0.30"
+toml = "0.5"
 
 [package.metadata.deb]
 maintainer = "Sathishkumar <tsatiz@gmail.com>"
@@ -42,11 +43,11 @@ depends = "$auto"
 section = "rust"
 priority = "optional"
 conf-files = [
-  "/etc/myscontroller-rs/conf.ini",
+  "/etc/myscontroller-rs/conf.toml",
   "/etc/systemd/system/myscontroller-rs.service"
 ]
 assets = [
     ["target/x86_64-unknown-linux-gnu/release/myscontroller-rs", "/usr/local/bin/myscontroller-rs", "755"],
-    ["conf.ini", "/etc/myscontroller-rs/conf.ini", "644"],
+    ["conf.toml", "/etc/myscontroller-rs/conf.toml", "644"],
     ["service/systemd/myscontroller-rs.service", "/etc/systemd/system/myscontroller-rs.service", "644"],
 ]
