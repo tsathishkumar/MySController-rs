@@ -14,7 +14,6 @@ use crossbeam_channel as channel;
 use diesel::prelude::SqliteConnection;
 use diesel::r2d2::{ConnectionManager, Pool};
 use env_logger;
-use ini::Ini;
 use num_cpus;
 
 use myscontroller_rs::api::{firmware, index, node, sensor};
@@ -24,14 +23,17 @@ use myscontroller_rs::core::connection::ConnectionType;
 use myscontroller_rs::model::db;
 use myscontroller_rs::wot;
 
+mod config;
+use crate::config::model::Config;
+
 fn main() {
     embed_migrations!("migrations");
 
     let sys = actix::System::new("webapp");
 
-    let conf = match Ini::load_from_file("/etc/myscontroller-rs/conf.ini") {
+    let conf: Config = match config::parser::parse() {
         Ok(_conf) => _conf,
-        Err(_) => Ini::load_from_file("conf.ini").unwrap(),
+        Err(err) => panic!(format!("The configuration file could not be parsed properly {}", err))
     };
 
     ::std::env::set_var("RUST_LOG", log_level(&conf));
@@ -106,6 +108,7 @@ fn main() {
         Err(e) => error!("Error while running migration {:?}", e),
     };
 
+
     info!("Starting proxy server");
 
     let conn_pool_clone = conn_clone.clone();
@@ -163,71 +166,114 @@ fn main() {
     sys.run();
 }
 
-pub fn server_configs(config: &Ini) -> String {
-    let server_conf = config
-        .section(Some("Server".to_owned()))
-        .expect("Server configurations missing");
-    let database_url = server_conf.get("database_url").expect(
-        "database_url is not specified. Ex:database_url=/var/lib/myscontroller-rs/sqlite.db",
-    );
-    let database_path = Path::new(database_url);
+pub fn server_configs(config: &Config) -> String {
+    let server_conf = match &config.Server {
+        Some(_config) => _config,
+        None => panic!("Server Configurations missing"),
+    };
+
+    let database_url = match &server_conf.database_url {
+        Some(_database_url) => _database_url,
+        None => panic!("database_url is not specified. Ex:database_url=/var/lib/myscontroller-rs/sqlite.db"),
+    };
+
+    let database_path = Path::new(&database_url);
     create_dir_all(database_path.parent().unwrap()).unwrap();
     database_url.to_owned()
 }
 
-pub fn log_level(config: &Ini) -> String {
-    config
-        .get_from(Some("Server"), "log_level")
-        .unwrap_or("myscontroller_rs=info,actix_web=info")
-        .to_owned()
+pub fn log_level(config: &Config) -> String {
+    let default_log_level = String::from("myscontroller_rs=info,actix_web=info");
+
+    let server_conf = match &config.Server {
+        Some(_config) => _config,
+        None => return default_log_level,
+    };
+
+    let log_level = match &server_conf.log_level {
+        Some(_log_level) => _log_level,
+        None => return default_log_level,
+    };
+    log_level.to_owned()
 }
 
-fn get_mys_controller(config: &Ini) -> Option<connection::ConnectionType> {
-    config.section(Some("Controller".to_owned())).map(|controller_conf| {
-        let controller_type = controller_conf.get("type").expect("Controller port is not specified. Ex:\n\
-     [Controller]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Controller]\n type=SERIAL\n port=port=0.0.0.0:5003");
-        let port = controller_conf.get("port").expect("Controller port is not specified. Ex:\n\
-     [Controller]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Controller]\n type=SERIAL\n port=port=0.0.0.0:5003");
 
-        if controller_type == "Serial"
-        {
-            let baud_rate = controller_conf.get("baud_rate")
-                .map(|baud_rate_str| baud_rate_str.parse::<u32>().unwrap_or(9600)).unwrap();
-            return ConnectionType::Serial { port: port.to_owned(), baud_rate };
-        }
-        if controller_type == "TCP" {
-            let timeout_enabled = controller_conf.get("timeout_enabled")
-                .map(|baud_rate_str| baud_rate_str.parse::<bool>().unwrap())
-                .unwrap_or(false);
-            return ConnectionType::TcpServer { port: port.to_owned(), timeout_enabled };
-        }
-        let broker = controller_conf.get("broker").unwrap();
-        let port_number = port.parse::<u16>().unwrap();
-        let publish_topic_prefix = controller_conf.get("publish_topic_prefix").unwrap();
-        ConnectionType::MQTT { broker: broker.to_owned(), port: port_number, publish_topic_prefix: publish_topic_prefix.to_owned() }
-    })
-}
+fn get_mys_controller(config: &Config) -> Option<connection::ConnectionType> {
+    let controller_conf = match &config.Controller {
+        Some(_controller_conf) => _controller_conf,
+        None => return None
+    };
 
-    fn get_mys_gateway(config: &Ini) -> connection::ConnectionType {
-        config.section(Some("Gateway".to_owned())).map(|controller_conf| {
-            let controller_type = controller_conf.get("type").unwrap();
-            let port = controller_conf.get("port").unwrap();
+    let controller_type = match &controller_conf.r#type {
+        Some(_controller_type) => _controller_type,
+        None => panic!("Controller type is not specified. Ex:\n\
+     [Controller]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Controller]\n type=SERIAL\n port=port=0.0.0.0:5003)"),
+    };
 
-            if controller_type == "Serial"
-            {
-                let baud_rate = controller_conf.get("baud_rate")
-                    .map(|baud_rate_str| baud_rate_str.parse::<u32>().unwrap()).unwrap();
-                return ConnectionType::Serial { port: port.to_owned(), baud_rate };
-            }
-            if controller_type == "TCP" {
-                let timeout_enabled = controller_conf.get("timeout_enabled")
-                    .map(|baud_rate_str| baud_rate_str.parse::<bool>().unwrap())
-                    .unwrap_or(false);
-                return ConnectionType::TcpClient { port: port.to_owned(), timeout_enabled };
-            }
-            let broker = controller_conf.get("broker").unwrap();
-            let port_number = port.parse::<u16>().unwrap();
-            let publish_topic_prefix = controller_conf.get("publish_topic_prefix").unwrap();
-            ConnectionType::MQTT { broker: broker.to_owned(), port: port_number, publish_topic_prefix: publish_topic_prefix.to_owned() }
-        }).unwrap()
+    let port = match &controller_conf.port {
+        Some(_port) => _port,
+        None => panic!("Controller port is not specified. Ex:\n\
+     [Controller]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Controller]\n type=SERIAL\n port=port=0.0.0.0:5003)"),
+    };
+
+    let timeout_enabled = match &controller_conf.timeout_enabled {
+        Some(_timeout_enabled) => _timeout_enabled.parse::<bool>().unwrap(),
+        None => false
+    };
+
+    let baud_rate = match &controller_conf.baud_rate {
+        Some(_baud_rate) => _baud_rate.parse::<u32>().unwrap(),
+        None => 9600
+    };
+
+    if controller_type == "Serial" {
+        return Some(ConnectionType::Serial { port: port.to_owned(), baud_rate });
     }
+    if controller_type == "TCP" {
+        return Some(ConnectionType::TcpServer { port: port.to_owned(), timeout_enabled });
+    }
+    let broker = controller_conf.broker.as_ref().unwrap();
+    let port_number = port.parse::<u16>().unwrap();
+    let publish_topic_prefix = controller_conf.publish_topic_prefix.as_ref().unwrap();
+    Some(ConnectionType::MQTT { broker: broker.to_owned(), port: port_number, publish_topic_prefix: publish_topic_prefix.to_owned() })
+}
+
+fn get_mys_gateway(config: &Config) -> connection::ConnectionType {
+    let gateway_conf = match &config.Gateway {
+        Some(_controller_conf) => _controller_conf,
+        None => panic!("Gateway configuration is missing"),
+    };
+
+    let gateway_type = match &gateway_conf.r#type {
+        Some(_controller_type) => _controller_type,
+        None => panic!("Gateway type is not specified. Ex:\n\
+     [Gateway]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Gateway]\n type=SERIAL\n port=port=0.0.0.0:5003)"),
+    };
+
+    let port = match &gateway_conf.port {
+        Some(_port) => _port,
+        None => panic!("Gateway port is not specified. Ex:\n\
+     [Gateway]\n type=SERIAL\n port=/dev/tty1\n or \n\n[Gateway]\n type=SERIAL\n port=port=0.0.0.0:5003)"),
+    };
+
+    let timeout_enabled = match &gateway_conf.timeout_enabled {
+        Some(_timeout_enabled) => _timeout_enabled.parse::<bool>().unwrap(),
+        None => false
+    };
+
+    let baud_rate = match &gateway_conf.baud_rate {
+        Some(_baud_rate) => _baud_rate.parse::<u32>().unwrap(),
+        None => 9600
+    };
+
+    if gateway_type == "Serial" {
+        return ConnectionType::Serial { port: port.to_owned(), baud_rate };
+    }
+    if gateway_type == "TCP" {
+        return ConnectionType::TcpClient { port: port.to_owned(), timeout_enabled };
+    }
+    let broker = gateway_conf.broker.as_ref().unwrap();
+    let port_number = port.parse::<u16>().unwrap();
+    let publish_topic_prefix = gateway_conf.publish_topic_prefix.as_ref().unwrap();
+    ConnectionType::MQTT { broker: broker.to_owned(), port: port_number, publish_topic_prefix: publish_topic_prefix.to_owned() }
+}
